@@ -1,0 +1,322 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id])
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  description String?
+  users       User[]
+  permissions RolePermission[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  description String?
+  module      String?
+  roles       RolePermission[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model Service {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  titleEn         String
+  titleFil        String
+  titleBis        String?
+  descriptionEn   String
+  descriptionFil  String
+  descriptionBis  String?
+  requirementsEn  String?
+  requirementsFil String?
+  requirementsBis String?
+  documentsEn     String?
+  documentsFil    String?
+  documentsBis    String?
+  officeLocation  String?
+  officeHours     String?
+  processingTime  String?
+  fee             String?
+  contactInfo     String?
+  category        String?
+  icon            String?
+  color           String?
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Directory {
+  id             String   @id @default(cuid())
+  type           String
+  nameEn         String
+  nameFil        String
+  nameBis        String?
+  descriptionEn  String?
+  descriptionFil String?
+  descriptionBis String?
+  floor          String?
+  room           String?
+  building       String?
+  department     String?
+  headName       String?
+  contactNumber  String?
+  email          String?
+  officeHours    String?
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Download {
+  id             String          @id @default(cuid())
+  titleEn        String
+  titleFil       String
+  titleBis       String?
+  descriptionEn  String?
+  descriptionFil String?
+  descriptionBis String?
+  fileUrl        String
+  fileName       String
+  fileSize       String?
+  category       String?
+  isActive       Boolean         @default(true)
+  sortOrder      Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  tokens         DownloadToken[]
+}
+
+model DownloadToken {
+  id             String   @id @default(cuid())
+  token          String   @unique
+  downloadId     String
+  download       Download @relation(fields: [downloadId], references: [id], onDelete: Cascade)
+  method         String   @default("qr")
+  recipientEmail String?
+  expiresAt      DateTime
+  accessCount    Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  @@index([expiresAt])
+  @@index([downloadId])
+}
+
+model Faq {
+  id             String   @id @default(cuid())
+  questionEn     String
+  questionFil    String
+  questionBis    String?
+  answerEn       String
+  answerFil      String
+  answerBis      String?
+  category       String?
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Announcement {
+  id             String   @id @default(cuid())
+  titleEn        String
+  titleFil       String
+  titleBis       String?
+  contentEn      String
+  contentFil     String
+  contentBis     String?
+  imageUrl       String?
+  isPublished    Boolean  @default(true)
+  publishedAt    DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Tourism {
+  id             String   @id @default(cuid())
+  titleEn        String
+  titleFil       String
+  titleBis       String?
+  descriptionEn  String
+  descriptionFil String
+  descriptionBis String?
+  location       String?
+  imageUrl       String?
+  category       String?
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model EmergencyContact {
+  id             String   @id @default(cuid())
+  nameEn         String
+  nameFil        String
+  nameBis        String?
+  phoneNumber    String
+  descriptionEn  String?
+  descriptionFil String?
+  descriptionBis String?
+  category       String?
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Event {
+  id             String   @id @default(cuid())
+  titleEn        String
+  titleFil       String
+  titleBis       String?
+  descriptionEn  String
+  descriptionFil String
+  descriptionBis String?
+  location       String?
+  startDate      DateTime
+  endDate        DateTime?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String?
+  rating    Int?
+  message   String
+  category  String?
+  createdAt DateTime @default(now())
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  group     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VisitorLog {
+  id        String   @id @default(cuid())
+  page      String
+  sessionId String?
+  language  String?
+  createdAt DateTime @default(now())
+}
+
+model SearchLog {
+  id        String   @id @default(cuid())
+  query     String
+  results   Int      @default(0)
+  sessionId String?
+  createdAt DateTime @default(now())
+}
+
+model QuickLink {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  titleEn        String
+  titleFil       String
+  titleBis       String?
+  icon           String
+  href           String
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Page {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  titleEn        String
+  titleFil       String
+  titleBis       String?
+  contentEn      String
+  contentFil     String
+  contentBis     String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model HomepageCard {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  titleEn        String
+  titleFil       String
+  titleBis       String?
+  descriptionEn  String
+  descriptionFil String
+  descriptionBis String?
+  icon           String
+  iconUrl        String?
+  color          String
+  href           String
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model BuildingLocation {
+  id              String   @id @default(cuid())
+  buildingNameEn  String
+  buildingNameFil String?
+  buildingNameBis String?
+  nameEn          String
+  nameFil         String?
+  nameBis         String?
+  floor           Int
+  floorLabelEn    String
+  floorLabelFil   String?
+  floorLabelBis   String?
+  room            String?
+  locationType    String
+  category        String?
+  nearbyLandmarks String
+  directionsEn    String
+  directionsFil   String?
+  directionsBis   String?
+  aliases         String?
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

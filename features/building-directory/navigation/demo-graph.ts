@@ -1,0 +1,247 @@
+import type { NavigationGraph, NavEdge, NavNode, FloorPlanConfig } from "./types";
+
+const nodes: NavNode[] = [
+  // Floor 1
+  { id: "f1_main_entrance", floor: 1, x: 70, y: 230, type: "entrance", label: "Main Entrance", locationId: "f1-main-entrance", landmark: true },
+  { id: "f1_kiosk", floor: 1, x: 105, y: 200, type: "landmark", label: "Directory Kiosk", locationId: "f1-kiosk", landmark: true },
+  { id: "f1_info_desk", floor: 1, x: 150, y: 200, type: "landmark", label: "Information Desk", locationId: "f1-info-desk", landmark: true },
+  { id: "f1_security", floor: 1, x: 200, y: 170, type: "facility", label: "Security Office", locationId: "f1-security" },
+  { id: "f1_elevator", floor: 1, x: 120, y: 130, type: "elevator", label: "Elevator", locationId: "f1-elevator", landmark: true, wheelchairAccessible: true },
+  { id: "f1_hall_w", floor: 1, x: 220, y: 200, type: "intersection", label: "West Hallway" },
+  { id: "f1_hall_center", floor: 1, x: 300, y: 200, type: "intersection", label: "Central Hallway", landmark: true },
+  { id: "f1_hall_e", floor: 1, x: 400, y: 200, type: "intersection", label: "East Hallway" },
+  { id: "f1_stair_a", floor: 1, x: 460, y: 200, type: "staircase", label: "Staircase A", locationId: "f1-staircase-a", landmark: true, wheelchairAccessible: false },
+  { id: "f1_stair_b", floor: 1, x: 300, y: 300, type: "staircase", label: "Staircase B", locationId: "f1-staircase-b", wheelchairAccessible: false },
+  { id: "f1_student_lounge", floor: 1, x: 240, y: 280, type: "facility", label: "Student Lounge", locationId: "f1-student-lounge", landmark: true },
+  { id: "f1_cafeteria", floor: 1, x: 480, y: 120, type: "facility", label: "Cafeteria", locationId: "f1-cafeteria", landmark: true },
+  { id: "f1_restroom_m", floor: 1, x: 210, y: 280, type: "facility", label: "Male Restroom", locationId: "f1-male-restroom", wheelchairAccessible: true },
+  { id: "f1_restroom_f", floor: 1, x: 190, y: 280, type: "facility", label: "Female Restroom", locationId: "f1-female-restroom", wheelchairAccessible: true },
+  { id: "f1_room_101", floor: 1, x: 330, y: 155, type: "room", label: "Room 101", locationId: "r101" },
+  { id: "f1_room_102", floor: 1, x: 390, y: 155, type: "room", label: "Room 102", locationId: "r102" },
+  { id: "f1_room_103", floor: 1, x: 450, y: 155, type: "room", label: "Room 103", locationId: "r103" },
+  { id: "f1_room_104", floor: 1, x: 510, y: 155, type: "room", label: "Room 104", locationId: "r104" },
+  { id: "f1_room_105", floor: 1, x: 560, y: 155, type: "room", label: "Room 105", locationId: "r105" },
+
+  // Floor 2
+  { id: "f2_elevator", floor: 2, x: 120, y: 130, type: "elevator", label: "Elevator", locationId: "f2-elevator", landmark: true, wheelchairAccessible: true },
+  { id: "f2_stair_a", floor: 2, x: 460, y: 200, type: "staircase", label: "Staircase A", locationId: "f2-staircase-a", landmark: true, wheelchairAccessible: false },
+  { id: "f2_stair_b", floor: 2, x: 300, y: 300, type: "staircase", label: "Staircase B", locationId: "f2-staircase-b", wheelchairAccessible: false },
+  { id: "f2_hall_w", floor: 2, x: 220, y: 200, type: "intersection", label: "West Hallway" },
+  { id: "f2_hall_center", floor: 2, x: 300, y: 200, type: "intersection", label: "Central Hallway", landmark: true },
+  { id: "f2_hall_e", floor: 2, x: 400, y: 200, type: "intersection", label: "East Hallway" },
+  { id: "f2_water", floor: 2, x: 150, y: 170, type: "facility", label: "Water Station", locationId: "f2-water-station" },
+  { id: "f2_restroom_m", floor: 2, x: 150, y: 230, type: "facility", label: "Male Restroom", locationId: "f2-male-restroom", wheelchairAccessible: true },
+  { id: "f2_restroom_f", floor: 2, x: 130, y: 230, type: "facility", label: "Female Restroom", locationId: "f2-female-restroom", wheelchairAccessible: true },
+  { id: "f2_room_201", floor: 2, x: 250, y: 155, type: "room", label: "Room 201", locationId: "r201" },
+  { id: "f2_room_202", floor: 2, x: 310, y: 155, type: "room", label: "Room 202", locationId: "r202" },
+  { id: "f2_room_203", floor: 2, x: 250, y: 245, type: "room", label: "Room 203", locationId: "r203" },
+  { id: "f2_room_204", floor: 2, x: 310, y: 245, type: "room", label: "Room 204", locationId: "r204" },
+  { id: "f2_room_205", floor: 2, x: 420, y: 245, type: "room", label: "Room 205", locationId: "r205" },
+
+  // Floor 3
+  { id: "f3_elevator", floor: 3, x: 120, y: 130, type: "elevator", label: "Elevator", locationId: "f3-elevator", landmark: true, wheelchairAccessible: true },
+  { id: "f3_stair_a", floor: 3, x: 460, y: 200, type: "staircase", label: "Staircase A", locationId: "f3-staircase-a", landmark: true, wheelchairAccessible: false },
+  { id: "f3_stair_b", floor: 3, x: 300, y: 300, type: "staircase", label: "Staircase B", locationId: "f3-staircase-b", wheelchairAccessible: false },
+  { id: "f3_hall_w", floor: 3, x: 220, y: 200, type: "intersection", label: "West Hallway" },
+  { id: "f3_hall_center", floor: 3, x: 300, y: 200, type: "intersection", label: "Central Hallway", landmark: true },
+  { id: "f3_hall_e", floor: 3, x: 400, y: 200, type: "intersection", label: "East Hallway" },
+  { id: "f3_emergency", floor: 3, x: 540, y: 200, type: "emergency_exit", label: "Emergency Exit", locationId: "f3-emergency-exit", landmark: true },
+  { id: "f3_restroom_m", floor: 3, x: 350, y: 155, type: "facility", label: "Male Restroom", locationId: "f3-male-restroom", wheelchairAccessible: true },
+  { id: "f3_restroom_f", floor: 3, x: 330, y: 155, type: "facility", label: "Female Restroom", locationId: "f3-female-restroom", wheelchairAccessible: true },
+  { id: "f3_room_301", floor: 3, x: 250, y: 155, type: "room", label: "Room 301", locationId: "r301" },
+  { id: "f3_room_302", floor: 3, x: 310, y: 155, type: "room", label: "Room 302", locationId: "r302" },
+  { id: "f3_room_303", floor: 3, x: 370, y: 155, type: "room", label: "Room 303", locationId: "r303" },
+  { id: "f3_room_304", floor: 3, x: 430, y: 155, type: "room", label: "Room 304", locationId: "r304" },
+  { id: "f3_room_305", floor: 3, x: 490, y: 155, type: "room", label: "Room 305", locationId: "r305" },
+];
+
+function edge(
+  from: string,
+  to: string,
+  distanceMeters: number,
+  opts?: Partial<NavEdge>
+): NavEdge {
+  return {
+    from,
+    to,
+    distanceMeters,
+    wheelchairAccessible: opts?.wheelchairAccessible ?? true,
+    restricted: opts?.restricted ?? false,
+    vertical: opts?.vertical ?? false,
+    instruction: opts?.instruction,
+  };
+}
+
+const edges: NavEdge[] = [
+  // Floor 1 horizontal hallway
+  edge("f1_main_entrance", "f1_kiosk", 4, { instruction: "You are at the directory kiosk near the entrance." }),
+  edge("f1_kiosk", "f1_main_entrance", 4),
+  edge("f1_kiosk", "f1_info_desk", 6),
+  edge("f1_info_desk", "f1_kiosk", 6),
+  edge("f1_main_entrance", "f1_info_desk", 12),
+  edge("f1_info_desk", "f1_main_entrance", 12),
+  edge("f1_info_desk", "f1_security", 8),
+  edge("f1_security", "f1_info_desk", 8),
+  edge("f1_info_desk", "f1_hall_w", 10),
+  edge("f1_hall_w", "f1_info_desk", 10),
+  edge("f1_hall_w", "f1_hall_center", 12),
+  edge("f1_hall_center", "f1_hall_w", 12),
+  edge("f1_hall_center", "f1_hall_e", 14),
+  edge("f1_hall_e", "f1_hall_center", 14),
+  edge("f1_hall_e", "f1_stair_a", 8),
+  edge("f1_stair_a", "f1_hall_e", 8),
+
+  // Floor 1 vertical branches
+  edge("f1_info_desk", "f1_elevator", 10, { instruction: "Head to the elevator on your left." }),
+  edge("f1_elevator", "f1_info_desk", 10),
+  edge("f1_hall_center", "f1_stair_b", 14, { wheelchairAccessible: false, instruction: "Take Staircase B." }),
+  edge("f1_stair_b", "f1_hall_center", 14, { wheelchairAccessible: false }),
+  edge("f1_hall_center", "f1_student_lounge", 12, { instruction: "Continue past the Student Lounge." }),
+  edge("f1_student_lounge", "f1_hall_center", 12),
+  edge("f1_student_lounge", "f1_restroom_m", 5),
+  edge("f1_restroom_m", "f1_student_lounge", 5),
+  edge("f1_restroom_m", "f1_restroom_f", 3),
+  edge("f1_restroom_f", "f1_restroom_m", 3),
+  edge("f1_hall_e", "f1_cafeteria", 12, { instruction: "Turn right toward the Cafeteria." }),
+  edge("f1_cafeteria", "f1_hall_e", 12),
+
+  // Floor 1 rooms
+  edge("f1_hall_center", "f1_room_101", 8),
+  edge("f1_room_101", "f1_hall_center", 8),
+  edge("f1_hall_center", "f1_room_102", 14),
+  edge("f1_room_102", "f1_hall_center", 14),
+  edge("f1_hall_e", "f1_room_103", 8),
+  edge("f1_room_103", "f1_hall_e", 8),
+  edge("f1_hall_e", "f1_room_104", 14),
+  edge("f1_room_104", "f1_hall_e", 14),
+  edge("f1_stair_a", "f1_room_105", 14),
+  edge("f1_room_105", "f1_stair_a", 14),
+
+  // Floor 2
+  edge("f2_elevator", "f2_water", 8),
+  edge("f2_water", "f2_elevator", 8),
+  edge("f2_elevator", "f2_restroom_m", 10),
+  edge("f2_restroom_m", "f2_elevator", 10),
+  edge("f2_restroom_m", "f2_restroom_f", 3),
+  edge("f2_restroom_f", "f2_restroom_m", 3),
+  edge("f2_elevator", "f2_hall_w", 12),
+  edge("f2_hall_w", "f2_elevator", 12),
+  edge("f2_hall_w", "f2_hall_center", 12),
+  edge("f2_hall_center", "f2_hall_w", 12),
+  edge("f2_hall_center", "f2_hall_e", 14),
+  edge("f2_hall_e", "f2_hall_center", 14),
+  edge("f2_hall_e", "f2_stair_a", 8),
+  edge("f2_stair_a", "f2_hall_e", 8),
+  edge("f2_hall_center", "f2_stair_b", 14, { wheelchairAccessible: false }),
+  edge("f2_stair_b", "f2_hall_center", 14, { wheelchairAccessible: false }),
+  edge("f2_hall_w", "f2_room_201", 8),
+  edge("f2_room_201", "f2_hall_w", 8),
+  edge("f2_hall_center", "f2_room_202", 8),
+  edge("f2_room_202", "f2_hall_center", 8),
+  edge("f2_hall_center", "f2_room_203", 10, { instruction: "Walk past the Faculty Office." }),
+  edge("f2_room_203", "f2_hall_center", 10),
+  edge("f2_hall_center", "f2_room_204", 8),
+  edge("f2_room_204", "f2_hall_center", 8),
+  edge("f2_hall_e", "f2_room_205", 16, { instruction: "Room 205 is at the end of the hallway." }),
+  edge("f2_room_205", "f2_hall_e", 16),
+
+  // Floor 3
+  edge("f3_elevator", "f3_hall_w", 12),
+  edge("f3_hall_w", "f3_elevator", 12),
+  edge("f3_hall_w", "f3_hall_center", 12),
+  edge("f3_hall_center", "f3_hall_w", 12),
+  edge("f3_hall_center", "f3_hall_e", 14),
+  edge("f3_hall_e", "f3_hall_center", 14),
+  edge("f3_hall_e", "f3_stair_a", 8),
+  edge("f3_stair_a", "f3_hall_e", 8),
+  edge("f3_hall_e", "f3_emergency", 18, { instruction: "Proceed to the Emergency Exit." }),
+  edge("f3_emergency", "f3_hall_e", 18),
+  edge("f3_hall_center", "f3_stair_b", 14, { wheelchairAccessible: false }),
+  edge("f3_stair_b", "f3_hall_center", 14, { wheelchairAccessible: false }),
+  edge("f3_hall_center", "f3_restroom_m", 8),
+  edge("f3_restroom_m", "f3_hall_center", 8),
+  edge("f3_restroom_m", "f3_restroom_f", 3),
+  edge("f3_restroom_f", "f3_restroom_m", 3),
+  edge("f3_hall_w", "f3_room_301", 8),
+  edge("f3_room_301", "f3_hall_w", 8),
+  edge("f3_hall_center", "f3_room_302", 8),
+  edge("f3_room_302", "f3_hall_center", 8),
+  edge("f3_hall_center", "f3_room_303", 14),
+  edge("f3_room_303", "f3_hall_center", 14),
+  edge("f3_hall_e", "f3_room_304", 8),
+  edge("f3_room_304", "f3_hall_e", 8),
+  edge("f3_hall_e", "f3_room_305", 14),
+  edge("f3_room_305", "f3_hall_e", 14),
+
+  // Vertical connections – elevators (accessible)
+  edge("f1_elevator", "f2_elevator", 0, { vertical: true, wheelchairAccessible: true, instruction: "Take the elevator to the 2nd Floor." }),
+  edge("f2_elevator", "f1_elevator", 0, { vertical: true, wheelchairAccessible: true, instruction: "Take the elevator to the 1st Floor." }),
+  edge("f2_elevator", "f3_elevator", 0, { vertical: true, wheelchairAccessible: true, instruction: "Take the elevator to the 3rd Floor." }),
+  edge("f3_elevator", "f2_elevator", 0, { vertical: true, wheelchairAccessible: true, instruction: "Take the elevator to the 2nd Floor." }),
+
+  // Vertical connections – stairs (not wheelchair accessible)
+  edge("f1_stair_a", "f2_stair_a", 0, { vertical: true, wheelchairAccessible: false, instruction: "Take Staircase A to the 2nd Floor." }),
+  edge("f2_stair_a", "f1_stair_a", 0, { vertical: true, wheelchairAccessible: false }),
+  edge("f2_stair_a", "f3_stair_a", 0, { vertical: true, wheelchairAccessible: false, instruction: "Take Staircase A to the 3rd Floor." }),
+  edge("f3_stair_a", "f2_stair_a", 0, { vertical: true, wheelchairAccessible: false }),
+  edge("f1_stair_b", "f2_stair_b", 0, { vertical: true, wheelchairAccessible: false }),
+  edge("f2_stair_b", "f1_stair_b", 0, { vertical: true, wheelchairAccessible: false }),
+  edge("f2_stair_b", "f3_stair_b", 0, { vertical: true, wheelchairAccessible: false }),
+  edge("f3_stair_b", "f2_stair_b", 0, { vertical: true, wheelchairAccessible: false }),
+];
+
+const floorPlans: FloorPlanConfig[] = [
+  {
+    floor: 1,
+    label: "Floor 1",
+    width: 620,
+    height: 360,
+    hallways: [
+      { x: 60, y: 185, width: 520, height: 30 },
+      { x: 105, y: 120, width: 30, height: 80 },
+      { x: 285, y: 200, width: 30, height: 100 },
+      { x: 450, y: 110, width: 80, height: 30 },
+    ],
+  },
+  {
+    floor: 2,
+    label: "Floor 2",
+    width: 620,
+    height: 360,
+    hallways: [
+      { x: 105, y: 185, width: 400, height: 30 },
+      { x: 105, y: 120, width: 30, height: 80 },
+      { x: 285, y: 200, width: 30, height: 60 },
+    ],
+  },
+  {
+    floor: 3,
+    label: "Floor 3",
+    width: 620,
+    height: 360,
+    hallways: [
+      { x: 105, y: 185, width: 460, height: 30 },
+      { x: 105, y: 120, width: 30, height: 80 },
+      { x: 285, y: 200, width: 30, height: 60 },
+    ],
+  },
+];
+
+export const DEMO_NAVIGATION_GRAPH: NavigationGraph = {
+  nodes,
+  edges,
+  floorPlans,
+  defaultStartLocationId: "f1-kiosk",
+};
+
+export function getNodeByLocationId(graph: NavigationGraph, locationId: string): NavNode | undefined {
+  return graph.nodes.find((n) => n.locationId === locationId);
+}
+
+export function getRoomNodesForFloor(graph: NavigationGraph, floor: number): NavNode[] {
+  return graph.nodes.filter((n) => n.floor === floor && (n.type === "room" || n.type === "facility"));
+}
+
+export function getLandmarkNodesForFloor(graph: NavigationGraph, floor: number): NavNode[] {
+  return graph.nodes.filter((n) => n.floor === floor && n.landmark);
+}

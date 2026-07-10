@@ -1,36 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LGU Information & Visitor Experience Kiosk
+
+A modern, touchscreen-optimized kiosk system for the **Provincial Government of Camiguin**. Built with Next.js 15, TypeScript, Tailwind CSS, shadcn/ui, Prisma, and Auth.js.
+
+## Features
+
+- **Kiosk Home Screen** — Sidebar branding, Smart Search, service cards, quick access, bottom navigation
+- **11 Service Modules** — Citizens' Charter, directories, map, news, downloads, FAQ, tourism, emergency, events, help
+- **Smart Search** — Instant cross-module search with result previews
+- **Multi-language** — English and Filipino support
+- **Accessibility** — Large text, high contrast, keyboard navigation, screen reader ready
+- **Admin Dashboard** — Manage all content, users, roles, and settings
+- **SQLite (dev)** — PostgreSQL-ready schema for production migration
+- **Socket.IO Ready** — Architecture prepared in `lib/socket/`
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# Install dependencies
+npm install
+
+# Run database migrations
+npm run db:migrate
+
+# Seed sample data
+npm run db:seed
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) for the kiosk interface.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Admin Access
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- URL: [http://localhost:3000/admin/login](http://localhost:3000/admin/login)
+- Email: `admin@camiguin.gov.ph`
+- Password: `admin123`
 
-## Learn More
+## Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js 15, TypeScript, Tailwind CSS, shadcn/ui, Lucide |
+| Backend | Next.js API Routes, Server Actions |
+| Database | SQLite (dev), Prisma ORM |
+| Auth | Auth.js (Credentials) |
+| Validation | Zod |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## PostgreSQL Migration
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Update `DATABASE_URL` in `.env` to your PostgreSQL connection string. The schema uses portable types compatible with both SQLite and PostgreSQL.
 
-## Deploy on Vercel
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/kiosk_guide?schema=public"
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Then run:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run db:migrate
+npm run db:seed
+```
+
+## Project Structure
+
+```
+app/           # Next.js App Router pages
+components/    # Reusable UI components
+features/      # Feature modules (search, kiosk, admin)
+lib/           # Utilities, auth, db, i18n, socket prep
+hooks/         # React hooks (kiosk context)
+prisma/        # Schema, migrations, seed
+types/         # TypeScript definitions
+utils/         # Helper functions
+public/        # Static assets
+```
+
+## License
+
+Private — Provincial Government of Camiguin
