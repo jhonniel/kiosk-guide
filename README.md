@@ -10,7 +10,7 @@ A modern, touchscreen-optimized kiosk system for the **Provincial Government of 
 - **Multi-language** — English and Filipino support
 - **Accessibility** — Large text, high contrast, keyboard navigation, screen reader ready
 - **Admin Dashboard** — Manage all content, users, roles, and settings
-- **SQLite (dev)** — PostgreSQL-ready schema for production migration
+- **PostgreSQL** — Prisma migrations for Postgres (local and production)
 - **Socket.IO Ready** — Architecture prepared in `lib/socket/`
 
 ## Getting Started
@@ -19,7 +19,10 @@ A modern, touchscreen-optimized kiosk system for the **Provincial Government of 
 # Install dependencies
 npm install
 
-# Run database migrations
+# Set DATABASE_URL in .env (PostgreSQL required)
+# DATABASE_URL="postgresql://user:password@localhost:5432/kiosk_guide?schema=public"
+
+# Create / apply migrations (local development)
 npm run db:migrate
 
 # Seed sample data
@@ -43,22 +46,39 @@ Open [http://localhost:3000](http://localhost:3000) for the kiosk interface.
 |-------|-----------|
 | Frontend | Next.js 15, TypeScript, Tailwind CSS, shadcn/ui, Lucide |
 | Backend | Next.js API Routes, Server Actions |
-| Database | SQLite (dev), Prisma ORM |
+| Database | PostgreSQL + Prisma ORM |
 | Auth | Auth.js (Credentials) |
 | Validation | Zod |
 
-## PostgreSQL Migration
+## Database (PostgreSQL)
 
-Update `DATABASE_URL` in `.env` to your PostgreSQL connection string. The schema uses portable types compatible with both SQLite and PostgreSQL.
+Set a Postgres connection string in `.env`:
 
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/kiosk_guide?schema=public"
 ```
 
-Then run:
+**Local (dev):**
 
 ```bash
 npm run db:migrate
+npm run db:seed
+```
+
+**Production / server (Docker, VPS):**
+
+```bash
+npm run db:deploy
+npm run db:seed
+```
+
+Use `db:deploy` (`prisma migrate deploy`) on the server — not `db:migrate`.
+
+If you previously tried SQLite migrations against Postgres, reset the database once, then redeploy:
+
+```bash
+# example: drop & recreate empty DB, then
+npm run db:deploy
 npm run db:seed
 ```
 
