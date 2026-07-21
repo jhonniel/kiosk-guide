@@ -139,7 +139,8 @@ export function CamiguinInteractiveMap({ markers }: Props) {
   }
 
   function onPointerDown(e: React.PointerEvent) {
-    if ((e.target as HTMLElement).closest("[data-map-marker]")) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("[data-map-marker]") || target.closest("[data-map-popup]")) return;
     dragRef.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   }
@@ -196,30 +197,30 @@ export function CamiguinInteractiveMap({ markers }: Props) {
   ];
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
+    <div className="relative min-h-0 flex-1">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 p-3">
+        <div className="pointer-events-auto flex flex-wrap gap-2">
           {filters.map((f) => (
             <button
               key={f.id}
               type="button"
               onClick={() => setFilter(f.id)}
               className={cn(
-                "rounded-full px-4 py-2 text-xs font-bold transition-colors",
+                "rounded-full px-4 py-2 text-xs font-bold shadow-md transition-colors",
                 filter === f.id
-                  ? "bg-kiosk-navy text-white shadow-md"
-                  : "bg-white text-kiosk-navy ring-1 ring-gray-200 hover:bg-gray-50"
+                  ? "bg-kiosk-navy text-white"
+                  : "bg-white/95 text-kiosk-navy ring-1 ring-gray-200 hover:bg-white"
               )}
             >
               {uiText(language, f.labelKey)}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="pointer-events-auto flex items-center gap-1">
           <button
             type="button"
             onClick={() => changeScale(0.2)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-kiosk-navy shadow-sm ring-1 ring-gray-200"
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/95 text-kiosk-navy shadow-md ring-1 ring-gray-200"
             aria-label={uiText(language, "mapZoomIn")}
           >
             <Plus className="h-4 w-4" />
@@ -227,7 +228,7 @@ export function CamiguinInteractiveMap({ markers }: Props) {
           <button
             type="button"
             onClick={() => changeScale(-0.2)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-kiosk-navy shadow-sm ring-1 ring-gray-200"
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/95 text-kiosk-navy shadow-md ring-1 ring-gray-200"
             aria-label={uiText(language, "mapZoomOut")}
           >
             <Minus className="h-4 w-4" />
@@ -235,7 +236,7 @@ export function CamiguinInteractiveMap({ markers }: Props) {
           <button
             type="button"
             onClick={resetView}
-            className="flex h-9 items-center gap-1 rounded-lg bg-white px-3 text-xs font-semibold text-kiosk-navy shadow-sm ring-1 ring-gray-200"
+            className="flex h-9 items-center gap-1 rounded-lg bg-white/95 px-3 text-xs font-semibold text-kiosk-navy shadow-md ring-1 ring-gray-200"
           >
             <RotateCcw className="h-3.5 w-3.5" />
             {uiText(language, "mapResetView")}
@@ -243,11 +244,10 @@ export function CamiguinInteractiveMap({ markers }: Props) {
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 items-center justify-center">
-        <div
-          ref={viewportRef}
-          className="relative aspect-[1024/721] h-full max-w-full touch-none overflow-hidden rounded-2xl border border-sky-900/20 bg-[#bfe3ee] shadow-xl"
-          onPointerDown={onPointerDown}
+      <div
+        ref={viewportRef}
+        className="relative h-full w-full touch-none overflow-hidden rounded-2xl border border-sky-900/20 bg-[#bfe3ee] shadow-xl"
+        onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
@@ -326,7 +326,11 @@ export function CamiguinInteractiveMap({ markers }: Props) {
         </div>
 
         {selected && (
-          <div className="absolute right-3 bottom-3 z-30 w-[min(320px,calc(100%-1.5rem))] rounded-2xl border border-kiosk-green/30 bg-white p-4 shadow-lg">
+          <div
+            data-map-popup
+            className="absolute right-3 bottom-3 z-30 w-[min(320px,calc(100%-1.5rem))] rounded-2xl border border-kiosk-green/30 bg-white p-4 shadow-lg"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-kiosk-green">
@@ -343,7 +347,9 @@ export function CamiguinInteractiveMap({ markers }: Props) {
               </div>
               <button
                 type="button"
-                onClick={() => {
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
                   setSelectedId(null);
                   resetView();
                 }}
@@ -398,11 +404,10 @@ export function CamiguinInteractiveMap({ markers }: Props) {
             )}
           </div>
         )}
-        </div>
       </div>
 
       {offices.length > 0 && filter !== "landmark" && (
-        <div className="shrink-0 rounded-2xl bg-white p-4 shadow-sm">
+        <div className="absolute inset-x-3 bottom-3 z-20 rounded-2xl bg-white/95 p-4 shadow-lg backdrop-blur-sm">
           <h4 className="mb-3 text-xs font-bold tracking-wider text-kiosk-navy">
             {uiText(language, "capitolOffices")}
           </h4>

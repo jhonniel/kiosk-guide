@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2,
   ChevronRight,
-  ExternalLink,
   FileText,
   ListChecks,
   Search,
@@ -20,6 +19,53 @@ interface CitizensCharterClientProps {
   edition: CharterEditionView | null;
 }
 
+function normalizeSearchText(value: unknown) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+}
+
+function matchesSearch(values: unknown[], query: string) {
+  const terms = normalizeSearchText(query).split(/\s+/).filter(Boolean);
+  if (!terms.length) return true;
+  const haystack = normalizeSearchText(values.join(" "));
+  return terms.every((term) => haystack.includes(term));
+}
+
+function serviceMatches(service: CharterServiceView, query: string) {
+  return matchesSearch(
+    [
+      service.name,
+      service.pageNumber,
+      service.description,
+      service.officeOrDivision,
+      service.classification,
+      service.typeOfTransaction,
+      service.whoMayAvail,
+      ...service.details,
+      ...service.requirements.flatMap((item) => [
+        item.requirement,
+        item.whereToSecure,
+      ]),
+      ...service.steps.flatMap((item) => [
+        item.step,
+        item.action,
+        item.fee,
+        item.time,
+        item.person,
+      ]),
+      ...service.medicines.flatMap((item) => [
+        item.name,
+        item.preparation,
+        item.brand,
+        item.price,
+      ]),
+    ],
+    query
+  );
+}
+
 export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
   const [query, setQuery] = useState("");
   const [expandedOfficeId, setExpandedOfficeId] = useState<string | null>(null);
@@ -31,17 +77,33 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
 
   const groups = useMemo(() => {
     const offices = edition?.offices ?? [];
-    const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return offices;
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) return offices;
+
+    if (
+      edition &&
+      matchesSearch(
+        [
+          edition.title,
+          edition.year,
+          edition.editionLabel,
+          edition.description,
+          edition.pdfFileName,
+        ],
+        trimmedQuery
+      )
+    ) {
+      return offices;
+    }
 
     return offices.flatMap((office) => {
-      if (office.name.toLowerCase().includes(normalizedQuery)) return [office];
+      if (matchesSearch([office.name], trimmedQuery)) return [office];
 
       const categories = office.categories.flatMap((category) => {
-        const services = category.services.filter(
-          (service) =>
-            service.name.toLowerCase().includes(normalizedQuery) ||
-            service.details.some((detail) => detail.toLowerCase().includes(normalizedQuery))
+        if (matchesSearch([category.name], trimmedQuery)) return [category];
+
+        const services = category.services.filter((service) =>
+          serviceMatches(service, trimmedQuery)
         );
         return services.length ? [{ ...category, services }] : [];
       });
@@ -142,41 +204,14 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
 
   return (
     <div className="space-y-5">
-      <section className="rounded-2xl bg-gradient-to-br from-kiosk-navy to-blue-900 p-5 text-white shadow-md">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-bold tracking-[0.18em] text-kiosk-green uppercase">
-              {edition.year} · {edition.editionLabel}
-            </p>
-            <h2 className="mt-1 text-xl font-bold">{edition.title}</h2>
-            <p className="mt-1 text-sm text-blue-100">
-              {edition.description ||
-                `${edition.serviceCount} services grouped under ${edition.offices.length} offices.`}
-            </p>
-            <p className="mt-1 text-xs text-blue-200">
-              {edition.serviceCount} services · {edition.offices.length} offices
-            </p>
-          </div>
-          <a
-            href={edition.pdfUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-bold text-kiosk-navy shadow-sm transition-transform hover:scale-[1.02]"
-          >
-            <FileText className="h-5 w-5" />
-            View Full Charter
-            <ExternalLink className="h-4 w-4" />
-          </a>
-        </div>
-      </section>
-
       <div className="relative">
         <Search className="pointer-events-none absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-gray-400" />
         <input
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search an office or service…"
+          placeholder="Search any service, requirement, step, fee, person, or medicine…"
+          aria-label="Search all Citizens' Charter data"
           className="w-full rounded-2xl border border-gray-200 bg-white py-3.5 pr-4 pl-12 text-sm text-kiosk-navy shadow-sm outline-none transition focus:border-kiosk-green focus:ring-2 focus:ring-kiosk-green/20"
         />
       </div>
@@ -184,7 +219,7 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
       {groups.length ? (
         <>
           <div className="kiosk-stagger grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {groups.map((group, groupIndex) => {
+            {groups.map((group) => {
               const serviceCount = group.categories.reduce(
                 (total, category) => total + category.services.length,
                 0
@@ -205,10 +240,7 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
                   <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-kiosk-navy text-white">
                     <Building2 className="h-5 w-5" />
                   </span>
-                  <p className="text-[10px] font-bold tracking-wider text-kiosk-green uppercase">
-                    Group {groupIndex + 1}
-                  </p>
-                  <h3 className="mt-1 line-clamp-3 flex-1 text-sm leading-snug font-bold text-kiosk-navy">
+                  <h3 className="line-clamp-3 flex-1 text-sm leading-snug font-bold text-kiosk-navy">
                     {group.name}
                   </h3>
                   <p className="mt-3 text-xs font-semibold text-gray-500">
