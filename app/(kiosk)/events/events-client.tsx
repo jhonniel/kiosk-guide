@@ -11,7 +11,7 @@ export function EventsClient({ events }: { events: Event[] }) {
   const { language } = useKiosk();
 
   return (
-    <div className="space-y-4">
+    <div className="kiosk-stagger space-y-4">
       {events.map((event) => (
         <ContentCard key={event.id} className="flex gap-4">
           <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-violet-50">

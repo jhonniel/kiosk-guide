@@ -10,7 +10,7 @@ export function TourismClient({ items }: { items: Tourism[] }) {
   const { language } = useKiosk();
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="kiosk-stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {items.map((item) => (
         <ContentCard key={item.id}>
           <div className="mb-3 flex h-32 items-center justify-center rounded-xl bg-pink-50">

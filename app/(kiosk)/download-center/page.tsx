@@ -16,8 +16,7 @@ export default function DownloadCenterPage() {
     <ModulePageClient
       titleEn="Download Center"
       titleFil="Sentro ng Pag-download"
-      descriptionEn="Forms, guidelines, and official documents."
-      descriptionFil="Mga form, gabay, at opisyal na dokumento."
+      titleBis="Sentro sa Pag-download"
     >
       <DownloadCenterClient
         downloads={getSortedDownloads(data)}

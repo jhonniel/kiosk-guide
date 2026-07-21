@@ -13,7 +13,7 @@ export function ContactClient({ settings }: Props) {
   const { language } = useKiosk();
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="kiosk-stagger grid gap-4 md:grid-cols-3">
       <ContentCard className="text-center">
         <Phone className="mx-auto mb-3 h-8 w-8 text-kiosk-green" />
         <h3 className="mb-2 font-bold text-kiosk-navy">{uiText(language, "phoneLabel")}</h3>

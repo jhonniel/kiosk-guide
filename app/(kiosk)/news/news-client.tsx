@@ -10,7 +10,7 @@ export function NewsClient({ announcements }: { announcements: Announcement[] })
   const { language } = useKiosk();
 
   return (
-    <div className="space-y-4">
+    <div className="kiosk-stagger space-y-4">
       {announcements.map((item) => (
         <ContentCard key={item.id}>
           <div className="mb-2 flex items-center justify-between">

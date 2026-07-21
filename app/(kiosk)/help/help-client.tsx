@@ -17,7 +17,7 @@ export function HelpClient({ services }: { services: Service[] }) {
       <ContentCard>
         <p className="text-gray-700">{uiText(language, "helpIntro")}</p>
       </ContentCard>
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="kiosk-stagger grid gap-3 md:grid-cols-2">
         {services.map((service) => {
           const Icon = getIcon(service.icon ?? "HelpCircle");
           return (

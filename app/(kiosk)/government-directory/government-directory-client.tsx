@@ -10,7 +10,7 @@ export function GovernmentDirectoryClient({ directories }: { directories: Direct
   const { language } = useKiosk();
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="kiosk-stagger grid gap-4 md:grid-cols-2">
       {directories.map((dir) => (
         <ContentCard key={dir.id}>
           <h3 className="mb-1 font-bold text-kiosk-navy">{localized(dir, language, "name")}</h3>

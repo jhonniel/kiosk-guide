@@ -152,7 +152,7 @@ export function BuildingDirectoryClient({
             </h2>
             <div className="h-0.5 w-8 bg-kiosk-green" />
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="kiosk-stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {directories.map((dir) => (
               <ContentCard key={dir.id}>
                 <h3 className="mb-2 font-bold text-kiosk-navy">{localized(dir, language, "name")}</h3>

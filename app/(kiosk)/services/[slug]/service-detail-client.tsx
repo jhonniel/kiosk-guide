@@ -24,7 +24,7 @@ export function ServiceDetailClient({ service }: { service: Service }) {
       <ContentCard>
         <p className="leading-relaxed text-gray-700">{localized(service, language, "description")}</p>
       </ContentCard>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="kiosk-stagger grid gap-4 md:grid-cols-2">
         {sections
           .filter((s) => s.value)
           .map((section) => (

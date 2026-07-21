@@ -13,7 +13,7 @@ export function FaqClient({ faqs }: { faqs: Faq[] }) {
   const [openId, setOpenId] = useState<string | null>(faqs[0]?.id ?? null);
 
   return (
-    <div className="space-y-3">
+    <div className="kiosk-stagger space-y-3">
       {faqs.map((faq) => {
         const isOpen = openId === faq.id;
         return (

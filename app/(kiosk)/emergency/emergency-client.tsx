@@ -10,7 +10,7 @@ export function EmergencyClient({ contacts }: { contacts: EmergencyContact[] }) 
   const { language } = useKiosk();
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="kiosk-stagger grid gap-4 md:grid-cols-2">
       {contacts.map((contact) => (
         <ContentCard key={contact.id} className="border-l-4 border-red-500">
           <h3 className="mb-1 font-bold text-kiosk-navy">{localized(contact, language, "name")}</h3>

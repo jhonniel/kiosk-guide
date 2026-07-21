@@ -231,3 +231,187 @@ html.kiosk-screen-reader *:focus-visible {
   border-radius: 0.5rem;
   animation: room-selection-pulse 1.8s ease-in-out infinite;
 }
+
+@keyframes charter-modal-backdrop-in {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes charter-modal-backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+}
+
+@keyframes charter-modal-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes charter-modal-panel-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+}
+
+@keyframes charter-detail-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.charter-modal-backdrop-in {
+  animation: charter-modal-backdrop-in 220ms ease-out both;
+}
+
+.charter-modal-backdrop-out {
+  animation: charter-modal-backdrop-out 200ms ease-in both;
+}
+
+.charter-modal-panel-in {
+  animation: charter-modal-panel-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.charter-modal-panel-out {
+  animation: charter-modal-panel-out 200ms ease-in both;
+}
+
+.charter-service-detail-in {
+  animation: charter-detail-in 220ms ease-out both;
+}
+
+/* ---------- Global kiosk motion system ---------- */
+
+/* Smooth interaction feedback on every button / link / card */
+button,
+a,
+[role="button"] {
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    border-color 200ms ease,
+    box-shadow 250ms ease,
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 200ms ease;
+}
+
+button:active,
+a:active,
+[role="button"]:active {
+  transform: scale(0.97);
+  transition-duration: 80ms;
+}
+
+/* Page enter transition (applied by the route template) */
+@keyframes kiosk-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* "backwards" fill so no transform lingers after the animation —
+   a persistent transform would re-anchor position:fixed modals. */
+.kiosk-page-transition {
+  animation: kiosk-page-in 360ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* Staggered entrance for card grids */
+@keyframes kiosk-stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.kiosk-stagger > * {
+  animation: kiosk-stagger-in 420ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.kiosk-stagger > *:nth-child(1) { animation-delay: 40ms; }
+.kiosk-stagger > *:nth-child(2) { animation-delay: 80ms; }
+.kiosk-stagger > *:nth-child(3) { animation-delay: 120ms; }
+.kiosk-stagger > *:nth-child(4) { animation-delay: 160ms; }
+.kiosk-stagger > *:nth-child(5) { animation-delay: 200ms; }
+.kiosk-stagger > *:nth-child(6) { animation-delay: 240ms; }
+.kiosk-stagger > *:nth-child(7) { animation-delay: 280ms; }
+.kiosk-stagger > *:nth-child(8) { animation-delay: 320ms; }
+.kiosk-stagger > *:nth-child(9) { animation-delay: 360ms; }
+.kiosk-stagger > *:nth-child(10) { animation-delay: 400ms; }
+.kiosk-stagger > *:nth-child(11) { animation-delay: 440ms; }
+.kiosk-stagger > *:nth-child(12) { animation-delay: 480ms; }
+.kiosk-stagger > *:nth-child(n + 13) { animation-delay: 520ms; }
+
+/* Gentle hover lift for tiles and cards */
+.kiosk-hover-lift {
+  transition:
+    transform 250ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 250ms ease;
+}
+
+.kiosk-hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px -12px rgba(26, 39, 68, 0.28);
+}
+
+/* Smooth in-page scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .charter-modal-backdrop-in,
+  .charter-modal-backdrop-out,
+  .charter-modal-panel-in,
+  .charter-modal-panel-out,
+  .charter-service-detail-in,
+  .kiosk-page-transition,
+  .kiosk-stagger > * {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+
+  button,
+  a,
+  [role="button"],
+  .kiosk-hover-lift {
+    transition-duration: 1ms;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}
