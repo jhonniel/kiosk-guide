@@ -48,13 +48,23 @@ export async function createQrDownloadLink(
   const baseUrl = resolvePublicBaseUrl(settings, requestOrigin);
   if (!baseUrl) throw new Error("Public kiosk URL is not configured.");
 
-  await db.downloadToken.create({
-    data: {
-      token,
-      downloadId: download.id,
-      method: "qr",
-      expiresAt,
-    },
+  await db.$transaction(async (tx) => {
+    const createdToken = await tx.downloadToken.create({
+      data: {
+        token,
+        downloadId: download.id,
+        method: "qr",
+        expiresAt,
+      },
+    });
+
+    await tx.downloadActivity.create({
+      data: {
+        downloadId: download.id,
+        tokenId: createdToken.id,
+        type: "QR_GENERATED",
+      },
+    });
   });
 
   return {
@@ -77,10 +87,23 @@ export async function validateDownloadToken(token: string) {
   const file = await resolveDownloadFileContent(record.download);
   if (!file) return null;
 
-  await db.downloadToken.update({
-    where: { id: record.id },
-    data: { accessCount: { increment: 1 } },
-  });
+  await db.$transaction([
+    db.downloadToken.update({
+      where: { id: record.id },
+      data: { accessCount: { increment: 1 } },
+    }),
+    db.download.update({
+      where: { id: record.downloadId },
+      data: { downloadCount: { increment: 1 } },
+    }),
+    db.downloadActivity.create({
+      data: {
+        downloadId: record.downloadId,
+        tokenId: record.id,
+        type: "QR_SCANNED",
+      },
+    }),
+  ]);
 
   return file;
 }
@@ -131,14 +154,30 @@ export async function sendDownloadByEmail(
     getNumberSetting(settings, "download_qr_expiry_minutes", 60)
   );
 
-  await db.downloadToken.create({
-    data: {
-      token: generateToken(),
-      downloadId: download.id,
-      method: "email",
-      recipientEmail: email,
-      expiresAt: new Date(Date.now() + expiryMinutes * 60 * 1000),
-    },
+  await db.$transaction(async (tx) => {
+    const token = await tx.downloadToken.create({
+      data: {
+        token: generateToken(),
+        downloadId: download.id,
+        method: "email",
+        recipientEmail: email,
+        expiresAt: new Date(Date.now() + expiryMinutes * 60 * 1000),
+      },
+    });
+
+    await tx.download.update({
+      where: { id: download.id },
+      data: { downloadCount: { increment: 1 } },
+    });
+
+    await tx.downloadActivity.create({
+      data: {
+        downloadId: download.id,
+        tokenId: token.id,
+        type: "EMAIL_SENT",
+        recipientEmail: email,
+      },
+    });
   });
 
   return { success: true as const };

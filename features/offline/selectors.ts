@@ -39,7 +39,9 @@ export function getSortedFaqs(data: KioskOfflineData) {
 }
 
 export function getSortedDownloads(data: KioskOfflineData) {
-  return [...data.downloads].sort((a, b) => a.sortOrder - b.sortOrder);
+  return [...data.downloads].sort(
+    (a, b) => b.downloadCount - a.downloadCount || a.sortOrder - b.sortOrder
+  );
 }
 
 export function getSortedTourism(data: KioskOfflineData) {
@@ -70,6 +72,10 @@ export function getCitizensCharterPage(data: KioskOfflineData) {
   return data.pages.find((p) => p.slug === "citizens-charter" && p.isActive) ?? null;
 }
 
+export function getPublishedCitizensCharter(data: KioskOfflineData) {
+  return data.citizensCharter ?? null;
+}
+
 export function getServiceBySlug(data: KioskOfflineData, slug: string) {
   return data.services.find((s) => s.slug === slug && s.isActive) ?? null;
 }
@@ -93,5 +99,6 @@ export function getKioskPrecacheRoutes(data: KioskOfflineData): string[] {
     "/feedback",
   ];
   const serviceRoutes = data.services.filter((s) => s.isActive).map((s) => `/services/${s.slug}`);
-  return [...staticRoutes, ...serviceRoutes];
+  const charterPdf = data.citizensCharter?.pdfUrl ? [data.citizensCharter.pdfUrl] : [];
+  return [...staticRoutes, ...serviceRoutes, ...charterPdf];
 }

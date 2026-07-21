@@ -10,6 +10,7 @@ export default function HelpPage() {
 
   return (
     <ModulePageClient
+      icon="HelpCircle"
       titleEn="I Need Help With..."
       titleFil="Kailangan Ko ng Tulong sa..."
       descriptionEn="Guided assistance for common requests."

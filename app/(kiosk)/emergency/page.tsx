@@ -10,6 +10,7 @@ export default function EmergencyPage() {
 
   return (
     <ModulePageClient
+      icon="Phone"
       titleEn="Emergency Contacts"
       titleFil="Mga Contact sa Emergency"
       descriptionEn="Hotlines for police, fire, health, and rescue."

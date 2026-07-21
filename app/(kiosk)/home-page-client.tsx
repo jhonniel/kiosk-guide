@@ -14,7 +14,7 @@ export default function HomePage() {
   const cards = data.homepageCards;
 
   return (
-    <div className="p-8">
+    <div className="flex min-h-0 flex-1 basis-0 flex-col overflow-hidden px-8 pb-5">
       <PageHeader
         title={t(language, "kioskTitle")}
         language={language}
@@ -22,11 +22,11 @@ export default function HomePage() {
         showBack={false}
       />
 
-      <div className="mb-8">
+      <div className="mb-5">
         <SmartSearch />
       </div>
 
-      <div className="kiosk-stagger mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <div className="kiosk-stagger mb-5 grid min-h-0 flex-1 auto-rows-fr grid-cols-5 gap-4">
         {cards.map((card) => (
           <ServiceCard
             key={card.id}
@@ -36,6 +36,7 @@ export default function HomePage() {
             iconUrl={card.iconUrl}
             color={card.color}
             href={card.href}
+            className="justify-center"
           />
         ))}
       </div>

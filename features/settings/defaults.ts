@@ -33,7 +33,7 @@ export const DEFAULT_QUICK_QUESTIONS_BIS = [
 
 export const SETTING_DEFAULTS: Record<string, string> = {
   branding_logo_url: "/images/branding/logo.png",
-  branding_footer_image_url: "/images/camiguin-landscape.svg",
+  branding_footer_image_url: "/images/branding/camiguin-sidebar-landscape.png",
   gov_name_en: "Provincial Government of Camiguin",
   gov_name_fil: "Pamahalaang Panlalawigan ng Camiguin",
   gov_name_bis: "Provincial Government sa Camiguin",
@@ -47,11 +47,11 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   tagline_fil: "Ang Pulo na Pinanganakan ng Apoy",
   tagline_bis: "Ang Pulo nga Gipanganak sa Kalayo",
   welcome_en:
-    "Use this kiosk to find services, offices, forms, and information about Camiguin.",
+    "This kiosk provides information to help you easily access government services and explore the Province of Camiguin.",
   welcome_fil:
-    "Gamitin ang kiosk na ito upang makahanap ng mga serbisyo, opisina, form, at impormasyon tungkol sa Camiguin.",
+    "Ang kiosk na ito ay nagbibigay ng impormasyon upang madali mong ma-access ang mga serbisyo ng gobyerno at makilala ang Lalawigan ng Camiguin.",
   welcome_bis:
-    "Gamita kini nga kiosk aron makit-an ang mga serbisyo, opisina, form, ug impormasyon bahin sa Camiguin.",
+    "Kini nga kiosk naghatag og impormasyon aron dali nimo ma-access ang mga serbisyo sa gobyerno ug makaila sa Probinsya sa Camiguin.",
   footer_tagline_en: "Connecting People. Building Communities. Developing Camiguin.",
   footer_tagline_fil:
     "Pag-uugnay ng mga Tao. Pagbuo ng mga Komunidad. Pag-unlad ng Camiguin.",

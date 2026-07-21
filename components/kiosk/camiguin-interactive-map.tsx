@@ -196,8 +196,8 @@ export function CamiguinInteractiveMap({ markers }: Props) {
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           {filters.map((f) => (
             <button
@@ -243,10 +243,11 @@ export function CamiguinInteractiveMap({ markers }: Props) {
         </div>
       </div>
 
-      <div
-        ref={viewportRef}
-        className="relative mx-auto aspect-[1024/721] w-full max-w-[96.6vh] touch-none overflow-hidden rounded-2xl border border-sky-900/20 bg-[#bfe3ee] shadow-xl"
-        onPointerDown={onPointerDown}
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <div
+          ref={viewportRef}
+          className="relative aspect-[1024/721] h-full max-w-full touch-none overflow-hidden rounded-2xl border border-sky-900/20 bg-[#bfe3ee] shadow-xl"
+          onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
@@ -397,10 +398,11 @@ export function CamiguinInteractiveMap({ markers }: Props) {
             )}
           </div>
         )}
+        </div>
       </div>
 
       {offices.length > 0 && filter !== "landmark" && (
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
+        <div className="shrink-0 rounded-2xl bg-white p-4 shadow-sm">
           <h4 className="mb-3 text-xs font-bold tracking-wider text-kiosk-navy">
             {uiText(language, "capitolOffices")}
           </h4>

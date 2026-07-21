@@ -1,6 +1,7 @@
 import type { BuildingUiConfig } from "@/features/settings/building-config";
 import type { GuideContext } from "@/features/building-directory/types";
 import type { NavigationGraph } from "@/features/building-directory/navigation/types";
+import type { CharterEditionView } from "@/features/citizens-charter/types";
 import type {
   Announcement,
   Directory,
@@ -30,6 +31,7 @@ export interface KioskOfflineData {
   emergency: EmergencyContact[];
   events: Event[];
   pages: Page[];
+  citizensCharter: CharterEditionView | null;
   guideContext: GuideContext;
   navigationGraph: NavigationGraph;
   uiConfigEn: BuildingUiConfig;

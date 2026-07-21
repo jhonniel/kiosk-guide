@@ -20,6 +20,7 @@ import {
   Users,
   MessageSquare,
   LogOut,
+  ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/services", label: "Services", icon: Briefcase },
+  { href: "/admin/citizens-charter", label: "Citizens' Charter", icon: ScrollText },
   { href: "/admin/directories", label: "Directories", icon: Building },
   { href: "/admin/building-locations", label: "Building Locations", icon: Building2 },
   { href: "/admin/downloads", label: "Downloads", icon: Download },

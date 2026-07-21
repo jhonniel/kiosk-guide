@@ -15,6 +15,9 @@ import {
   Phone,
   Calendar,
   Sparkles,
+  Clock,
+  Star,
+  Mail,
   type LucideIcon,
 } from "lucide-react";
 
@@ -35,6 +38,9 @@ const iconMap: Record<string, LucideIcon> = {
   Phone,
   Calendar,
   Sparkles,
+  Clock,
+  Star,
+  Mail,
 };
 
 export function getIcon(name: string): LucideIcon {

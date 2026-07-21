@@ -8,9 +8,10 @@ import {
 } from "@/features/settings/building-config";
 import { getResolvedSettings, getSetting } from "@/features/settings/resolve-settings";
 import type { NavigationGraph } from "@/features/building-directory/navigation/types";
+import { getPublishedCharterEdition } from "@/features/citizens-charter/queries";
 import type { KioskOfflineData } from "./types";
 
-export const KIOSK_OFFLINE_DATA_VERSION = 1;
+export const KIOSK_OFFLINE_DATA_VERSION = 3;
 
 export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
   const [
@@ -26,6 +27,7 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
     emergency,
     events,
     pages,
+    citizensCharter,
     guideContext,
     navData,
   ] = await Promise.all([
@@ -34,13 +36,17 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
     db.homepageCard.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
     db.service.findMany({ where: { isActive: true } }),
     db.directory.findMany({ where: { isActive: true } }),
-    db.download.findMany({ where: { isActive: true } }),
+    db.download.findMany({
+      where: { isActive: true },
+      orderBy: [{ downloadCount: "desc" }, { sortOrder: "asc" }],
+    }),
     db.faq.findMany({ where: { isActive: true } }),
     db.announcement.findMany({ where: { isPublished: true } }),
     db.tourism.findMany({ where: { isActive: true } }),
     db.emergencyContact.findMany({ where: { isActive: true } }),
     db.event.findMany({ where: { isActive: true } }),
     db.page.findMany({ where: { isActive: true } }),
+    getPublishedCharterEdition(),
     getGuideContext(),
     getNavigationGraphForClient(),
   ]);
@@ -71,6 +77,7 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
     emergency,
     events,
     pages,
+    citizensCharter,
     guideContext,
     navigationGraph,
     uiConfigEn,

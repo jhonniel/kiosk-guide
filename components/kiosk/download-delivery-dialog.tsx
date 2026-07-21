@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
-import { Mail, QrCode, Loader2, Clock, CheckCircle2 } from "lucide-react";
+import { Mail, QrCode, Loader2, Clock, CheckCircle2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -26,6 +26,7 @@ interface DownloadDeliveryDialogProps {
   download: Download | null;
   settings: DownloadDeliverySettings;
   open: boolean;
+  initialStep?: "choose" | "qr" | "email";
   onOpenChange: (open: boolean) => void;
 }
 
@@ -40,6 +41,7 @@ export function DownloadDeliveryDialog({
   download,
   settings,
   open,
+  initialStep = "choose",
   onOpenChange,
 }: DownloadDeliveryDialogProps) {
   const { language } = useKiosk();
@@ -63,7 +65,11 @@ export function DownloadDeliveryDialog({
       return;
     }
 
-    if (!settings.qrEnabled && settings.emailEnabled) {
+    if (initialStep === "qr" && settings.qrEnabled) {
+      void startQrFlow();
+    } else if (initialStep === "email" && settings.emailEnabled) {
+      setStep("email");
+    } else if (!settings.qrEnabled && settings.emailEnabled) {
       setStep("email");
     } else if (settings.qrEnabled && !settings.emailEnabled) {
       void startQrFlow();
@@ -71,7 +77,7 @@ export function DownloadDeliveryDialog({
       setStep("choose");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, download?.id, settings.qrEnabled, settings.emailEnabled]);
+  }, [open, download?.id, initialStep, settings.qrEnabled, settings.emailEnabled]);
 
   useEffect(() => {
     if (!expiresAt) return;
@@ -164,154 +170,211 @@ export function DownloadDeliveryDialog({
     }
   }
 
+  const stepHeading =
+    step === "qr"
+      ? pickLang(language, "Download via QR", "I-download via QR", "I-download via QR")
+      : step === "email" || step === "email-sent"
+        ? pickLang(language, "Send via Email", "Ipadala sa Email", "Ipadala sa Email")
+        : settings.modalTitle;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{settings.modalTitle}</DialogTitle>
-          <DialogDescription>{title}</DialogDescription>
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
+        <DialogHeader className="gap-1 border-b border-gray-100 bg-kiosk-bg px-6 py-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-kiosk-navy text-white">
+              {step === "email" || step === "email-sent" ? (
+                <Mail className="h-5 w-5" />
+              ) : (
+                <QrCode className="h-5 w-5" />
+              )}
+            </span>
+            <div className="min-w-0">
+              <DialogTitle className="text-kiosk-navy">{stepHeading}</DialogTitle>
+              <DialogDescription className="mt-0.5 truncate text-xs">{title}</DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        {step === "choose" && (
-          <div className="grid gap-3">
-            {settings.qrEnabled && (
-              <Button
-                type="button"
-                className="h-auto justify-start gap-3 bg-kiosk-navy px-4 py-4 hover:bg-kiosk-navy/90"
-                onClick={() => void startQrFlow()}
-              >
-                <QrCode className="h-6 w-6 shrink-0" />
-                <span className="text-left">
-                  <span className="block font-semibold">
-                    {pickLang(language, "Scan QR to download", "I-scan ang QR para mag-download", "I-scan ang QR aron makadownload")}
+        <div className="px-6 py-5">
+          {step === "choose" && (
+            <div className="grid gap-2.5">
+              {settings.qrEnabled && (
+                <button
+                  type="button"
+                  onClick={() => void startQrFlow()}
+                  className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 text-left transition-colors hover:border-kiosk-navy/40 hover:bg-gray-50"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-kiosk-navy/10 text-kiosk-navy">
+                    <QrCode className="h-5 w-5" />
                   </span>
-                  <span className="block text-xs font-normal text-white/80">
-                    {pickLang(
-                      language,
-                      `Valid for ${settings.qrExpiryMinutes} minutes`,
-                      `May bisa sa loob ng ${settings.qrExpiryMinutes} minuto`,
-                      `Valid sulod sa ${settings.qrExpiryMinutes} minuto`
-                    )}
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-kiosk-navy">
+                      {pickLang(language, "Download via QR", "I-download via QR", "I-download via QR")}
+                    </span>
+                    <span className="block text-xs text-gray-500">
+                      {pickLang(
+                        language,
+                        `Valid for ${settings.qrExpiryMinutes} minutes`,
+                        `May bisa sa loob ng ${settings.qrExpiryMinutes} minuto`,
+                        `Valid sulod sa ${settings.qrExpiryMinutes} minuto`
+                      )}
+                    </span>
+                  </span>
+                </button>
+              )}
+              {settings.emailEnabled && (
+                <button
+                  type="button"
+                  onClick={() => setStep("email")}
+                  className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 text-left transition-colors hover:border-kiosk-navy/40 hover:bg-gray-50"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-kiosk-green">
+                    <Mail className="h-5 w-5" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-kiosk-navy">
+                      {pickLang(language, "Send via Email", "Ipadala sa Email", "Ipadala sa Email")}
+                    </span>
+                    <span className="block text-xs text-gray-500">
+                      {pickLang(
+                        language,
+                        "Receive the file as an email attachment",
+                        "Matatanggap ang file bilang attachment",
+                        "Madawat ang file isip attachment sa email"
+                      )}
+                    </span>
+                  </span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {step === "qr" && (
+            <div className="flex flex-col items-center gap-4">
+              <div className="rounded-xl border border-gray-200 bg-white p-3">
+                {loading ? (
+                  <div className="flex h-[232px] w-[232px] items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-kiosk-green" />
+                  </div>
+                ) : qrDataUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={qrDataUrl}
+                    alt={pickLang(language, "Download QR code", "QR code para mag-download", "QR code aron makadownload")}
+                    width={232}
+                    height={232}
+                  />
+                ) : (
+                  <div className="h-[232px] w-[232px]" />
+                )}
+              </div>
+
+              <p className="max-w-xs text-center text-xs leading-relaxed text-gray-500">
+                {pickLang(
+                  language,
+                  "Scan this QR code with your phone camera to download the file.",
+                  "I-scan ang QR code gamit ang camera ng iyong telepono upang i-download ang file.",
+                  "I-scan kini nga QR code gamit ang camera sa imong telepono aron makadownload sa file."
+                )}
+              </p>
+
+              <div className="flex w-full items-center justify-between gap-3 rounded-lg bg-gray-50 px-4 py-2.5">
+                <span className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
+                  <Clock className="h-3.5 w-3.5" />
+                  {pickLang(language, "Expires in", "Mag-e-expire sa", "Mo-expire sa")}{" "}
+                  <span className="font-bold text-kiosk-navy tabular-nums">
+                    {expiresAt ? countdown : "—"}
                   </span>
                 </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs font-semibold text-kiosk-navy"
+                  onClick={() => void startQrFlow()}
+                  disabled={loading}
+                >
+                  <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                  {pickLang(language, "New QR", "Bagong QR", "Bag-ong QR")}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === "email" && (
+            <form onSubmit={handleSendEmail} className="space-y-4">
+              <div>
+                <Label htmlFor="download-email" className="text-xs font-semibold text-gray-700">
+                  {pickLang(language, "Email address", "Email address", "Email address")}
+                </Label>
+                <Input
+                  id="download-email"
+                  type="email"
+                  required
+                  autoFocus
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="mt-1.5 h-11"
+                />
+                <p className="mt-1.5 text-xs text-gray-500">
+                  {pickLang(
+                    language,
+                    "The document will be sent as an attachment.",
+                    "Ipapadala ang dokumento bilang attachment.",
+                    "Ipadala ang dokumento isip attachment."
+                  )}
+                </p>
+              </div>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="h-11 w-full bg-kiosk-navy font-semibold hover:bg-kiosk-navy/90"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {pickLang(language, "Sending…", "Ipinapadala…", "Ginapadala…")}
+                  </>
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" />
+                    {pickLang(language, "Send file", "Ipadala ang file", "Ipadala ang dokumento")}
+                  </>
+                )}
               </Button>
-            )}
-            {settings.emailEnabled && (
+            </form>
+          )}
+
+          {step === "email-sent" && (
+            <div className="flex flex-col items-center gap-3 py-2 text-center">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50">
+                <CheckCircle2 className="h-8 w-8 text-kiosk-green" />
+              </span>
+              <p className="text-sm font-semibold text-kiosk-navy">
+                {pickLang(language, "Email sent!", "Naipadala na ang email!", "Napadala na ang email!")}
+              </p>
+              <p className="max-w-xs text-xs leading-relaxed text-gray-500">
+                {pickLang(
+                  language,
+                  `Check your inbox at ${email}`,
+                  `Tingnan ang iyong inbox sa ${email}`,
+                  `Tan-awa ang imong inbox sa ${email}`
+                )}
+              </p>
               <Button
                 type="button"
                 variant="outline"
-                className="h-auto justify-start gap-3 px-4 py-4"
-                onClick={() => setStep("email")}
-              >
-                <Mail className="h-6 w-6 shrink-0 text-kiosk-green" />
-                <span className="text-left">
-                  <span className="block font-semibold text-kiosk-navy">
-                    {pickLang(language, "Send via email", "Ipadala sa email", "Ipadala pinaagi sa email")}
-                  </span>
-                  <span className="block text-xs text-gray-500">
-                    {pickLang(
-                      language,
-                      "Receive the file as an email attachment",
-                      "Matatanggap ang file bilang attachment",
-                      "Madawat ang file isip attachment sa email"
-                    )}
-                  </span>
-                </span>
-              </Button>
-            )}
-          </div>
-        )}
-
-        {step === "qr" && (
-          <div className="flex flex-col items-center gap-4 py-2">
-            {loading ? (
-              <div className="flex h-[280px] w-[280px] items-center justify-center rounded-2xl bg-gray-50">
-                <Loader2 className="h-10 w-10 animate-spin text-kiosk-green" />
-              </div>
-            ) : qrDataUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={qrDataUrl}
-                alt={pickLang(language, "Download QR code", "QR code para mag-download", "QR code aron makadownload")}
-                className="rounded-2xl border bg-white p-3 shadow-sm"
-                width={280}
-                height={280}
-              />
-            ) : null}
-            {expiresAt && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Clock className="h-4 w-4" />
-                <span>
-                  {pickLang(language, "Expires in", "Mag-e-expire sa", "Mo-expire sa")} {countdown}
-                </span>
-              </div>
-            )}
-            <p className="text-center text-sm text-gray-500">
-              {pickLang(
-                language,
-                "Scan this QR code with your phone camera to download the file.",
-                "I-scan ang QR code gamit ang camera ng iyong telepono upang i-download ang file.",
-                "I-scan kini nga QR code gamit ang camera sa imong telepono aron makadownload sa file."
-              )}
-            </p>
-            <Button type="button" variant="outline" onClick={() => void startQrFlow()} disabled={loading}>
-              {pickLang(language, "Generate new QR", "Gumawa ng bagong QR", "Paghimo og bag-ong QR")}
-            </Button>
-          </div>
-        )}
-
-        {step === "email" && (
-          <form onSubmit={handleSendEmail} className="space-y-4">
-            <div>
-              <Label htmlFor="download-email">
-                {pickLang(language, "Email address", "Email address", "Email address")}
-              </Label>
-              <Input
-                id="download-email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                size="sm"
                 className="mt-1"
-              />
+                onClick={() => onOpenChange(false)}
+              >
+                {pickLang(language, "Done", "Tapos na", "Human na")}
+              </Button>
             </div>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-kiosk-navy hover:bg-kiosk-navy/90"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {pickLang(language, "Sending…", "Ipinapadala…", "Ginapadala…")}
-                </>
-              ) : (
-                <>
-                  <Mail className="mr-2 h-4 w-4" />
-                  {pickLang(language, "Send file", "Ipadala ang file", "Ipadala ang dokumento")}
-                </>
-              )}
-            </Button>
-          </form>
-        )}
-
-        {step === "email-sent" && (
-          <div className="flex flex-col items-center gap-3 py-4 text-center">
-            <CheckCircle2 className="h-12 w-12 text-kiosk-green" />
-            <p className="font-medium text-kiosk-navy">
-              {pickLang(language, "Email sent!", "Naipadala na ang email!", "Napadala na ang email!")}
-            </p>
-            <p className="text-sm text-gray-500">
-              {pickLang(
-                language,
-                `Check your inbox at ${email}`,
-                `Tingnan ang iyong inbox sa ${email}`,
-                `Tan-awa ang imong inbox sa ${email}`
-              )}
-            </p>
-          </div>
-        )}
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

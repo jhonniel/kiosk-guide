@@ -14,8 +14,8 @@ export function QuickAccess({ language }: QuickAccessProps) {
   ];
 
   return (
-    <div>
-      <div className="mb-4 flex items-center gap-3">
+    <div className="shrink-0">
+      <div className="mb-2.5 flex items-center gap-3">
         <h2 className="text-sm font-bold tracking-wider text-kiosk-navy">{t(language, "quickAccess")}</h2>
         <div className="h-0.5 w-8 bg-kiosk-green" />
       </div>
@@ -24,7 +24,7 @@ export function QuickAccess({ language }: QuickAccessProps) {
           <Link
             key={item.href}
             href={item.href}
-            className="flex items-center justify-center gap-3 rounded-2xl bg-white px-6 py-4 shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]"
+            className="flex items-center justify-center gap-3 rounded-2xl bg-white px-6 py-3.5 shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]"
           >
             <item.icon className="h-5 w-5 text-kiosk-navy" />
             <span className="font-semibold text-kiosk-navy">{item.label}</span>

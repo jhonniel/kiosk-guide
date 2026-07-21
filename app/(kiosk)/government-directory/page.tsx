@@ -10,6 +10,7 @@ export default function GovernmentDirectoryPage() {
 
   return (
     <ModulePageClient
+      icon="Users"
       titleEn="Government Directory"
       titleFil="Direktoryo ng Pamahalaan"
       descriptionEn="Departments, officials, and contact information."

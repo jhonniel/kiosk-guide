@@ -10,6 +10,7 @@ export default function EventsPage() {
 
   return (
     <ModulePageClient
+      icon="Calendar"
       titleEn="Events Calendar"
       titleFil="Kalendaryo ng mga Kaganapan"
       descriptionEn="Upcoming festivals, meetings, and activities."

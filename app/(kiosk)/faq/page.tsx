@@ -10,6 +10,7 @@ export default function FaqPage() {
 
   return (
     <ModulePageClient
+      icon="HelpCircle"
       titleEn="Frequently Asked Questions"
       titleFil="Mga Madalas Itanong"
       descriptionEn="Quick answers to common service questions."

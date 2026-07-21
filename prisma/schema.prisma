@@ -114,9 +114,11 @@ model Download {
   category       String?
   isActive       Boolean         @default(true)
   sortOrder      Int             @default(0)
+  downloadCount  Int             @default(0)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   tokens         DownloadToken[]
+  activities     DownloadActivity[]
 }
 
 model DownloadToken {
@@ -129,9 +131,30 @@ model DownloadToken {
   expiresAt      DateTime
   accessCount    Int      @default(0)
   createdAt      DateTime @default(now())
+  activities     DownloadActivity[]
 
   @@index([expiresAt])
   @@index([downloadId])
+}
+
+enum DownloadActivityType {
+  QR_GENERATED
+  QR_SCANNED
+  EMAIL_SENT
+}
+
+model DownloadActivity {
+  id             String               @id @default(cuid())
+  downloadId     String
+  download       Download             @relation(fields: [downloadId], references: [id], onDelete: Cascade)
+  tokenId        String?
+  token          DownloadToken?       @relation(fields: [tokenId], references: [id], onDelete: SetNull)
+  type           DownloadActivityType
+  recipientEmail String?
+  createdAt      DateTime             @default(now())
+
+  @@index([downloadId, createdAt])
+  @@index([type, createdAt])
 }
 
 model Faq {
@@ -158,6 +181,7 @@ model Announcement {
   contentFil     String
   contentBis     String?
   imageUrl       String?
+  category       String?
   isPublished    Boolean  @default(true)
   publishedAt    DateTime @default(now())
   createdAt      DateTime @default(now())
@@ -319,4 +343,127 @@ model BuildingLocation {
   sortOrder       Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+enum CharterEditionStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model CharterEdition {
+  id          String               @id @default(cuid())
+  title       String
+  year        Int                  @default(2026)
+  editionLabel String              @default("1st Edition")
+  description String?
+  pdfUrl      String               @default("/downloads/citizens-charter.pdf")
+  pdfFileName String               @default("citizens-charter.pdf")
+  status      CharterEditionStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  offices     CharterOffice[]
+
+  @@index([status])
+}
+
+model CharterOffice {
+  id        String            @id @default(cuid())
+  editionId String
+  edition   CharterEdition    @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  name      String
+  isActive  Boolean           @default(true)
+  sortOrder Int               @default(0)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  categories CharterCategory[]
+
+  @@index([editionId, sortOrder])
+}
+
+model CharterCategory {
+  id        String          @id @default(cuid())
+  officeId  String
+  office    CharterOffice   @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  name      String
+  isActive  Boolean         @default(true)
+  sortOrder Int             @default(0)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  services  CharterService[]
+
+  @@index([officeId, sortOrder])
+}
+
+model CharterService {
+  id                 String               @id @default(cuid())
+  categoryId         String
+  category           CharterCategory      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name               String
+  pageNumber         Int?
+  description        String?
+  officeOrDivision   String?
+  classification     String?
+  typeOfTransaction  String?
+  whoMayAvail        String?
+  detailsJson        String?
+  isActive           Boolean              @default(true)
+  sortOrder          Int                  @default(0)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  requirements       CharterRequirement[]
+  steps              CharterStep[]
+  medicines          CharterMedicine[]
+
+  @@index([categoryId, sortOrder])
+}
+
+model CharterRequirement {
+  id            String         @id @default(cuid())
+  serviceId     String
+  service       CharterService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  requirement   String
+  whereToSecure String         @default("")
+  isSection     Boolean        @default(false)
+  isActive      Boolean        @default(true)
+  sortOrder     Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([serviceId, sortOrder])
+}
+
+model CharterStep {
+  id        String         @id @default(cuid())
+  serviceId String
+  service   CharterService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  step      String         @default("")
+  action    String         @default("")
+  fee       String         @default("")
+  time      String         @default("")
+  person    String         @default("")
+  isActive  Boolean        @default(true)
+  sortOrder Int            @default(0)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([serviceId, sortOrder])
+}
+
+model CharterMedicine {
+  id           String         @id @default(cuid())
+  serviceId    String
+  service      CharterService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  name         String
+  preparation  String         @default("")
+  brand        String         @default("")
+  price        String         @default("")
+  isSection    Boolean        @default(false)
+  isActive     Boolean        @default(true)
+  sortOrder    Int            @default(0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([serviceId, sortOrder])
 }

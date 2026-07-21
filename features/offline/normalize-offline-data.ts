@@ -7,6 +7,11 @@ export function normalizeOfflineData(data: KioskOfflineData): KioskOfflineData {
 
   return {
     ...data,
+    downloads: data.downloads.map((download) => ({
+      ...download,
+      downloadCount: download.downloadCount ?? 0,
+    })),
+    citizensCharter: data.citizensCharter ?? null,
     uiConfigBis,
   };
 }

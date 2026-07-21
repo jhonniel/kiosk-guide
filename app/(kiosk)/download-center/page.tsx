@@ -14,9 +14,13 @@ export default function DownloadCenterPage() {
 
   return (
     <ModulePageClient
+      icon="Download"
       titleEn="Download Center"
       titleFil="Sentro ng Pag-download"
       titleBis="Sentro sa Pag-download"
+      descriptionEn="Scan the QR code to download forms, permit templates and public brochures."
+      descriptionFil="I-scan ang QR code para i-download ang mga form, permit template at pampublikong brochure."
+      descriptionBis="I-scan ang QR code aron makadownload og mga form, permit template ug pampublikong brochure."
     >
       <DownloadCenterClient
         downloads={getSortedDownloads(data)}

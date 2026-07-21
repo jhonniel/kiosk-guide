@@ -10,6 +10,7 @@ export default function TourismPage() {
 
   return (
     <ModulePageClient
+      icon="Palmtree"
       titleEn="Tourism Information"
       titleFil="Impormasyon sa Turismo"
       descriptionEn="Attractions, activities, and travel tips."

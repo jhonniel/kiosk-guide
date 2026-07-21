@@ -10,6 +10,7 @@ interface PageHeaderProps {
   language: Language;
   description?: string;
   showBack?: boolean;
+  compact?: boolean;
 }
 
 export function PageHeader({
@@ -17,7 +18,32 @@ export function PageHeader({
   language,
   description,
   showBack = true,
+  compact = false,
 }: PageHeaderProps) {
+  if (compact) {
+    return (
+      <div className="sticky top-0 z-30 -mx-8 mb-5 border-b border-gray-200/60 bg-kiosk-bg/95 px-8 py-3 backdrop-blur-sm supports-[backdrop-filter]:bg-kiosk-bg/85">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            {showBack && (
+              <Link
+                href="/"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-kiosk-navy shadow-sm ring-1 ring-gray-200 transition hover:bg-kiosk-navy hover:text-white"
+                aria-label={t(language, "backToHome")}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            )}
+            <p className="truncate text-sm font-bold text-kiosk-navy">{title}</p>
+          </div>
+          <div className="shrink-0">
+            <DateTimeWidget />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="sticky top-0 z-30 -mx-8 mb-6 border-b border-transparent bg-kiosk-bg/95 px-8 py-4 backdrop-blur-sm supports-[backdrop-filter]:bg-kiosk-bg/85">
       <div className="flex items-start justify-between gap-4">

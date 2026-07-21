@@ -1,6 +1,11 @@
 /* One-shot generator: parses the 2026 Citizens' Charter PDF text and emits
    features/citizens-charter/requirements-2026.ts (checklist of requirements +
-   where to secure, keyed by charter page number). */
+   where to secure, keyed by charter page number).
+
+   After the editable admin Charter module, this file is an IMPORT SOURCE ONLY.
+   Do not treat the generated TypeScript as the live kiosk data source — the
+   kiosk reads the PUBLISHED CharterEdition from the database. Re-running this
+   script refreshes the static seed input used by importCitizensCharterFromStatic. */
 import { readFileSync, writeFileSync } from "node:fs";
 import { CITIZENS_CHARTER_SERVICE_GROUPS } from "../features/citizens-charter/services-2026";
 
@@ -47,6 +52,14 @@ interface ServiceMeta {
   classification: string;
   typeOfTransaction: string;
   whoMayAvail: string;
+}
+
+interface MedicineRow {
+  name: string;
+  preparation: string;
+  brand: string;
+  price: string;
+  isSection?: boolean;
 }
 
 const META_LABELS = [
@@ -145,7 +158,8 @@ function isHeaderOnlyLine(raw: string): boolean {
     .every((part) => HEADER_TOKEN_RE.test(part.trim()) || /^FEES TO$/.test(part.trim()));
 }
 
-const stepsEndRe = /Office or Division:|CHECKLIST OF|FEEDBACK AND COMPLAINT|WHERE TO SECURE/i;
+const stepsEndRe =
+  /Office or Division:|CHECKLIST OF|FEEDBACK AND COMPLAINT|WHERE TO SECURE|List of Medicine available|^\s*TOTAL:/i;
 
 function parseSteps(headerStart: number): { rows: StepRow[]; end: number } {
   // Gather column positions from up to 5 header lines
@@ -184,6 +198,8 @@ function parseSteps(headerStart: number): { rows: StepRow[]; end: number } {
     if (!trimmed) continue;
     if (/^\d{1,3}$/.test(trimmed)) continue; // page number
     if (isHeaderOnlyLine(raw)) continue;
+    // TOTAL precursor line (e.g. "See        55 minutes") with no step content
+    if (/^See\b/i.test(trimmed) && /\d+\s+minutes?/i.test(trimmed) && !/^\d/.test(trimmed)) break;
     // Next service heading = end
     if (/^\s{0,10}\d{1,2}[.)]\s+[A-Z]/.test(raw) && findServiceByLine(raw)) break;
 
@@ -242,9 +258,167 @@ function findServiceByLine(raw: string): FlatService | null {
   return null;
 }
 
+const PREP_TOKEN =
+  "(?:tablets?|ampoules?|bottles?|capsules?|vials?|tubes?|nebules?|pcs|boxes|set|Tin|prefilled(?:\\s+syringe)?|syringes?|sachets?|packs?|box|units?|pairs?|rolls?|kits?)";
+const PREP_COL_RE = new RegExp(`(\\s{2,})(${PREP_TOKEN})\\b`, "i");
+const PREP_START_RE = new RegExp(`^(${PREP_TOKEN})\\b`, "i");
+const PRICE_RE = /(\d+\.\d{2})\s*$/;
+
+function isMedicineNameContinuation(text: string): boolean {
+  if (!text) return false;
+  if (text[0] === text[0].toLowerCase() && /[a-z]/.test(text[0])) return true;
+  if (/^[\d./]+\s*[a-zA-Z]{0,4}$/.test(text)) return true;
+  if (/^\d+\.\d+$/.test(text)) return true;
+  return false;
+}
+
+function isBrandOnlyLine(text: string): boolean {
+  if (PREP_COL_RE.test(text) || PREP_START_RE.test(text) || PRICE_RE.test(text)) return false;
+  const letters = text.replace(/[^A-Za-z]/g, "");
+  if (!letters) return false;
+  const upper = [...letters].filter((c) => c === c.toUpperCase()).length;
+  return upper / letters.length >= 0.7 && text.length <= 40;
+}
+
+function parseMedicineDataLine(
+  t: string
+): { name: string; preparation: string; brand: string; price: string } | null {
+  let price = "";
+  const mprice = t.match(PRICE_RE);
+  let body = t;
+  if (mprice) {
+    price = mprice[1];
+    body = t.slice(0, mprice.index).trimEnd();
+  }
+
+  // Continuation rows that begin with the preparation column
+  const startPrep = body.match(PREP_START_RE);
+  if (startPrep) {
+    return {
+      name: "",
+      preparation: startPrep[1],
+      brand: body.slice(startPrep[0].length).trim(),
+      price,
+    };
+  }
+
+  const matches = [...body.matchAll(new RegExp(PREP_COL_RE.source, "gi"))];
+  if (!matches.length) return null;
+  const m = matches[matches.length - 1];
+  const idx = m.index ?? 0;
+  return {
+    name: body.slice(0, idx).trim(),
+    preparation: m[2],
+    brand: body.slice(idx + m[0].length).trim(),
+    price,
+  };
+}
+
+/** Hospital medicine / supplies price list that follows the Dispensing service. */
+function parseMedicineList(): MedicineRow[] {
+  const start = lines.findIndex((l) => /List of Medicine available/i.test(l));
+  if (start < 0) return [];
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^\s*\d{1,2}\.\s+[A-Z]/.test(lines[i]) && /Emergency/i.test(lines[i])) {
+      end = i;
+      break;
+    }
+  }
+
+  const rows: MedicineRow[] = [];
+  let pendingName = "";
+  let lastFullName = "";
+  let lastPrep = "";
+
+  const emit = (name: string, preparation: string, brand: string, price: string) => {
+    let prep = preparation;
+    if (!prep && name === lastFullName && lastPrep) prep = lastPrep;
+    rows.push({ name, preparation: prep, brand, price });
+    lastFullName = name;
+    if (prep) lastPrep = prep;
+  };
+
+  for (let i = start + 2; i < end; i++) {
+    const t = lines[i].trim();
+    if (!t || /^\d{1,3}$/.test(t)) continue;
+    if (/^Name of Drugs/i.test(t) || /List of Medicine/i.test(t)) continue;
+
+    if (/^ADMISSION KITS$/i.test(t)) {
+      pendingName = "";
+      rows.push({ name: "ADMISSION KITS", preparation: "", brand: "", price: "", isSection: true });
+      continue;
+    }
+    if (/^SET\s+\d+/i.test(t)) {
+      pendingName = "";
+      const m = t.match(/^(SET\s+\d+\s+Admission Kit)\s+(\S+)?$/i);
+      emit(m?.[1] ?? t, m?.[2] ?? "set", "", "");
+      continue;
+    }
+
+    const parsed = parseMedicineDataLine(t);
+    if (parsed) {
+      let { name, preparation, brand, price } = parsed;
+      if (!name) name = pendingName || lastFullName;
+      else if (isMedicineNameContinuation(name) && pendingName) {
+        name = `${pendingName} ${name}`.trim();
+      }
+      if (!name) continue;
+      emit(name, preparation, brand, price);
+      pendingName = name;
+      continue;
+    }
+
+    if (isBrandOnlyLine(t) && lastFullName) {
+      emit(lastFullName, lastPrep, t, "");
+      continue;
+    }
+
+    if (isMedicineNameContinuation(t)) {
+      if (pendingName) {
+        pendingName = `${pendingName} ${t}`.trim();
+        const last = rows[rows.length - 1];
+        if (last && !last.isSection && last.name !== pendingName) {
+          if (pendingName.startsWith(last.name) || last.name.includes(pendingName.split(" ")[0])) {
+            last.name = pendingName;
+            lastFullName = pendingName;
+          }
+        }
+      } else if (rows.length && !rows[rows.length - 1].isSection) {
+        const last = rows[rows.length - 1];
+        last.name = `${last.name} ${t}`.trim();
+        lastFullName = last.name;
+        pendingName = lastFullName;
+      }
+      continue;
+    }
+
+    if (!PREP_COL_RE.test(t) && !PRICE_RE.test(t) && !PREP_START_RE.test(t)) {
+      pendingName = t;
+      continue;
+    }
+
+    // Fallback: prep with a single space + trailing price (supplies section)
+    const m = t.match(new RegExp(`\\s+(${PREP_TOKEN})\\b`, "i"));
+    const p = t.match(PRICE_RE);
+    if (m && p) {
+      const name = t.slice(0, m.index).trim() || pendingName || lastFullName;
+      const preparation = m[1];
+      const rest = t.slice((m.index ?? 0) + m[0].length);
+      const brand = rest.replace(PRICE_RE, "").trim();
+      emit(name, preparation, brand, p[1]);
+      pendingName = name;
+    }
+  }
+
+  return rows.filter(
+    (r) => r.isSection || r.preparation || r.brand || r.price || (r.name && r.name.length > 3)
+  );
+}
+
 const BULLET_RE = /^(\d{1,2}[.)]|[●•‣▪○⮚➢▶►□■]|-)\s+/;
 const SECTION_RE =
-  /^(REQUIREMENTS|SITUATIONAL REQUIREMENTS|ADDITIONAL REQUIREMENTS(?:\s*\([^)]*\))?|FOR\s+[A-Z][A-Z\s/()-]+)\s*:?\s*$/i;
+  /^((?:COMMON |SITUATIONAL |ADDITIONAL )?REQUIREMENTS?(?:\s*\([^)]*\))?|FOR\s+[A-Z][A-Z\s/()-]+)\s*:?\s*$/i;
 
 function parseBlock(start: number): { items: Item[]; end: number } {
   // Prefer the column under WHERE TO SECURE; fall back to a typical mid-page split
@@ -263,6 +437,9 @@ function parseBlock(start: number): { items: Item[]; end: number } {
 
   const items: Item[] = [];
   let cur: Item | null = null;
+  // Some pages lose their bullet glyphs in text extraction; in those blocks we
+  // fall back to phrase-completeness heuristics to split items.
+  let sawBullet = false;
   let i = start + 1;
   for (; i < lines.length; i++) {
     const raw = lines[i];
@@ -276,7 +453,7 @@ function parseBlock(start: number): { items: Item[]; end: number } {
     // Split at the WHERE TO SECURE column, preferring a 2+ space gap
     let left = raw;
     let right = "";
-    if (raw.length > colStart - 4) {
+    if (raw.length > colStart - 14) {
       let split = -1;
       const searchFrom = Math.max(0, colStart - 14);
       const gap = /\s{2,}/g;
@@ -341,7 +518,24 @@ function parseBlock(start: number): { items: Item[]; end: number } {
       continue;
     }
 
-    const isNewItem = BULLET_RE.test(l);
+    let isNewItem = BULLET_RE.test(l);
+    if (isNewItem) sawBullet = true;
+
+    // Bullet-less checklist pages: infer item boundaries.
+    if (!isNewItem && !sawBullet && l && cur) {
+      const prevReq = cur.requirement;
+      const prevEndsOpen =
+        /[\/,(&-]$/.test(prevReq) ||
+        /\b(and|or|of|for|the|with|from|to|by|in|on|at|per|na|ng|sa)$/i.test(prevReq) ||
+        (prevReq.split("(").length > prevReq.split(")").length);
+      const startsLikeItem = /^[A-Z0-9“"']/.test(l);
+      const groupLabel = /:$/.test(l);
+
+      if (!prevEndsOpen && startsLikeItem && (r || groupLabel || /[):]$/.test(prevReq))) {
+        isNewItem = true;
+      }
+    }
+
     if (isNewItem) {
       if (cur) items.push(cur);
       cur = {
@@ -447,7 +641,24 @@ for (const h of headerIdx) {
       person: r.person.replace(/\s+/g, " ").trim(),
     }))
     .filter((r) => (r.step.length > 1 || r.action.length > 1) && !/^ACTIONS?$/i.test(r.action))
-    .filter((r) => !(/^(AGENCY|CLIENT)/i.test(r.action) && !r.step));
+    .filter((r) => !(/^(AGENCY|CLIENT)/i.test(r.action) && !r.step))
+    // Drop TOTAL residue that spilled into the last step before the end marker
+    .map((r) => {
+      let { fee, time } = r;
+      if (/^See$/i.test(fee) || /^See Price$/i.test(fee) || /^List$/i.test(fee)) {
+        fee = "See Price List";
+      }
+      if (/See\s+\d+\s+minutes/i.test(fee)) fee = "See Price List";
+      if (/^None\s+(\d+\s+minutes?)/i.test(time)) {
+        time = RegExp.$1;
+      }
+      if (/^\d+\s+minutes?$/i.test(fee) && !time) {
+        time = fee;
+        fee = "";
+      }
+      return { ...r, fee, time };
+    })
+    .filter((r) => !/^price list$/i.test(r.fee) && !/^TOTAL/i.test(r.step));
   if (cleanRows.length) {
     const existingSteps = stepsByPage.get(svc.page);
     if (existingSteps) existingSteps.push(...cleanRows);
@@ -458,6 +669,11 @@ for (const h of headerIdx) {
 console.log(
   `blocks=${headerIdx.length} matched=${matched} services-with-data=${byPage.size}/${flat.length} services-with-steps=${stepsByPage.size}/${flat.length} services-with-meta=${metaByPage.size}/${flat.length}`
 );
+
+const medicineRows = parseMedicineList();
+const dispensingPage =
+  flat.find((s) => /Dispensing of Medicine/i.test(s.name))?.page ?? 59;
+console.log(`medicines=${medicineRows.length} (page ${dispensingPage})`);
 
 const entries = [...byPage.entries()].sort((a, b) => a[0] - b[0]);
 let out = `/** Auto-extracted from the 2026 Citizens' Charter PDF (1st Edition).
@@ -484,6 +700,14 @@ export interface CharterServiceMeta {
   classification: string;
   typeOfTransaction: string;
   whoMayAvail: string;
+}
+
+export interface CharterMedicine {
+  name: string;
+  preparation: string;
+  brand: string;
+  price: string;
+  isSection?: boolean;
 }
 
 export const CITIZENS_CHARTER_REQUIREMENTS: Record<number, CharterRequirement[]> = {
@@ -518,6 +742,18 @@ for (const [page, meta] of metaEntries) {
   out += `    typeOfTransaction: ${JSON.stringify(meta.typeOfTransaction)},\n`;
   out += `    whoMayAvail: ${JSON.stringify(meta.whoMayAvail)},\n`;
   out += `  },\n`;
+}
+out += `};\n\nexport const CITIZENS_CHARTER_MEDICINES: Record<number, CharterMedicine[]> = {\n`;
+if (medicineRows.length) {
+  out += `  ${dispensingPage}: [\n`;
+  for (const r of medicineRows) {
+    if (r.isSection) {
+      out += `    { name: ${JSON.stringify(r.name)}, preparation: "", brand: "", price: "", isSection: true },\n`;
+    } else {
+      out += `    { name: ${JSON.stringify(r.name)}, preparation: ${JSON.stringify(r.preparation)}, brand: ${JSON.stringify(r.brand)}, price: ${JSON.stringify(r.price)} },\n`;
+    }
+  }
+  out += `  ],\n`;
 }
 out += `};\n`;
 

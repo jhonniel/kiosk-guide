@@ -9,6 +9,7 @@ export default function OfficeHoursPage() {
 
   return (
     <ModulePageClient
+      icon="Clock"
       titleEn="Office Hours"
       titleFil="Oras ng Opisina"
       descriptionEn="Provincial government office operating hours."

@@ -34,6 +34,7 @@ async function main() {
     { name: "manage_users", module: "users" },
     { name: "manage_settings", module: "settings" },
     { name: "manage_building", module: "building" },
+    { name: "manage_citizens_charter", module: "citizens-charter" },
   ];
 
   for (const perm of permissions) {
@@ -155,7 +156,6 @@ async function main() {
     { slug: "tourism", titleEn: "Tourism Information", titleFil: "Impormasyon sa Turismo", descriptionEn: "Attractions, activities, and travel tips.", descriptionFil: "Mga atraksyon, aktibidad, at mga tip sa paglalakbay.", icon: "Palmtree", color: "pink", href: "/tourism", sortOrder: 8 },
     { slug: "emergency", titleEn: "Emergency Contacts", titleFil: "Mga Contact sa Emergency", descriptionEn: "Hotlines for police, fire, health, and rescue.", descriptionFil: "Mga hotline para sa pulis, bumbero, kalusugan, at rescue.", icon: "Phone", color: "red", href: "/emergency", sortOrder: 9 },
     { slug: "events", titleEn: "Events Calendar", titleFil: "Kalendaryo ng mga Kaganapan", descriptionEn: "Upcoming festivals, meetings, and activities.", descriptionFil: "Mga paparating na festival, pagpupulong, at aktibidad.", icon: "Calendar", color: "violet", href: "/events", sortOrder: 10 },
-    { slug: "help", titleEn: "I Need Help With...", titleFil: "Kailangan Ko ng Tulong sa...", descriptionEn: "Guided assistance for common requests.", descriptionFil: "Gabay na tulong para sa mga karaniwang kahilingan.", icon: "Sparkles", color: "amber", href: "/help", sortOrder: 11 },
   ];
 
   for (const card of homepageCards) {
@@ -281,7 +281,17 @@ async function main() {
   ];
 
   for (const download of downloads) {
-    await prisma.download.create({ data: download });
+    const existing = await prisma.download.findFirst({
+      where: { titleEn: download.titleEn },
+    });
+    if (existing) {
+      await prisma.download.update({
+        where: { id: existing.id },
+        data: download,
+      });
+    } else {
+      await prisma.download.create({ data: download });
+    }
   }
 
   const faqs = [
@@ -295,8 +305,11 @@ async function main() {
   }
 
   const announcements = [
-    { titleEn: "Lanzones Festival 2024", titleFil: "Lanzones Festival 2024", contentEn: "Join us for the annual Lanzones Festival celebrating Camiguin's golden fruit.", contentFil: "Samahan kami sa taunang Lanzones Festival na nagdiriwang ng gintong prutas ng Camiguin.", publishedAt: new Date() },
-    { titleEn: "New Online Services Portal", titleFil: "Bagong Online Services Portal", contentEn: "The provincial government launches new online services for faster transactions.", contentFil: "Inilunsad ng pamahalaang panlalawigan ang mga bagong online services para sa mas mabilis na transaksyon.", publishedAt: new Date() },
+    { titleEn: "Camiguin Provincial Government Advisory on Typhoon Preparedness", titleFil: "Advisory ng Pamahalaang Panlalawigan ng Camiguin sa Paghahanda sa Bagyo", contentEn: "Stay informed and prepared. Read the full advisory for guidelines and safety measures to protect your family and community during severe weather conditions.", contentFil: "Manatiling may alam at handa. Basahin ang buong advisory para sa mga gabay at hakbang pangkaligtasan upang protektahan ang inyong pamilya at komunidad sa panahon ng masamang panahon.", category: "advisory", imageUrl: "/images/news/news-typhoon.png", publishedAt: new Date() },
+    { titleEn: "Free Medical Mission in Mambajao", titleFil: "Libreng Medical Mission sa Mambajao", contentEn: "Join us for a free medical check-up and consultation. Open to all residents.", contentFil: "Samahan kami para sa libreng medical check-up at konsultasyon. Bukas sa lahat ng residente.", category: "program", imageUrl: "/images/news/news-medical-mission.png", publishedAt: new Date() },
+    { titleEn: "Schedule of Regular Sangguniang Session", titleFil: "Iskedyul ng Regular na Sesyon ng Sangguniang", contentEn: "The Regular Session of the 10th Sangguniang Panlalawigan schedule is now posted.", contentFil: "Nakapaskil na ang iskedyul ng Regular na Sesyon ng ika-10 Sangguniang Panlalawigan.", category: "public notice", imageUrl: "/images/news/news-session.png", publishedAt: new Date() },
+    { titleEn: "Lanzones Festival 2026", titleFil: "Lanzones Festival 2026", contentEn: "Join us for the annual Lanzones Festival celebrating Camiguin's golden fruit.", contentFil: "Samahan kami sa taunang Lanzones Festival na nagdiriwang ng gintong prutas ng Camiguin.", category: "announcement", imageUrl: "/images/news/news-tourism.png", publishedAt: new Date() },
+    { titleEn: "New Online Services Portal", titleFil: "Bagong Online Services Portal", contentEn: "The provincial government launches new online services for faster transactions.", contentFil: "Inilunsad ng pamahalaang panlalawigan ang mga bagong online services para sa mas mabilis na transaksyon.", category: "announcement", imageUrl: "/images/news/news-taxes.png", publishedAt: new Date() },
   ];
 
   for (const announcement of announcements) {
@@ -304,13 +317,29 @@ async function main() {
   }
 
   const tourismItems = [
-    { titleEn: "White Island", titleFil: "White Island", descriptionEn: "A stunning sandbar with crystal-clear waters, perfect for snorkeling.", descriptionFil: "Isang kamangha-manghang sandbar na may kristal na malinaw na tubig, perpekto para sa snorkeling.", location: "Off the coast of Mambajao", category: "beach", sortOrder: 1 },
-    { titleEn: "Katibawasan Falls", titleFil: "Katibawasan Falls", descriptionEn: "A majestic 250-foot waterfall surrounded by lush tropical forest.", descriptionFil: "Isang marangal na 250-foot na talon na napapaligiran ng masaganang tropikal na kagubatan.", location: "Mambajao", category: "nature", sortOrder: 2 },
-    { titleEn: "Sunken Cemetery", titleFil: "Sunken Cemetery", descriptionEn: "A historical landmark from the 1871 volcanic eruption.", descriptionFil: "Isang makasaysayang palatandaan mula sa pagputok ng bulkan noong 1871.", location: "Bonbon, Catarman", category: "heritage", sortOrder: 3 },
+    { titleEn: "White Island", titleFil: "White Island", descriptionEn: "An uninhabited white sandbar with crystal-clear waters and a postcard view of Mt. Hibok-Hibok. Best visited early morning via a 10-minute boat ride from Yumbing. Perfect for swimming, snorkeling, and photos.", descriptionFil: "Isang walang naninirahang puting sandbar na may kristal na malinaw na tubig at magandang tanawin ng Mt. Hibok-Hibok. Pinakamainam bisitahin nang maaga sa umaga sakay ng bangka mula Yumbing. Perpekto para sa paglangoy, snorkeling, at pagkuha ng litrato.", location: "Off the coast of Yumbing, Mambajao", category: "beach", imageUrl: "/images/tourism/tourism-white-island.png", sortOrder: 1 },
+    { titleEn: "Katibawasan Falls", titleFil: "Katibawasan Falls", descriptionEn: "A majestic 250-foot waterfall cascading into an icy-cold rock pool, surrounded by ferns and wild orchids. Don't miss the local kiping (rice wafer) snack sold nearby.", descriptionFil: "Isang marangal na 250-talampakang talon na bumabagsak sa malamig na natural na pool, napapaligiran ng mga pako at ligaw na orchid. Huwag palampasin ang lokal na kiping na ibinebenta malapit dito.", location: "Brgy. Pandan, Mambajao", category: "nature", imageUrl: "/images/tourism/tourism-katibawasan-falls.png", sortOrder: 2 },
+    { titleEn: "Sunken Cemetery", titleFil: "Sunken Cemetery", descriptionEn: "A giant cross marks the community cemetery that sank beneath the sea during the 1871 eruption of Mt. Vulcan. Famous for dramatic sunsets, snorkeling over the sunken gravestones, and diving.", descriptionFil: "Isang malaking krus ang nagmamarka sa sementeryo na lumubog sa dagat noong pagputok ng Mt. Vulcan noong 1871. Sikat sa magagandang sunset, snorkeling sa ibabaw ng lumubog na mga puntod, at diving.", location: "Bonbon, Catarman", category: "heritage", imageUrl: "/images/tourism/tourism-sunken-cemetery.png", sortOrder: 3 },
+    { titleEn: "Mantigue Island", titleFil: "Mantigue Island", descriptionEn: "A 4-hectare islet ringed by white sand and a marine sanctuary with vibrant corals and fish. Great for snorkeling, island picnics, and short forest walks. Reached by a 20-minute boat ride from Mahinog.", descriptionFil: "Isang 4-ektaryang isla na napapaligiran ng puting buhangin at marine sanctuary na may makukulay na corals at isda. Magaling para sa snorkeling, picnic, at maikling lakad sa gubat. Maaabot sa 20-minutong biyahe ng bangka mula Mahinog.", location: "Off the coast of Mahinog", category: "beach", imageUrl: "/images/tourism/tourism-mantigue-island.png", sortOrder: 4 },
+    { titleEn: "Ardent Hot Springs", titleFil: "Ardent Hot Springs", descriptionEn: "Naturally heated pools (about 40°C) warmed by Mt. Hibok-Hibok, set in a lush forest. Best enjoyed at night or after a cold swim elsewhere. Cottages and picnic areas are available.", descriptionFil: "Mga natural na mainit na pool (mga 40°C) na pinapainit ng Mt. Hibok-Hibok, nasa gitna ng luntiang gubat. Pinakamasarap puntahan sa gabi o pagkatapos maligo sa malamig na tubig. May mga cottage at picnic area.", location: "Esperanza, Mambajao", category: "nature", imageUrl: "/images/tourism/tourism-ardent-hot-springs.png", sortOrder: 5 },
+    { titleEn: "Mt. Hibok-Hibok", titleFil: "Mt. Hibok-Hibok", descriptionEn: "Camiguin's active volcano (1,332 m) and a favorite day hike with crater lake views and a panorama of the island and Bohol Sea. A guide and permit from the LGU/DENR are required for the trek.", descriptionFil: "Ang aktibong bulkan ng Camiguin (1,332 m) at paboritong day hike na may tanawin ng crater lake at ng buong isla at Bohol Sea. Kailangan ng guide at permit mula sa LGU/DENR para sa akyat.", location: "Mambajao", category: "adventure", imageUrl: "/images/tourism/tourism-mt-hibok-hibok.png", sortOrder: 6 },
+    { titleEn: "Tuasan Falls", titleFil: "Tuasan Falls", descriptionEn: "A powerful 25-meter waterfall rushing through a rocky gorge into an emerald pool, now easily reachable by a scenic concrete road. Ideal for a refreshing swim away from the crowds.", descriptionFil: "Isang malakas na 25-metrong talon na dumadaloy sa mabatong bangin patungo sa berdeng pool, madali nang marating sa pamamagitan ng magandang kalsada. Perpekto para sa presko at tahimik na paliligo.", location: "Mainit, Catarman", category: "nature", imageUrl: "/images/tourism/tourism-tuasan-falls.png", sortOrder: 7 },
+    { titleEn: "Sto. Niño Cold Spring", titleFil: "Sto. Niño Cold Spring", descriptionEn: "A large natural spring pool of icy, crystal-clear water over a sandy bottom with tiny fish. Surrounded by picnic huts — a favorite family stop for cooling off after touring the island.", descriptionFil: "Isang malaking natural na spring pool na may malamig at malinaw na tubig sa mabuhanging ilalim na may maliliit na isda. Napapaligiran ng picnic huts — paboritong hintuan ng pamilya para magpalamig.", location: "Compol, Catarman", category: "nature", imageUrl: "/images/tourism/tourism-sto-nino-cold-spring.png", sortOrder: 8 },
+    { titleEn: "Old Guiob Church Ruins", titleFil: "Mga Guho ng Simbahan ng Guiob", descriptionEn: "Moss-covered coral-stone walls, a belfry, and a convent — remnants of a 16th-century Spanish church destroyed by the 1871 eruption. A hauntingly beautiful heritage stop shaded by century-old trees.", descriptionFil: "Mga pader ng coral na bato na balot ng lumot, kampanaryo, at kumbento — mga labi ng simbahang Espanyol noong ika-16 na siglo na nawasak ng pagputok noong 1871. Isang magandang makasaysayang hintuan sa lilim ng mga daang-taong puno.", location: "Guiob, Catarman", category: "heritage", imageUrl: "/images/tourism/tourism-guiob-church-ruins.png", sortOrder: 9 },
+    { titleEn: "Walkway to the Old Volcano & Stations of the Cross", titleFil: "Walkway sa Old Volcano at Stations of the Cross", descriptionEn: "A pilgrimage trail up the slopes of Old Vulcan with 14 larger-than-life Stations of the Cross and sweeping views of the coastline. Especially busy during Holy Week's Panaad walk.", descriptionFil: "Isang pilgrimage trail paakyat sa Old Vulcan na may 14 na malalaking Stations of the Cross at magagandang tanawin ng baybayin. Pinakamataong puntahan tuwing Semana Santa sa Panaad walk.", location: "Bonbon, Catarman", category: "heritage", imageUrl: "/images/tourism/tourism-walkway-old-volcano.png", sortOrder: 10 },
+    { titleEn: "Taguines Lagoon", titleFil: "Taguines Lagoon", descriptionEn: "A calm blue-green lagoon framed by rolling hills — home to the island's zipline, kayaking, aqua park, and floating restaurants. A fun adventure stop near the Benoni Port.", descriptionFil: "Isang tahimik na blue-green na lagoon na napapaligiran ng mga burol — dito matatagpuan ang zipline, kayaking, aqua park, at mga floating restaurant. Masayang adventure stop malapit sa Benoni Port.", location: "Benoni, Mahinog", category: "adventure", imageUrl: "/images/tourism/tourism-taguines-lagoon.png", sortOrder: 11 },
+    { titleEn: "Kabila Giant Clam Sanctuary", titleFil: "Kabila Giant Clam Sanctuary", descriptionEn: "A conservation site at Kabila Beach caring for thousands of giant clams of several species. Snorkel over the clam gardens with a guide, or view juveniles in the hatchery tanks.", descriptionFil: "Isang conservation site sa Kabila Beach na nag-aalaga ng libu-libong giant clams ng iba't ibang species. Mag-snorkel sa ibabaw ng clam gardens kasama ang guide, o tingnan ang maliliit na clams sa hatchery.", location: "Cantaan, Guinsiliban", category: "beach", imageUrl: "/images/tourism/tourism-giant-clam-sanctuary.png", sortOrder: 12 },
+    { titleEn: "Bura Soda Water Park", titleFil: "Bura Soda Water Park", descriptionEn: "Swim in the only soda water pool in the Philippines — naturally carbonated spring water believed to be good for the skin. A quirky, refreshing stop with picnic sheds and gardens.", descriptionFil: "Lumangoy sa nag-iisang soda water pool sa Pilipinas — natural na carbonated na tubig-bukal na pinaniniwalaang mabuti sa balat. Kakaiba at preskong hintuan na may picnic sheds at hardin.", location: "Bura, Catarman", category: "nature", imageUrl: "/images/tourism/tourism-bura-soda-pool.png", sortOrder: 13 },
+    { titleEn: "Binangawan Falls", titleFil: "Binangawan Falls", descriptionEn: "A mystical multi-tiered waterfall over reddish volcanic rock, reached by a challenging jungle trek from Sagay. Rewarding for adventurous hikers — rainbows often form in its mist.", descriptionFil: "Isang mahiwagang talon na may ilang antas sa mapulang bato ng bulkan, mararating sa mahirap na trek mula Sagay. Sulit para sa mga mahilig sa adventure — madalas magkaroon ng bahaghari sa ambon nito.", location: "Sagay", category: "adventure", imageUrl: "/images/tourism/tourism-binangawan-falls.png", sortOrder: 14 },
   ];
 
   for (const item of tourismItems) {
-    await prisma.tourism.create({ data: item });
+    const existing = await prisma.tourism.findFirst({ where: { titleEn: item.titleEn } });
+    if (existing) {
+      await prisma.tourism.update({ where: { id: existing.id }, data: item });
+    } else {
+      await prisma.tourism.create({ data: item });
+    }
   }
 
   const emergencyContacts = [
@@ -349,6 +378,16 @@ async function main() {
   const { applyBisayaContent } = await import("./apply-bisaya-content");
   await applyBisayaContent(prisma);
   console.log("Cebuano content applied.");
+
+  const { importCitizensCharterFromStatic } = await import(
+    "../features/citizens-charter/import-static"
+  );
+  const charterImport = await importCitizensCharterFromStatic(prisma);
+  console.log(
+    charterImport.skipped
+      ? `Citizens' Charter already present (published=${charterImport.publishedId}, draft=${charterImport.draftId}).`
+      : `Citizens' Charter imported (published=${charterImport.publishedId}, draft=${charterImport.draftId}).`
+  );
 }
 
 main()

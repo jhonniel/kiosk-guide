@@ -100,6 +100,7 @@ export const RESOURCE_CONFIGS: Record<ResourceKey, ResourceConfig> = {
     tableColumns: [
       { key: "titleEn", label: "Title" },
       { key: "category", label: "Category" },
+      { key: "downloadCount", label: "Downloads" },
       { key: "isActive", label: "Active" },
     ],
     fields: [

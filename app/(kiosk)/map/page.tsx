@@ -10,6 +10,8 @@ export default function MapPage() {
 
   return (
     <ModulePageClient
+      icon="Map"
+      fit
       titleEn="Map of Camiguin"
       titleFil="Mapa ng Camiguin"
       titleBis="Mapa sa Camiguin"

@@ -8,7 +8,9 @@ export async function fetchAdminResource(resource: ResourceKey) {
     case "directories":
       return db.directory.findMany({ orderBy: { sortOrder: "asc" } });
     case "downloads":
-      return db.download.findMany({ orderBy: { sortOrder: "asc" } });
+      return db.download.findMany({
+        orderBy: [{ downloadCount: "desc" }, { sortOrder: "asc" }],
+      });
     case "announcements":
       return db.announcement.findMany({ orderBy: { publishedAt: "desc" } });
     case "faqs":

@@ -10,6 +10,7 @@ export default function NewsPage() {
 
   return (
     <ModulePageClient
+      icon="Megaphone"
       titleEn="News & Announcements"
       titleFil="Balita at Anunsyo"
       descriptionEn="Latest advisories, programs, and public notices."

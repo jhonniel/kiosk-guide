@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import QRCode from "qrcode";
-import { Download, FileText, Info, Smartphone } from "lucide-react";
+import { FileText, Info, Mail, QrCode, TrendingUp } from "lucide-react";
 import { useKiosk } from "@/hooks/use-kiosk";
 import { localized, pickLang } from "@/lib/i18n/translations";
 import { DownloadDeliveryDialog } from "@/components/kiosk/download-delivery-dialog";
@@ -15,19 +14,19 @@ interface DownloadCenterClientProps {
   deliverySettings: DownloadDeliverySettings;
 }
 
-type CategoryStyle = { iconBg: string; badge: string };
+type CategoryStyle = { icon: string; badge: string };
 
 const CATEGORY_STYLES: Record<string, CategoryStyle> = {
-  forms: { iconBg: "bg-blue-600", badge: "bg-blue-100 text-blue-700" },
-  form: { iconBg: "bg-blue-600", badge: "bg-blue-100 text-blue-700" },
-  business: { iconBg: "bg-blue-600", badge: "bg-blue-100 text-blue-700" },
-  permits: { iconBg: "bg-emerald-600", badge: "bg-emerald-100 text-emerald-700" },
-  permit: { iconBg: "bg-emerald-600", badge: "bg-emerald-100 text-emerald-700" },
-  guidelines: { iconBg: "bg-red-500", badge: "bg-red-100 text-red-600" },
-  brochures: { iconBg: "bg-teal-600", badge: "bg-teal-100 text-teal-700" },
-  reports: { iconBg: "bg-violet-600", badge: "bg-violet-100 text-violet-700" },
-  heritage: { iconBg: "bg-amber-600", badge: "bg-amber-100 text-amber-700" },
-  general: { iconBg: "bg-orange-500", badge: "bg-orange-100 text-orange-600" },
+  forms: { icon: "bg-blue-50 text-blue-600", badge: "bg-blue-50 text-blue-700" },
+  form: { icon: "bg-blue-50 text-blue-600", badge: "bg-blue-50 text-blue-700" },
+  business: { icon: "bg-blue-50 text-blue-600", badge: "bg-blue-50 text-blue-700" },
+  permits: { icon: "bg-emerald-50 text-emerald-600", badge: "bg-emerald-50 text-emerald-700" },
+  permit: { icon: "bg-emerald-50 text-emerald-600", badge: "bg-emerald-50 text-emerald-700" },
+  guidelines: { icon: "bg-rose-50 text-rose-600", badge: "bg-rose-50 text-rose-700" },
+  brochures: { icon: "bg-teal-50 text-teal-600", badge: "bg-teal-50 text-teal-700" },
+  reports: { icon: "bg-violet-50 text-violet-600", badge: "bg-violet-50 text-violet-700" },
+  heritage: { icon: "bg-amber-50 text-amber-600", badge: "bg-amber-50 text-amber-700" },
+  general: { icon: "bg-slate-100 text-slate-600", badge: "bg-slate-100 text-slate-600" },
 };
 
 function categoryStyle(category: string | null): CategoryStyle {
@@ -40,46 +39,6 @@ function categoryLabel(category: string | null) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function FileQr({ fileUrl, title }: { fileUrl: string; title: string }) {
-  const [dataUrl, setDataUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const absolute = fileUrl.startsWith("http")
-      ? fileUrl
-      : `${window.location.origin}${fileUrl}`;
-    QRCode.toDataURL(absolute, {
-      width: 180,
-      margin: 1,
-      color: { dark: "#1e2a4a", light: "#ffffff" },
-    })
-      .then((url) => {
-        if (!cancelled) setDataUrl(url);
-      })
-      .catch(() => {
-        if (!cancelled) setDataUrl(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [fileUrl]);
-
-  if (!dataUrl) {
-    return <div className="h-[104px] w-[104px] animate-pulse rounded-lg bg-gray-100" />;
-  }
-
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={dataUrl}
-      alt={`QR code for ${title}`}
-      width={104}
-      height={104}
-      className="h-[104px] w-[104px] rounded-lg border border-gray-200 bg-white p-1"
-    />
-  );
-}
-
 export function DownloadCenterClient({
   downloads,
   deliverySettings,
@@ -87,77 +46,77 @@ export function DownloadCenterClient({
   const { language } = useKiosk();
   const [selected, setSelected] = useState<DownloadModel | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [deliveryMethod, setDeliveryMethod] = useState<"qr" | "email">("qr");
+  const [activeCategory, setActiveCategory] = useState<string>("most");
+  const [rankedDownloads, setRankedDownloads] = useState(downloads);
 
   const deliveryEnabled = deliverySettings.qrEnabled || deliverySettings.emailEnabled;
 
+  useEffect(() => {
+    let active = true;
+
+    async function refreshRankings() {
+      try {
+        const response = await fetch("/api/downloads/rankings", { cache: "no-store" });
+        if (!response.ok) return;
+        const latest = (await response.json()) as DownloadModel[];
+        if (active) setRankedDownloads(latest);
+      } catch {
+        // Keep using the offline bundle when the rankings endpoint is unavailable.
+      }
+    }
+
+    void refreshRankings();
+    const interval = window.setInterval(refreshRankings, 30_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, []);
+
   const categories = useMemo(() => {
     const unique = new Map<string, string>();
-    for (const item of downloads) {
+    for (const item of rankedDownloads) {
       const label = categoryLabel(item.category);
       unique.set(label.toLowerCase(), label);
     }
     return [...unique.values()].sort((a, b) => a.localeCompare(b));
-  }, [downloads]);
+  }, [rankedDownloads]);
 
   const visible = useMemo(() => {
-    if (activeCategory === "all") return downloads;
-    return downloads.filter(
+    if (activeCategory === "most") return rankedDownloads;
+    return rankedDownloads.filter(
       (item) => categoryLabel(item.category).toLowerCase() === activeCategory
     );
-  }, [activeCategory, downloads]);
+  }, [activeCategory, rankedDownloads]);
 
-  function handleScanClick(item: DownloadModel) {
+  function handleDeliveryClick(item: DownloadModel, method: "qr" | "email") {
     if (!deliveryEnabled) {
       window.open(item.fileUrl, "_blank");
       return;
     }
+    setDeliveryMethod(method);
     setSelected(item);
     setDialogOpen(true);
   }
 
   return (
     <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-800 via-blue-700 to-blue-500 px-6 py-8 text-white shadow-lg sm:px-8">
-        <div className="pointer-events-none absolute -top-10 -right-10 h-48 w-48 rounded-full bg-white/10" />
-        <div className="pointer-events-none absolute -right-16 bottom-[-60px] h-56 w-56 rounded-full bg-white/5" />
-        <div className="relative flex items-center gap-5">
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-white/15 ring-4 ring-white/10">
-            <Download className="h-8 w-8" />
-          </span>
-          <div>
-            <h2 className="text-2xl font-extrabold tracking-wide uppercase sm:text-3xl">
-              {pickLang(language, "Download Center", "Sentro ng Pag-download", "Sentro sa Pag-download")}
-            </h2>
-            <p className="mt-1 max-w-2xl text-sm text-blue-100 sm:text-base">
-              {pickLang(
-                language,
-                "Scan the QR code to download forms, permit templates and public brochures.",
-                "I-scan ang QR code para i-download ang mga form, permit template at pampublikong brochure.",
-                "I-scan ang QR code aron makadownload og mga form, permit template ug pampublikong brochure."
-              )}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
-        <div className="flex-1 rounded-2xl bg-white p-4 shadow-sm">
-          <p className="mb-3 text-xs font-bold tracking-wider text-kiosk-navy uppercase">
-            {pickLang(language, "Document Categories", "Mga Kategorya ng Dokumento", "Mga Kategorya sa Dokumento")}
-          </p>
-          <div className="flex flex-wrap gap-2">
+      <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => setActiveCategory("all")}
+              onClick={() => setActiveCategory("most")}
               className={cn(
-                "rounded-full px-5 py-2 text-sm font-bold transition-colors",
-                activeCategory === "all"
-                  ? "bg-teal-600 text-white shadow"
-                  : "bg-white text-kiosk-navy ring-1 ring-gray-200 hover:bg-gray-50"
+                "inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors",
+                activeCategory === "most"
+                  ? "bg-kiosk-navy text-white"
+                  : "bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-kiosk-navy"
               )}
             >
-              {pickLang(language, "All", "Lahat", "Tanan")}
+              <TrendingUp className="h-4 w-4" />
+              {pickLang(language, "Most Downloads", "Pinakamaraming Download", "Pinakadaghan og Download")}
             </button>
             {categories.map((category) => (
               <button
@@ -165,35 +124,33 @@ export function DownloadCenterClient({
                 type="button"
                 onClick={() => setActiveCategory(category.toLowerCase())}
                 className={cn(
-                  "rounded-full px-5 py-2 text-sm font-bold transition-colors",
+                  "h-10 rounded-full px-4 text-sm font-semibold transition-colors",
                   activeCategory === category.toLowerCase()
-                    ? "bg-teal-600 text-white shadow"
-                    : "bg-white text-kiosk-navy ring-1 ring-gray-200 hover:bg-gray-50"
+                    ? "bg-kiosk-navy text-white"
+                    : "bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-kiosk-navy"
                 )}
               >
                 {category}
               </button>
             ))}
           </div>
-        </div>
 
-        <div className="flex items-center gap-3 rounded-2xl bg-blue-50 px-5 py-4 ring-1 ring-blue-100 lg:max-w-sm">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-            <Info className="h-5 w-5" />
-          </span>
-          <p className="text-sm leading-relaxed text-blue-900">
-            {pickLang(
-              language,
-              "Scan the QR code using your mobile phone to open the file in your browser.",
-              "I-scan ang QR code gamit ang iyong cellphone para buksan ang file sa browser.",
-              "I-scan ang QR code gamit ang imong cellphone aron maablihan ang file sa browser."
-            )}
-          </p>
+          <div className="flex shrink-0 items-center gap-2 text-sm text-gray-500">
+            <Info className="h-4 w-4 shrink-0 text-kiosk-navy/60" />
+            <p>
+              {pickLang(
+                language,
+                "Get any document on your phone — scan a QR code or receive it by email.",
+                "Makuha ang anumang dokumento sa iyong telepono — mag-scan ng QR o matanggap sa email.",
+                "Makuha ang bisan unsang dokumento sa imong telepono — i-scan ang QR o madawat sa email."
+              )}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="kiosk-stagger grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {visible.map((item) => {
+      <div className="kiosk-stagger grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+        {visible.map((item, index) => {
           const style = categoryStyle(item.category);
           const title = localized(item, language, "title");
           const description = localized(item, language, "description");
@@ -201,47 +158,64 @@ export function DownloadCenterClient({
           return (
             <div
               key={item.id}
-              className="flex gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+              className="flex flex-col rounded-2xl border border-gray-100 bg-white shadow-sm transition-shadow hover:border-gray-200 hover:shadow-md"
             >
-              <div className="flex min-w-0 flex-1 flex-col">
-                <div className="flex items-start gap-3">
-                  <span
-                    className={cn(
-                      "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm",
-                      style.iconBg
-                    )}
-                  >
-                    <FileText className="h-5 w-5" />
-                  </span>
-                  <div className="min-w-0">
-                    <h3 className="text-sm leading-snug font-bold text-kiosk-navy">{title}</h3>
+              <div className="flex flex-1 gap-3.5 p-5">
+                <span
+                  className={cn(
+                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
+                    style.icon
+                  )}
+                >
+                  <FileText className="h-5 w-5" />
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-2">
                     <span
                       className={cn(
-                        "mt-1 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold",
+                        "inline-block w-fit rounded-md px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase",
                         style.badge
                       )}
                     >
                       {categoryLabel(item.category)}
                     </span>
+                    {activeCategory === "most" && (
+                      <span className="text-[10px] font-semibold whitespace-nowrap text-gray-400">
+                        #{index + 1} · {item.downloadCount}{" "}
+                        {pickLang(language, "downloads", "download", "download")}
+                      </span>
+                    )}
                   </div>
+                  <h3 className="text-[15px] leading-snug font-bold text-kiosk-navy">{title}</h3>
+                  {description ? (
+                    <p className="line-clamp-2 text-xs leading-relaxed text-gray-500">
+                      {description}
+                    </p>
+                  ) : null}
                 </div>
-                {description ? (
-                  <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-gray-600">
-                    {description}
-                  </p>
-                ) : null}
               </div>
 
-              <div className="flex shrink-0 flex-col items-center gap-2">
-                <FileQr fileUrl={item.fileUrl} title={title} />
-                <button
-                  type="button"
-                  onClick={() => handleScanClick(item)}
-                  className="flex items-center gap-1.5 rounded-lg bg-kiosk-navy px-3 py-1.5 text-[11px] font-bold text-white transition-transform hover:scale-[1.03]"
-                >
-                  <Smartphone className="h-3.5 w-3.5" />
-                  {pickLang(language, "SCAN QR", "I-SCAN ANG QR", "I-SCAN ANG QR")}
-                </button>
+              <div className="flex items-center gap-2 px-5 pb-5">
+                {deliverySettings.qrEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeliveryClick(item, "qr")}
+                    className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-kiosk-navy px-3 text-[13px] font-semibold whitespace-nowrap text-white transition-colors hover:bg-kiosk-navy/90"
+                  >
+                    <QrCode className="h-4 w-4 shrink-0" />
+                    {pickLang(language, "Download via QR", "I-download via QR", "I-download via QR")}
+                  </button>
+                )}
+                {deliverySettings.emailEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeliveryClick(item, "email")}
+                    className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-[13px] font-semibold whitespace-nowrap text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-kiosk-navy"
+                  >
+                    <Mail className="h-4 w-4 shrink-0" />
+                    {pickLang(language, "Send via Email", "Ipadala sa Email", "Ipadala sa Email")}
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -249,13 +223,26 @@ export function DownloadCenterClient({
       </div>
 
       {visible.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-sm text-gray-500">
-          {pickLang(
-            language,
-            "No documents in this category yet.",
-            "Wala pang dokumento sa kategoryang ito.",
-            "Wala pay dokumento niini nga kategorya."
-          )}
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 text-gray-400">
+            <FileText className="h-6 w-6" />
+          </span>
+          <p className="text-sm font-medium text-gray-600">
+            {pickLang(
+              language,
+              "No documents in this category yet.",
+              "Wala pang dokumento sa kategoryang ito.",
+              "Wala pay dokumento niini nga kategorya."
+            )}
+          </p>
+          <p className="text-xs text-gray-400">
+            {pickLang(
+              language,
+              "Try another category to see more documents.",
+              "Subukan ang ibang kategorya upang makakita ng iba pang dokumento.",
+              "Sulayi ang laing kategorya aron makakita og dugang dokumento."
+            )}
+          </p>
         </div>
       )}
 
@@ -263,6 +250,7 @@ export function DownloadCenterClient({
         download={selected}
         settings={deliverySettings}
         open={dialogOpen}
+        initialStep={deliveryMethod}
         onOpenChange={setDialogOpen}
       />
     </div>

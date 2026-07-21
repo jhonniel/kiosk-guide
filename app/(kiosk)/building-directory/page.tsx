@@ -12,6 +12,7 @@ export default function BuildingDirectoryPage() {
 
   return (
     <ModulePageClient
+      icon="Building"
       titleEn={pageData.uiConfigEn.pageTitle}
       titleFil={pageData.uiConfigFil.pageTitle}
       titleBis={pageData.uiConfigBis.pageTitle}

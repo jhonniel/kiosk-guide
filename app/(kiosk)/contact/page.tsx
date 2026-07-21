@@ -9,6 +9,7 @@ export default function ContactPage() {
 
   return (
     <ModulePageClient
+      icon="Mail"
       titleEn="Contact Us"
       titleFil="Makipag-ugnayan"
       descriptionEn="Get in touch with the Provincial Government of Camiguin."
