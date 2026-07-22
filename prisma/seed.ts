@@ -146,6 +146,12 @@ async function main() {
     });
   }
 
+  // Remove retired homepage cards (e.g. old "I Need Help With..." /help card).
+  // Upsert alone never deletes rows that were removed from the seed list.
+  await prisma.homepageCard.deleteMany({
+    where: { slug: { notIn: homepageCards.map((card) => card.slug) } },
+  });
+
   const services = [
     {
       slug: "business-permit",
