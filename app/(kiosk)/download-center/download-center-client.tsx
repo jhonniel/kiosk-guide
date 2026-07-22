@@ -26,6 +26,12 @@ const CATEGORY_STYLES: Record<string, CategoryStyle> = {
   brochures: { icon: "bg-teal-50 text-teal-600", badge: "bg-teal-50 text-teal-700" },
   reports: { icon: "bg-violet-50 text-violet-600", badge: "bg-violet-50 text-violet-700" },
   heritage: { icon: "bg-amber-50 text-amber-600", badge: "bg-amber-50 text-amber-700" },
+  tourism: { icon: "bg-teal-50 text-teal-600", badge: "bg-teal-50 text-teal-700" },
+  tax: { icon: "bg-indigo-50 text-indigo-600", badge: "bg-indigo-50 text-indigo-700" },
+  health: { icon: "bg-cyan-50 text-cyan-600", badge: "bg-cyan-50 text-cyan-700" },
+  social: { icon: "bg-pink-50 text-pink-600", badge: "bg-pink-50 text-pink-700" },
+  employment: { icon: "bg-orange-50 text-orange-600", badge: "bg-orange-50 text-orange-700" },
+  ordinance: { icon: "bg-rose-50 text-rose-600", badge: "bg-rose-50 text-rose-700" },
   general: { icon: "bg-slate-100 text-slate-600", badge: "bg-slate-100 text-slate-600" },
 };
 

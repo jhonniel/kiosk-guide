@@ -5,18 +5,105 @@ import {
   Building2,
   ChevronRight,
   FileText,
+  Gavel,
+  HeartPulse,
+  Landmark,
   ListChecks,
   Search,
+  Shield,
+  Trees,
+  Users,
+  Wallet,
+  Wrench,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import type {
   CharterEditionView,
   CharterOfficeView,
   CharterServiceView,
 } from "@/features/citizens-charter/types";
+import { cn } from "@/lib/utils";
 
 interface CitizensCharterClientProps {
   edition: CharterEditionView | null;
+}
+
+const OFFICE_THEMES: Array<{
+  match: RegExp;
+  icon: LucideIcon;
+  accent: string;
+  soft: string;
+  badge: string;
+}> = [
+  {
+    match: /hospital|health|medical|clinic|pharmacy/i,
+    icon: HeartPulse,
+    accent: "bg-[#0f766e]",
+    soft: "bg-[#ecfdf8]",
+    badge: "text-[#0f766e] bg-[#d1fae5]",
+  },
+  {
+    match: /treasury|accounting|budget|finance|cashier|revenue/i,
+    icon: Wallet,
+    accent: "bg-[#1d4ed8]",
+    soft: "bg-[#eff6ff]",
+    badge: "text-[#1d4ed8] bg-[#dbeafe]",
+  },
+  {
+    match: /engineer|works|infrastructure|building/i,
+    icon: Wrench,
+    accent: "bg-[#b45309]",
+    soft: "bg-[#fffbeb]",
+    badge: "text-[#b45309] bg-[#fef3c7]",
+  },
+  {
+    match: /agriculture|fisher|veterinary|environment|tourism/i,
+    icon: Trees,
+    accent: "bg-[#15803d]",
+    soft: "bg-[#f0fdf4]",
+    badge: "text-[#15803d] bg-[#dcfce7]",
+  },
+  {
+    match: /legal|attorney|prosecutor|justice|bids|awards|bac/i,
+    icon: Gavel,
+    accent: "bg-[#6d28d9]",
+    soft: "bg-[#f5f3ff]",
+    badge: "text-[#6d28d9] bg-[#ede9fe]",
+  },
+  {
+    match: /social|welfare|youth|women|senior|employment|human/i,
+    icon: Users,
+    accent: "bg-[#be185d]",
+    soft: "bg-[#fdf2f8]",
+    badge: "text-[#be185d] bg-[#fce7f3]",
+  },
+  {
+    match: /police|safety|disaster|risk|security|fire/i,
+    icon: Shield,
+    accent: "bg-[#b91c1c]",
+    soft: "bg-[#fef2f2]",
+    badge: "text-[#b91c1c] bg-[#fee2e2]",
+  },
+  {
+    match: /governor|administrator|planning|sanggunian|records/i,
+    icon: Landmark,
+    accent: "bg-kiosk-navy",
+    soft: "bg-[#eef2ff]",
+    badge: "text-kiosk-navy bg-[#e0e7ff]",
+  },
+];
+
+function themeForOffice(name: string) {
+  return (
+    OFFICE_THEMES.find((theme) => theme.match.test(name)) ?? {
+      match: /.*/,
+      icon: Building2,
+      accent: "bg-kiosk-navy",
+      soft: "bg-[#f1f5f9]",
+      badge: "text-kiosk-navy bg-[#e2e8f0]",
+    }
+  );
 }
 
 function normalizeSearchText(value: unknown) {
@@ -204,47 +291,87 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
 
   return (
     <div className="space-y-5">
-      <div className="relative">
-        <Search className="pointer-events-none absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-gray-400" />
-        <input
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search any service, requirement, step, fee, person, or medicine…"
-          aria-label="Search all Citizens' Charter data"
-          className="w-full rounded-2xl border border-gray-200 bg-white py-3.5 pr-4 pl-12 text-sm text-kiosk-navy shadow-sm outline-none transition focus:border-kiosk-green focus:ring-2 focus:ring-kiosk-green/20"
-        />
+      <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-[0_8px_30px_rgba(15,35,70,0.05)] backdrop-blur-sm">
+        <div className="relative">
+          <Search className="pointer-events-none absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search any service, requirement, step, fee, person, or medicine…"
+            aria-label="Search all Citizens' Charter data"
+            className="w-full rounded-xl border-0 bg-[#f5f8fc] py-3.5 pr-4 pl-12 text-sm text-kiosk-navy outline-none ring-1 ring-slate-200/80 transition placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-kiosk-navy/20"
+          />
+        </div>
+        <div className="mt-2.5 flex items-center justify-between gap-3 px-1">
+          <p className="text-xs font-medium text-slate-500">
+            {query.trim()
+              ? `${groups.length} matching ${groups.length === 1 ? "office" : "offices"}`
+              : `${groups.length} offices available`}
+          </p>
+          {query.trim() && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="text-xs font-semibold text-kiosk-navy transition hover:text-kiosk-green"
+            >
+              Clear search
+            </button>
+          )}
+        </div>
       </div>
 
       {groups.length ? (
         <>
-          <div className="kiosk-stagger grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="kiosk-stagger grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
             {groups.map((group) => {
               const serviceCount = group.categories.reduce(
                 (total, category) => total + category.services.length,
                 0
               );
+              const categoryCount = group.categories.length;
               const isActive = expandedOfficeId === group.id;
+              const theme = themeForOffice(group.name);
+              const Icon = theme.icon;
 
               return (
                 <button
                   key={group.id}
                   type="button"
                   onClick={() => openOffice(group.id)}
-                  className={`flex min-h-[160px] flex-col rounded-2xl border p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
+                  className={cn(
+                    "group relative flex min-h-[168px] flex-col overflow-hidden rounded-2xl border bg-white p-4 text-left shadow-[0_6px_20px_rgba(15,35,70,0.05)] transition-all duration-300",
+                    "hover:-translate-y-1 hover:shadow-[0_14px_32px_rgba(15,35,70,0.12)] active:scale-[0.99]",
                     isActive
-                      ? "border-kiosk-green bg-green-50 ring-2 ring-kiosk-green/30"
-                      : "border-gray-200 bg-white hover:border-kiosk-green/40"
-                  }`}
+                      ? "border-kiosk-green ring-2 ring-kiosk-green/25"
+                      : "border-slate-200/80 hover:border-kiosk-navy/20"
+                  )}
                 >
-                  <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-kiosk-navy text-white">
-                    <Building2 className="h-5 w-5" />
-                  </span>
-                  <h3 className="line-clamp-3 flex-1 text-sm leading-snug font-bold text-kiosk-navy">
+                  <div className="flex items-start justify-between gap-3">
+                    <span
+                      className={cn(
+                        "flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-sm",
+                        theme.accent
+                      )}
+                    >
+                      <Icon className="h-5 w-5" strokeWidth={2} />
+                    </span>
+                    <span
+                      className={cn(
+                        "rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide",
+                        theme.badge
+                      )}
+                    >
+                      {serviceCount} {serviceCount === 1 ? "service" : "services"}
+                    </span>
+                  </div>
+
+                  <h3 className="mt-4 line-clamp-3 text-[15px] leading-snug font-bold text-kiosk-navy">
                     {group.name}
                   </h3>
-                  <p className="mt-3 text-xs font-semibold text-gray-500">
-                    {serviceCount} {serviceCount === 1 ? "service" : "services"}
+
+                  <p className="mt-auto pt-4 text-xs font-medium text-slate-500">
+                    {categoryCount} {categoryCount === 1 ? "category" : "categories"}
                   </p>
                 </button>
               );
@@ -265,10 +392,14 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
           )}
         </>
       ) : (
-        <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center">
-          <Search className="mx-auto mb-3 h-8 w-8 text-gray-300" />
-          <p className="font-semibold text-kiosk-navy">No matching services found</p>
-          <p className="mt-1 text-sm text-gray-500">Try another office or service name.</p>
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+            <Search className="h-6 w-6" />
+          </div>
+          <p className="text-lg font-bold text-kiosk-navy">No matching services found</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Try another office, requirement, step, fee, or person name.
+          </p>
         </div>
       )}
     </div>
@@ -294,6 +425,13 @@ function OfficeModal({
   onOpenService: (serviceId: string) => void;
   onCloseService: () => void;
 }) {
+  const theme = themeForOffice(group.name);
+  const Icon = theme.icon;
+  const serviceCount = group.categories.reduce(
+    (total, category) => total + category.services.length,
+    0
+  );
+
   return (
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center bg-kiosk-navy/65 p-3 backdrop-blur-sm sm:p-6 ${
@@ -305,40 +443,55 @@ function OfficeModal({
       onClick={onCloseOffice}
     >
       <section
-        className={`flex max-h-[92vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-kiosk-green/30 bg-white shadow-2xl ${
+        className={`flex max-h-[92vh] w-full max-w-7xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5 ${
           isOfficeClosing ? "charter-modal-panel-out" : "charter-modal-panel-in"
         }`}
         onClick={(event) => event.stopPropagation()}
       >
-        <header className="flex shrink-0 items-center gap-3 border-b border-gray-100 bg-kiosk-bg px-5 py-4">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-kiosk-navy text-white">
-            <Building2 className="h-5 w-5" />
+        <header className="flex shrink-0 items-center gap-4 border-b border-slate-100 bg-white px-5 py-5">
+          <span
+            className={cn(
+              "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-sm",
+              theme.accent
+            )}
+          >
+            <Icon className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold tracking-wider text-kiosk-green uppercase">
+            <p className="text-[10px] font-bold tracking-[0.16em] text-kiosk-green uppercase">
               List of Services
             </p>
-            <h3 id="charter-office-title" className="font-bold text-kiosk-navy">
+            <h3 id="charter-office-title" className="text-lg font-bold text-kiosk-navy">
               {group.name}
             </h3>
+            <p className="mt-0.5 text-xs font-medium text-slate-500">
+              {serviceCount} {serviceCount === 1 ? "service" : "services"} · {group.categories.length}{" "}
+              {group.categories.length === 1 ? "category" : "categories"}
+            </p>
           </div>
           <button
             type="button"
             onClick={onCloseOffice}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-gray-500 shadow-sm ring-1 ring-gray-200 transition hover:bg-gray-100 hover:text-kiosk-navy"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-100 hover:text-kiosk-navy"
             aria-label="Close list of services"
           >
             <X className="h-5 w-5" />
           </button>
         </header>
 
-        <div className="space-y-5 overflow-y-auto p-4 sm:p-5">
+        <div className="space-y-6 overflow-y-auto bg-[#f7f9fc] p-4 sm:p-6">
           {group.categories.map((category) => (
             <div key={category.id}>
-              <h4 className="mb-3 text-xs font-bold tracking-wider text-kiosk-green uppercase">
-                {category.name}
-              </h4>
-              <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="mb-3 flex items-center gap-3">
+                <h4 className="text-xs font-bold tracking-[0.14em] text-kiosk-navy uppercase">
+                  {category.name}
+                </h4>
+                <div className="h-px flex-1 bg-slate-200" />
+                <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-500 ring-1 ring-slate-200">
+                  {category.services.length}
+                </span>
+              </div>
+              <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {category.services.map((service, serviceIndex) => {
                   const isSelected = expandedServiceId === service.id;
                   return (
@@ -346,19 +499,26 @@ function OfficeModal({
                       <button
                         type="button"
                         onClick={() => onOpenService(service.id)}
-                        className={`flex min-h-[140px] w-full flex-col rounded-xl border p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md ${
+                        className={cn(
+                          "flex min-h-[148px] w-full flex-col rounded-2xl border bg-white p-3.5 text-left shadow-sm transition-all duration-300",
+                          "hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]",
                           isSelected
-                            ? "border-kiosk-green bg-white shadow-md ring-2 ring-kiosk-green/20"
-                            : "border-gray-100 bg-gray-50/70 hover:border-kiosk-green/40"
-                        }`}
+                            ? "border-kiosk-green ring-2 ring-kiosk-green/20"
+                            : "border-slate-200/80 hover:border-kiosk-navy/20"
+                        )}
                       >
-                        <div className="mb-2 flex items-start justify-between gap-2">
-                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-kiosk-navy text-xs font-bold text-white">
+                        <div className="mb-2.5 flex items-start justify-between gap-2">
+                          <span
+                            className={cn(
+                              "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white",
+                              theme.accent
+                            )}
+                          >
                             {serviceIndex + 1}
                           </span>
                           <span className="flex items-center gap-1.5">
                             {service.pageNumber != null && (
-                              <span className="rounded-lg bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-500 ring-1 ring-gray-200">
+                              <span className="rounded-lg bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200">
                                 p. {service.pageNumber}
                               </span>
                             )}
@@ -369,11 +529,11 @@ function OfficeModal({
                           {service.name}
                         </p>
                         {service.details.length > 0 && (
-                          <ul className="mt-2 space-y-1 text-xs text-gray-600">
-                            {service.details.map((detail) => (
+                          <ul className="mt-2 space-y-1 text-xs text-slate-600">
+                            {service.details.slice(0, 2).map((detail) => (
                               <li
                                 key={detail}
-                                className="before:mr-1.5 before:text-kiosk-green before:content-['•']"
+                                className="line-clamp-1 before:mr-1.5 before:text-kiosk-green before:content-['•']"
                               >
                                 {detail}
                               </li>
@@ -381,7 +541,7 @@ function OfficeModal({
                           </ul>
                         )}
                         {service.requirements.length > 0 && (
-                          <p className="mt-auto flex items-center gap-1 pt-2 text-[10px] font-semibold text-kiosk-green">
+                          <p className="mt-auto flex items-center gap-1 pt-3 text-[10px] font-semibold text-kiosk-green">
                             <ListChecks className="h-3.5 w-3.5" />
                             {service.requirements.length}{" "}
                             {service.requirements.length === 1 ? "requirement" : "requirements"} ·
