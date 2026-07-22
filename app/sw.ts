@@ -23,7 +23,6 @@ const KIOSK_PATH_PREFIXES = [
   "/tourism",
   "/news",
   "/events",
-  "/help",
   "/citizens-charter",
   "/feedback",
   "/services/",

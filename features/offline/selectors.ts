@@ -94,7 +94,6 @@ export function getKioskPrecacheRoutes(data: KioskOfflineData): string[] {
     "/tourism",
     "/news",
     "/events",
-    "/help",
     "/citizens-charter",
     "/feedback",
   ];

@@ -116,11 +116,6 @@ const UI = {
     fil: "Na-save ang feedback offline. Isi-sync kapag may koneksyon na.",
     bis: "Na-save ang feedback offline. Mo-sync kung naay koneksyon na.",
   },
-  helpIntro: {
-    en: "Select a service below to get step-by-step guidance on requirements, documents, and where to go.",
-    fil: "Pumili ng serbisyo sa ibaba upang makakuha ng gabay sa mga kinakailangan, dokumento, at kung saan pupunta.",
-    bis: "Pilia ang serbisyo sa ubos aron makakuha ug gabay sa mga kinahanglanon, dokumento, ug asa adto.",
-  },
   offlineReady: {
     en: "Offline mode — using saved kiosk data",
     fil: "Offline mode — gumagamit ng naka-save na impormasyon",
