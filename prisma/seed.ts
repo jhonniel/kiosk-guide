@@ -1,9 +1,25 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { config as loadEnv } from "dotenv";
+import { resolve } from "path";
 import { SETTING_DEFAULTS } from "../features/settings/defaults";
 import { SETTING_GROUPS } from "../features/admin/settings-definitions";
 
+// Match Next.js env priority so seed writes to the same DB the app reads.
+loadEnv({ path: resolve(process.cwd(), ".env") });
+loadEnv({ path: resolve(process.cwd(), ".env.local"), override: true });
+
 const prisma = new PrismaClient();
+
+function redactDatabaseUrl(url: string | undefined) {
+  if (!url) return "(missing DATABASE_URL)";
+  try {
+    const parsed = new URL(url);
+    return `${parsed.protocol}//${parsed.hostname}:${parsed.port || "5432"}${parsed.pathname}`;
+  } catch {
+    return "(invalid DATABASE_URL)";
+  }
+}
 
 function settingGroupForKey(key: string) {
   for (const group of SETTING_GROUPS) {
@@ -720,7 +736,41 @@ async function dedupeByKey(
   }
 }
 
+async function printSeedSummary() {
+  const [homepageCards, tourism, services, downloads, announcements, events] = await Promise.all([
+    prisma.homepageCard.count({ where: { isActive: true } }),
+    prisma.tourism.count({ where: { isActive: true } }),
+    prisma.service.count({ where: { isActive: true } }),
+    prisma.download.count({ where: { isActive: true } }),
+    prisma.announcement.count({ where: { isPublished: true } }),
+    prisma.event.count({ where: { isActive: true } }),
+  ]);
+
+  const cards = await prisma.homepageCard.findMany({
+    where: { isActive: true },
+    orderBy: { sortOrder: "asc" },
+    select: { titleEn: true, href: true },
+  });
+
+  console.log("\nSeed target DB:", redactDatabaseUrl(process.env.DATABASE_URL));
+  console.log("Seed counts:", {
+    homepageCards,
+    tourism,
+    services,
+    downloads,
+    announcements,
+    events,
+  });
+  console.log(
+    "Homepage cards:\n" +
+      cards.map((card) => `  - ${card.titleEn} (${card.href})`).join("\n")
+  );
+}
+
 main()
+  .then(async () => {
+    await printSeedSummary();
+  })
   .catch((e) => {
     console.error(e);
     process.exit(1);

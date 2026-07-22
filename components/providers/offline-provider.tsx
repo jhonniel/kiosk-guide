@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { KioskOfflineData } from "@/features/offline/types";
+import { KIOSK_OFFLINE_DATA_VERSION, type KioskOfflineData } from "@/features/offline/types";
 import { normalizeOfflineData } from "@/features/offline/normalize-offline-data";
 import { loadKioskOfflineData, saveKioskOfflineData } from "@/lib/offline/idb";
 import { syncQueuedFeedback } from "@/lib/offline/feedback-queue";
@@ -29,11 +29,24 @@ function isValidOfflineData(data: unknown): data is KioskOfflineData {
   if (!data || typeof data !== "object") return false;
   const d = data as Partial<KioskOfflineData>;
   return Boolean(
-    d.version &&
+    d.version === KIOSK_OFFLINE_DATA_VERSION &&
       d.settings &&
       Array.isArray(d.homepageCards) &&
       Array.isArray(d.quickLinks) &&
       d.guideContext
+  );
+}
+
+function exportedAtMs(data: KioskOfflineData) {
+  const value = Date.parse(data.exportedAt);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function pickFreshest(candidates: Array<KioskOfflineData | null>): KioskOfflineData | null {
+  return (
+    candidates
+      .filter((item): item is KioskOfflineData => Boolean(item))
+      .sort((a, b) => exportedAtMs(b) - exportedAtMs(a))[0] ?? null
   );
 }
 
@@ -78,27 +91,17 @@ async function loadCachedOfflineData(): Promise<KioskOfflineData | null> {
 }
 
 async function resolveOfflineData(preferRemote: boolean): Promise<KioskOfflineData | null> {
-  if (preferRemote) {
-    // Start bundled in parallel so a slow API still has a fast fallback ready.
-    const remotePromise = fetchRemoteOfflineData();
-    const bundledPromise = loadBundledOfflineData();
+  const [remote, bundled, cached] = await Promise.all([
+    fetchRemoteOfflineData(),
+    loadBundledOfflineData(),
+    loadCachedOfflineData(),
+  ]);
 
-    const remote = await remotePromise;
-    if (remote) return normalizeOfflineData(remote);
+  const chosen = preferRemote
+    ? remote ?? pickFreshest([bundled, cached])
+    : pickFreshest([cached, bundled, remote]);
 
-    const bundled = await bundledPromise;
-    if (bundled) return normalizeOfflineData(bundled);
-
-    const cached = await loadCachedOfflineData();
-    if (cached) return normalizeOfflineData(cached);
-    return null;
-  }
-
-  for (const source of [loadCachedOfflineData, loadBundledOfflineData, fetchRemoteOfflineData]) {
-    const data = await source();
-    if (data) return normalizeOfflineData(data);
-  }
-  return null;
+  return chosen ? normalizeOfflineData(chosen) : null;
 }
 
 export function OfflineProvider({ children }: { children: ReactNode }) {

@@ -9,9 +9,9 @@ import {
 import { getResolvedSettings, getSetting } from "@/features/settings/resolve-settings";
 import type { NavigationGraph } from "@/features/building-directory/navigation/types";
 import { getPublishedCharterEdition } from "@/features/citizens-charter/queries";
-import type { KioskOfflineData } from "./types";
+import { KIOSK_OFFLINE_DATA_VERSION, type KioskOfflineData } from "./types";
 
-export const KIOSK_OFFLINE_DATA_VERSION = 3;
+export { KIOSK_OFFLINE_DATA_VERSION };
 
 export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
   const [
