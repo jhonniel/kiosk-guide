@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin, Clock, FileText, DollarSign, Phone } from "lucide-react";
+import { MapPin, Clock, FileText, PhilippinePeso, Phone } from "lucide-react";
 import { useKiosk } from "@/hooks/use-kiosk";
 import { localized, pickLang } from "@/lib/i18n/translations";
 import { ContentCard } from "@/components/kiosk/content-card";
@@ -15,7 +15,7 @@ export function ServiceDetailClient({ service }: { service: Service }) {
     { icon: MapPin, label: pickLang(language, "Office Location", "Lokasyon ng Opisina", "Lokasyon sa Opisina"), value: service.officeLocation },
     { icon: Clock, label: pickLang(language, "Office Hours", "Oras ng Opisina", "Oras sa Opisina"), value: service.officeHours },
     { icon: Clock, label: pickLang(language, "Processing Time", "Oras ng Pagproseso", "Oras sa Pagproseso"), value: service.processingTime },
-    { icon: DollarSign, label: pickLang(language, "Fee", "Bayad", "Bayad"), value: service.fee },
+    { icon: PhilippinePeso, label: pickLang(language, "Fee", "Bayad", "Bayad"), value: service.fee },
     { icon: Phone, label: pickLang(language, "Contact", "Contact", "Kontak"), value: service.contactInfo },
   ];
 

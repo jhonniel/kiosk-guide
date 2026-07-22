@@ -1,7 +1,32 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { SETTING_DEFAULTS } from "../features/settings/defaults";
+import { SETTING_GROUPS } from "../features/admin/settings-definitions";
 
 const prisma = new PrismaClient();
+
+function settingGroupForKey(key: string) {
+  for (const group of SETTING_GROUPS) {
+    if (group.fields.some((field) => field.key === key)) return group.id;
+  }
+  return "general";
+}
+
+async function upsertByTitleEn<T extends { titleEn: string }>(
+  model: {
+    findFirst: (args: { where: { titleEn: string } }) => Promise<{ id: string } | null>;
+    update: (args: { where: { id: string }; data: T }) => Promise<unknown>;
+    create: (args: { data: T }) => Promise<unknown>;
+  },
+  item: T
+) {
+  const existing = await model.findFirst({ where: { titleEn: item.titleEn } });
+  if (existing) {
+    await model.update({ where: { id: existing.id }, data: item });
+  } else {
+    await model.create({ data: item });
+  }
+}
 
 async function main() {
   const adminRole = await prisma.role.upsert({
@@ -74,58 +99,13 @@ async function main() {
     },
   });
 
-  const settings = [
-    { key: "gov_name_en", value: "Provincial Government of Camiguin", group: "branding" },
-    { key: "gov_name_fil", value: "Pamahalaang Panlalawigan ng Camiguin", group: "branding" },
-    { key: "tagline_en", value: "The Island Born of Fire", group: "branding" },
-    { key: "tagline_fil", value: "Ang Pulo na Pinanganakan ng Apoy", group: "branding" },
-    { key: "welcome_en", value: "Use this kiosk to find services, offices, forms, and information about Camiguin.", group: "branding" },
-    { key: "welcome_fil", value: "Gamitin ang kiosk na ito upang makahanap ng mga serbisyo, opisina, form, at impormasyon tungkol sa Camiguin.", group: "branding" },
-    { key: "footer_tagline_en", value: "Connecting People. Building Communities. Developing Camiguin.", group: "branding" },
-    { key: "footer_tagline_fil", value: "Pag-uugnay ng mga Tao. Pagbuo ng mga Komunidad. Pag-unlad ng Camiguin.", group: "branding" },
-    { key: "office_hours_en", value: "Monday to Friday, 8:00 AM – 5:00 PM", group: "contact" },
-    { key: "office_hours_fil", value: "Lunes hanggang Biyernes, 8:00 AM – 5:00 PM", group: "contact" },
-    { key: "contact_phone", value: "(088) 387-1001", group: "contact" },
-    { key: "contact_email", value: "info@camiguin.gov.ph", group: "contact" },
-    { key: "contact_address", value: "Mambajao, Camiguin", group: "contact" },
-    { key: "building_floor_plan_uploaded", value: "false", group: "building" },
-    { key: "gov_prefix_en", value: "Provincial Government of", group: "branding" },
-    { key: "gov_prefix_fil", value: "Pamahalaang Panlalawigan ng", group: "branding" },
-    { key: "gov_short_en", value: "CAMIGUIN", group: "branding" },
-    { key: "gov_short_fil", value: "CAMIGUIN", group: "branding" },
-    { key: "building_name_en", value: "Demo Academic Building", group: "building" },
-    { key: "building_name_fil", value: "Demo Academic Building", group: "building" },
-    { key: "building_demo_notice_en", value: "This building is currently using demonstration data. Navigation is based on the Demo Academic Building for testing purposes.", group: "building" },
-    { key: "building_demo_notice_fil", value: "Gumagamit ng demonstration data ang gusaling ito. Ang navigation ay batay sa Demo Academic Building para sa testing.", group: "building" },
-    { key: "building_demo_banner_en", value: "The official building floor plan has not been uploaded yet. Navigation uses the Demo Academic Building for testing.", group: "building" },
-    { key: "building_demo_banner_fil", value: "Hindi pa na-upload ang opisyal na floor plan. Gumagamit ng Demo Academic Building ang navigation para sa testing.", group: "building" },
-    { key: "building_missing_location_en", value: "I couldn't find that location in the current building directory.\n\nIf the official building floor plan has not yet been uploaded, the system is using demonstration data for testing purposes. Once the official floor plan and directory are available, I will provide accurate navigation based on the real building.", group: "building" },
-    { key: "building_missing_location_fil", value: "Hindi ko mahanap ang lokasyong iyon sa kasalukuyang building directory.", group: "building" },
-    { key: "building_quick_questions_en", value: JSON.stringify(["Where is the Registrar's Office?", "How do I get to the Library?", "Where is the nearest restroom?", "Where is the Dean's Office?", "Emergency exit"]), group: "building" },
-    { key: "building_quick_questions_fil", value: JSON.stringify(["Nasaan ang Registrar's Office?", "Paano pumunta sa Library?", "Nasaan ang pinakamalapit na restroom?", "Nasaan ang Dean's Office?", "Emergency exit"]), group: "building" },
-    { key: "building_kiosk_location_id", value: "f1-kiosk", group: "building" },
-    { key: "building_kiosk_node_id", value: "f1_kiosk", group: "building" },
-    { key: "building_kiosk_x", value: "105", group: "building" },
-    { key: "building_kiosk_y", value: "200", group: "building" },
-    { key: "building_kiosk_floor", value: "1", group: "building" },
-    { key: "building_page_title_en", value: "Building Directory", group: "building" },
-    { key: "building_page_title_fil", value: "Direktoryo ng Gusali", group: "building" },
-    { key: "building_page_description_en", value: "Find rooms, offices, and facilities with step-by-step indoor navigation.", group: "building" },
-    { key: "building_page_description_fil", value: "Hanapin ang mga silid, opisina, at pasilidad na may hakbang-hakbang na indoor navigation.", group: "building" },
-    { key: "building_guide_title_en", value: "AI BUILDING GUIDE", group: "building" },
-    { key: "building_guide_title_fil", value: "AI BUILDING GUIDE", group: "building" },
-    { key: "building_guide_subtitle_en", value: "Ask where a room or facility is — I'll guide you step by step.", group: "building" },
-    { key: "building_guide_subtitle_fil", value: "Tanungin kung nasaan ang silid o pasilidad — gagabayan kita nang hakbang-hakbang.", group: "building" },
-    { key: "building_guide_placeholder_en", value: 'e.g. "Where is the Registrar\'s Office?"', group: "building" },
-    { key: "building_guide_placeholder_fil", value: 'hal. "Nasaan ang Registrar\'s Office?"', group: "building" },
-    { key: "building_navigation_graph", value: "", group: "building" },
-  ];
-
-  for (const setting of settings) {
+  // Seed all known settings (branding, welcome, footer image, downloads, etc.)
+  // so a fresh pull + db:seed restores the local kiosk experience.
+  for (const [key, value] of Object.entries(SETTING_DEFAULTS)) {
     await prisma.setting.upsert({
-      where: { key: setting.key },
-      update: { value: setting.value },
-      create: setting,
+      where: { key },
+      update: { value, group: settingGroupForKey(key) },
+      create: { key, value, group: settingGroupForKey(key) },
     });
   }
 
@@ -146,16 +126,16 @@ async function main() {
   }
 
   const homepageCards = [
-    { slug: "citizens-charter", titleEn: "Citizens' Charter", titleFil: "Citizens' Charter", descriptionEn: "Service standards, processing times, and requirements.", descriptionFil: "Mga pamantayan ng serbisyo, oras ng pagproseso, at mga kinakailangan.", icon: "FileCheck", color: "blue", href: "/citizens-charter", sortOrder: 1 },
-    { slug: "building-directory", titleEn: "Building Directory", titleFil: "Direktoryo ng Gusali", descriptionEn: "Find offices and rooms inside the capitol building.", descriptionFil: "Hanapin ang mga opisina at silid sa loob ng capitol building.", icon: "Building", color: "green", href: "/building-directory", sortOrder: 2 },
-    { slug: "map", titleEn: "Map of Camiguin", titleFil: "Mapa ng Camiguin", descriptionEn: "Explore municipalities, landmarks, and key locations.", descriptionFil: "Tuklasin ang mga munisipalidad, palatandaan, at mahahalagang lokasyon.", icon: "Map", color: "teal", href: "/map", sortOrder: 3 },
-    { slug: "government-directory", titleEn: "Government Directory", titleFil: "Direktoryo ng Pamahalaan", descriptionEn: "Departments, officials, and contact information.", descriptionFil: "Mga departamento, opisyal, at impormasyon sa pakikipag-ugnayan.", icon: "Users", color: "purple", href: "/government-directory", sortOrder: 4 },
-    { slug: "news", titleEn: "News & Announcements", titleFil: "Balita at Anunsyo", descriptionEn: "Latest advisories, programs, and public notices.", descriptionFil: "Pinakabagong mga abiso, programa, at pampublikong paunawa.", icon: "Megaphone", color: "orange", href: "/news", sortOrder: 5 },
-    { slug: "download-center", titleEn: "Download Center", titleFil: "Sentro ng Pag-download", descriptionEn: "Forms, guidelines, and official documents.", descriptionFil: "Mga form, gabay, at opisyal na dokumento.", icon: "Download", color: "red-orange", href: "/download-center", sortOrder: 6 },
-    { slug: "faq", titleEn: "Frequently Asked Questions", titleFil: "Mga Madalas Itanong", descriptionEn: "Quick answers to common service questions.", descriptionFil: "Mabilis na mga sagot sa karaniwang tanong tungkol sa serbisyo.", icon: "HelpCircle", color: "sky", href: "/faq", sortOrder: 7 },
-    { slug: "tourism", titleEn: "Tourism Information", titleFil: "Impormasyon sa Turismo", descriptionEn: "Attractions, activities, and travel tips.", descriptionFil: "Mga atraksyon, aktibidad, at mga tip sa paglalakbay.", icon: "Palmtree", color: "pink", href: "/tourism", sortOrder: 8 },
-    { slug: "emergency", titleEn: "Emergency Contacts", titleFil: "Mga Contact sa Emergency", descriptionEn: "Hotlines for police, fire, health, and rescue.", descriptionFil: "Mga hotline para sa pulis, bumbero, kalusugan, at rescue.", icon: "Phone", color: "red", href: "/emergency", sortOrder: 9 },
-    { slug: "events", titleEn: "Events Calendar", titleFil: "Kalendaryo ng mga Kaganapan", descriptionEn: "Upcoming festivals, meetings, and activities.", descriptionFil: "Mga paparating na festival, pagpupulong, at aktibidad.", icon: "Calendar", color: "violet", href: "/events", sortOrder: 10 },
+    { slug: "citizens-charter", titleEn: "Citizens' Charter", titleFil: "Citizens' Charter", descriptionEn: "Service standards, processing times, and requirements.", descriptionFil: "Mga pamantayan ng serbisyo, oras ng pagproseso, at mga kinakailangan.", icon: "FileCheck", iconUrl: "/images/home-icons/icon-citizens-charter.png", color: "blue", href: "/citizens-charter", sortOrder: 1 },
+    { slug: "building-directory", titleEn: "Building Directory", titleFil: "Direktoryo ng Gusali", descriptionEn: "Find offices and rooms inside the capitol building.", descriptionFil: "Hanapin ang mga opisina at silid sa loob ng capitol building.", icon: "Building", iconUrl: "/images/home-icons/icon-building-directory.png", color: "green", href: "/building-directory", sortOrder: 2 },
+    { slug: "map", titleEn: "Map of Camiguin", titleFil: "Mapa ng Camiguin", descriptionEn: "Explore municipalities, landmarks, and key locations.", descriptionFil: "Tuklasin ang mga munisipalidad, palatandaan, at mahahalagang lokasyon.", icon: "Map", iconUrl: "/images/home-icons/icon-map.png", color: "teal", href: "/map", sortOrder: 3 },
+    { slug: "government-directory", titleEn: "Government Directory", titleFil: "Direktoryo ng Pamahalaan", descriptionEn: "Departments, officials, and contact information.", descriptionFil: "Mga departamento, opisyal, at impormasyon sa pakikipag-ugnayan.", icon: "Users", iconUrl: "/images/home-icons/icon-government-directory.png", color: "purple", href: "/government-directory", sortOrder: 4 },
+    { slug: "news", titleEn: "News & Announcements", titleFil: "Balita at Anunsyo", descriptionEn: "Latest advisories, programs, and public notices.", descriptionFil: "Pinakabagong mga abiso, programa, at pampublikong paunawa.", icon: "Megaphone", iconUrl: "/images/home-icons/icon-news.png", color: "orange", href: "/news", sortOrder: 5 },
+    { slug: "download-center", titleEn: "Download Center", titleFil: "Sentro ng Pag-download", descriptionEn: "Forms, guidelines, and official documents.", descriptionFil: "Mga form, gabay, at opisyal na dokumento.", icon: "Download", iconUrl: "/images/home-icons/icon-download-center.png", color: "red-orange", href: "/download-center", sortOrder: 6 },
+    { slug: "faq", titleEn: "Frequently Asked Questions", titleFil: "Mga Madalas Itanong", descriptionEn: "Quick answers to common service questions.", descriptionFil: "Mabilis na mga sagot sa karaniwang tanong tungkol sa serbisyo.", icon: "HelpCircle", iconUrl: "/images/home-icons/icon-faq.png", color: "sky", href: "/faq", sortOrder: 7 },
+    { slug: "tourism", titleEn: "Tourism Information", titleFil: "Impormasyon sa Turismo", descriptionEn: "Attractions, activities, and travel tips.", descriptionFil: "Mga atraksyon, aktibidad, at mga tip sa paglalakbay.", icon: "Palmtree", iconUrl: "/images/home-icons/icon-tourism.png", color: "pink", href: "/tourism", sortOrder: 8 },
+    { slug: "emergency", titleEn: "Emergency Contacts", titleFil: "Mga Contact sa Emergency", descriptionEn: "Hotlines for police, fire, health, and rescue.", descriptionFil: "Mga hotline para sa pulis, bumbero, kalusugan, at rescue.", icon: "Phone", iconUrl: "/images/home-icons/icon-emergency.png", color: "red", href: "/emergency", sortOrder: 9 },
+    { slug: "events", titleEn: "Events Calendar", titleFil: "Kalendaryo ng mga Kaganapan", descriptionEn: "Upcoming festivals, meetings, and activities.", descriptionFil: "Mga paparating na festival, pagpupulong, at aktibidad.", icon: "Calendar", iconUrl: "/images/home-icons/icon-events.png", color: "violet", href: "/events", sortOrder: 10 },
   ];
 
   for (const card of homepageCards) {
@@ -269,7 +249,9 @@ async function main() {
     const existing = await prisma.directory.findFirst({
       where: { type: dir.type, nameEn: dir.nameEn },
     });
-    if (!existing) {
+    if (existing) {
+      await prisma.directory.update({ where: { id: existing.id }, data: dir });
+    } else {
       await prisma.directory.create({ data: dir });
     }
   }
@@ -281,17 +263,7 @@ async function main() {
   ];
 
   for (const download of downloads) {
-    const existing = await prisma.download.findFirst({
-      where: { titleEn: download.titleEn },
-    });
-    if (existing) {
-      await prisma.download.update({
-        where: { id: existing.id },
-        data: download,
-      });
-    } else {
-      await prisma.download.create({ data: download });
-    }
+    await upsertByTitleEn(prisma.download, download);
   }
 
   const faqs = [
@@ -301,19 +273,71 @@ async function main() {
   ];
 
   for (const faq of faqs) {
-    await prisma.faq.create({ data: faq });
+    const existing = await prisma.faq.findFirst({ where: { questionEn: faq.questionEn } });
+    if (existing) {
+      await prisma.faq.update({ where: { id: existing.id }, data: faq });
+    } else {
+      await prisma.faq.create({ data: faq });
+    }
   }
 
   const announcements = [
-    { titleEn: "Camiguin Provincial Government Advisory on Typhoon Preparedness", titleFil: "Advisory ng Pamahalaang Panlalawigan ng Camiguin sa Paghahanda sa Bagyo", contentEn: "Stay informed and prepared. Read the full advisory for guidelines and safety measures to protect your family and community during severe weather conditions.", contentFil: "Manatiling may alam at handa. Basahin ang buong advisory para sa mga gabay at hakbang pangkaligtasan upang protektahan ang inyong pamilya at komunidad sa panahon ng masamang panahon.", category: "advisory", imageUrl: "/images/news/news-typhoon.png", publishedAt: new Date() },
-    { titleEn: "Free Medical Mission in Mambajao", titleFil: "Libreng Medical Mission sa Mambajao", contentEn: "Join us for a free medical check-up and consultation. Open to all residents.", contentFil: "Samahan kami para sa libreng medical check-up at konsultasyon. Bukas sa lahat ng residente.", category: "program", imageUrl: "/images/news/news-medical-mission.png", publishedAt: new Date() },
-    { titleEn: "Schedule of Regular Sangguniang Session", titleFil: "Iskedyul ng Regular na Sesyon ng Sangguniang", contentEn: "The Regular Session of the 10th Sangguniang Panlalawigan schedule is now posted.", contentFil: "Nakapaskil na ang iskedyul ng Regular na Sesyon ng ika-10 Sangguniang Panlalawigan.", category: "public notice", imageUrl: "/images/news/news-session.png", publishedAt: new Date() },
-    { titleEn: "Lanzones Festival 2026", titleFil: "Lanzones Festival 2026", contentEn: "Join us for the annual Lanzones Festival celebrating Camiguin's golden fruit.", contentFil: "Samahan kami sa taunang Lanzones Festival na nagdiriwang ng gintong prutas ng Camiguin.", category: "announcement", imageUrl: "/images/news/news-tourism.png", publishedAt: new Date() },
-    { titleEn: "New Online Services Portal", titleFil: "Bagong Online Services Portal", contentEn: "The provincial government launches new online services for faster transactions.", contentFil: "Inilunsad ng pamahalaang panlalawigan ang mga bagong online services para sa mas mabilis na transaksyon.", category: "announcement", imageUrl: "/images/news/news-taxes.png", publishedAt: new Date() },
+    {
+      titleEn: "Camiguin Provincial Government Advisory on Typhoon Preparedness",
+      titleFil: "Advisory ng Pamahalaang Panlalawigan ng Camiguin sa Paghahanda sa Bagyo",
+      contentEn:
+        "Stay informed and prepared. Read the full advisory for guidelines and safety measures to protect your family and community during severe weather conditions.",
+      contentFil:
+        "Manatiling may alam at handa. Basahin ang buong advisory para sa mga gabay at hakbang pangkaligtasan upang protektahan ang inyong pamilya at komunidad sa panahon ng masamang panahon.",
+      category: "advisory",
+      imageUrl: "/images/news/news-typhoon.png",
+      isPublished: true,
+      publishedAt: new Date("2026-07-01T08:00:00"),
+    },
+    {
+      titleEn: "Free Medical Mission in Mambajao",
+      titleFil: "Libreng Medical Mission sa Mambajao",
+      contentEn: "Join us for a free medical check-up and consultation. Open to all residents.",
+      contentFil: "Samahan kami para sa libreng medical check-up at konsultasyon. Bukas sa lahat ng residente.",
+      category: "program",
+      imageUrl: "/images/news/news-medical-mission.png",
+      isPublished: true,
+      publishedAt: new Date("2026-07-05T08:00:00"),
+    },
+    {
+      titleEn: "Schedule of Regular Sangguniang Session",
+      titleFil: "Iskedyul ng Regular na Sesyon ng Sangguniang",
+      contentEn: "The Regular Session of the 10th Sangguniang Panlalawigan schedule is now posted.",
+      contentFil: "Nakapaskil na ang iskedyul ng Regular na Sesyon ng ika-10 Sangguniang Panlalawigan.",
+      category: "public notice",
+      imageUrl: "/images/news/news-session.png",
+      isPublished: true,
+      publishedAt: new Date("2026-07-08T08:00:00"),
+    },
+    {
+      titleEn: "Tourism Month Celebration 2026",
+      titleFil: "Pagdiriwang ng Tourism Month 2026",
+      contentEn: "Join Camiguin's Tourism Month activities celebrating the island's culture, nature, and hospitality.",
+      contentFil: "Sali na sa Tourism Month activities ng Camiguin na nagdiriwang ng kultura, kalikasan, at hospitality ng isla.",
+      category: "announcement",
+      imageUrl: "/images/news/news-tourism.png",
+      isPublished: true,
+      publishedAt: new Date("2026-07-10T08:00:00"),
+    },
+    {
+      titleEn: "Reminder: Payment of Real Property Taxes",
+      titleFil: "Paalala: Pagbabayad ng Real Property Taxes",
+      contentEn: "Pay your real property taxes on time to avoid penalties. Visit the Provincial Treasurer's Office for assistance.",
+      contentFil: "Bayaran ang real property taxes nang nasa oras upang maiwasan ang multa. Bisitahin ang Provincial Treasurer's Office para sa tulong.",
+      category: "advisory",
+      imageUrl: "/images/news/news-taxes.png",
+      isPublished: true,
+      publishedAt: new Date("2026-07-12T08:00:00"),
+    },
   ];
 
   for (const announcement of announcements) {
-    await prisma.announcement.create({ data: announcement });
+    await upsertByTitleEn(prisma.announcement, announcement);
   }
 
   const tourismItems = [
@@ -334,12 +358,7 @@ async function main() {
   ];
 
   for (const item of tourismItems) {
-    const existing = await prisma.tourism.findFirst({ where: { titleEn: item.titleEn } });
-    if (existing) {
-      await prisma.tourism.update({ where: { id: existing.id }, data: item });
-    } else {
-      await prisma.tourism.create({ data: item });
-    }
+    await upsertByTitleEn(prisma.tourism, item);
   }
 
   const emergencyContacts = [
@@ -350,16 +369,41 @@ async function main() {
   ];
 
   for (const contact of emergencyContacts) {
-    await prisma.emergencyContact.create({ data: contact });
+    const existing = await prisma.emergencyContact.findFirst({
+      where: { nameEn: contact.nameEn, category: contact.category },
+    });
+    if (existing) {
+      await prisma.emergencyContact.update({ where: { id: existing.id }, data: contact });
+    } else {
+      await prisma.emergencyContact.create({ data: contact });
+    }
   }
 
   const events = [
-    { titleEn: "Provincial Development Council Meeting", titleFil: "Pagpupulong ng Provincial Development Council", descriptionEn: "Monthly meeting of the Provincial Development Council.", descriptionFil: "Buwanang pagpupulong ng Provincial Development Council.", location: "Capitol Session Hall", startDate: new Date("2024-06-15T09:00:00"), endDate: new Date("2024-06-15T12:00:00") },
-    { titleEn: "Lanzones Festival", titleFil: "Lanzones Festival", descriptionEn: "Annual celebration of Camiguin's lanzones harvest.", descriptionFil: "Taunang pagdiriwang ng ani ng lanzones ng Camiguin.", location: "Mambajao Town Plaza", startDate: new Date("2024-10-20T08:00:00"), endDate: new Date("2024-10-22T22:00:00") },
+    {
+      titleEn: "Provincial Development Council Meeting",
+      titleFil: "Pagpupulong ng Provincial Development Council",
+      descriptionEn: "Monthly meeting of the Provincial Development Council.",
+      descriptionFil: "Buwanang pagpupulong ng Provincial Development Council.",
+      location: "Capitol Session Hall",
+      startDate: new Date("2026-08-15T09:00:00"),
+      endDate: new Date("2026-08-15T12:00:00"),
+      isActive: true,
+    },
+    {
+      titleEn: "Lanzones Festival",
+      titleFil: "Lanzones Festival",
+      descriptionEn: "Annual celebration of Camiguin's lanzones harvest.",
+      descriptionFil: "Taunang pagdiriwang ng ani ng lanzones ng Camiguin.",
+      location: "Mambajao Town Plaza",
+      startDate: new Date("2026-10-20T08:00:00"),
+      endDate: new Date("2026-10-22T22:00:00"),
+      isActive: true,
+    },
   ];
 
   for (const event of events) {
-    await prisma.event.create({ data: event });
+    await upsertByTitleEn(prisma.event, event);
   }
 
   await prisma.page.upsert({
@@ -388,6 +432,36 @@ async function main() {
       ? `Citizens' Charter already present (published=${charterImport.publishedId}, draft=${charterImport.draftId}).`
       : `Citizens' Charter imported (published=${charterImport.publishedId}, draft=${charterImport.draftId}).`
   );
+
+  // Remove accidental duplicates from older create-only seed runs.
+  await dedupeByKey(prisma.faq, "questionEn");
+  await dedupeByKey(prisma.emergencyContact, "nameEn");
+  await dedupeByKey(prisma.announcement, "titleEn");
+  await dedupeByKey(prisma.tourism, "titleEn");
+  await dedupeByKey(prisma.event, "titleEn");
+  await dedupeByKey(prisma.download, "titleEn");
+}
+
+async function dedupeByKey(
+  model: {
+    findMany: (args: { orderBy: { createdAt: "asc" } }) => Promise<Array<{ id: string } & Record<string, unknown>>>;
+    deleteMany: (args: { where: { id: { in: string[] } } }) => Promise<unknown>;
+  },
+  key: string
+) {
+  const rows = await model.findMany({ orderBy: { createdAt: "asc" } });
+  const seen = new Set<string>();
+  const duplicateIds: string[] = [];
+  for (const row of rows) {
+    const value = String(row[key] ?? "");
+    if (!value) continue;
+    if (seen.has(value)) duplicateIds.push(row.id);
+    else seen.add(value);
+  }
+  if (duplicateIds.length) {
+    await model.deleteMany({ where: { id: { in: duplicateIds } } });
+    console.log(`Removed ${duplicateIds.length} duplicate ${key} rows.`);
+  }
 }
 
 main()
