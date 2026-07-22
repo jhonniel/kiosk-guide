@@ -37,28 +37,35 @@ function isValidOfflineData(data: unknown): data is KioskOfflineData {
   );
 }
 
-async function loadBundledOfflineData(): Promise<KioskOfflineData | null> {
+const REMOTE_FETCH_TIMEOUT_MS = 5000;
+
+async function fetchJson(url: string, timeoutMs?: number): Promise<unknown | null> {
+  const controller = new AbortController();
+  const timer =
+    timeoutMs != null
+      ? window.setTimeout(() => controller.abort(), timeoutMs)
+      : undefined;
+
   try {
-    const res = await fetch(`/kiosk-offline-data.json?t=${Date.now()}`, {
-      cache: "no-store",
-    });
+    const res = await fetch(url, { cache: "no-store", signal: controller.signal });
     if (!res.ok) return null;
-    const data = await res.json();
-    return isValidOfflineData(data) ? data : null;
+    return await res.json();
   } catch {
     return null;
+  } finally {
+    if (timer != null) window.clearTimeout(timer);
   }
 }
 
+async function loadBundledOfflineData(): Promise<KioskOfflineData | null> {
+  const data = await fetchJson(`/kiosk-offline-data.json?t=${Date.now()}`);
+  return isValidOfflineData(data) ? data : null;
+}
+
 async function fetchRemoteOfflineData(): Promise<KioskOfflineData | null> {
-  try {
-    const res = await fetch("/api/kiosk/offline-data", { cache: "no-store" });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return isValidOfflineData(data) ? data : null;
-  } catch {
-    return null;
-  }
+  // Cap wait time so a hung DB/API cannot block the kiosk loading gate forever.
+  const data = await fetchJson("/api/kiosk/offline-data", REMOTE_FETCH_TIMEOUT_MS);
+  return isValidOfflineData(data) ? data : null;
 }
 
 async function loadCachedOfflineData(): Promise<KioskOfflineData | null> {
@@ -71,11 +78,23 @@ async function loadCachedOfflineData(): Promise<KioskOfflineData | null> {
 }
 
 async function resolveOfflineData(preferRemote: boolean): Promise<KioskOfflineData | null> {
-  const sources = preferRemote
-    ? [fetchRemoteOfflineData, loadBundledOfflineData, loadCachedOfflineData]
-    : [loadCachedOfflineData, loadBundledOfflineData, fetchRemoteOfflineData];
+  if (preferRemote) {
+    // Start bundled in parallel so a slow API still has a fast fallback ready.
+    const remotePromise = fetchRemoteOfflineData();
+    const bundledPromise = loadBundledOfflineData();
 
-  for (const source of sources) {
+    const remote = await remotePromise;
+    if (remote) return normalizeOfflineData(remote);
+
+    const bundled = await bundledPromise;
+    if (bundled) return normalizeOfflineData(bundled);
+
+    const cached = await loadCachedOfflineData();
+    if (cached) return normalizeOfflineData(cached);
+    return null;
+  }
+
+  for (const source of [loadCachedOfflineData, loadBundledOfflineData, fetchRemoteOfflineData]) {
     const data = await source();
     if (data) return normalizeOfflineData(data);
   }
