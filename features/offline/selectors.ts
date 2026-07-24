@@ -98,6 +98,5 @@ export function getKioskPrecacheRoutes(data: KioskOfflineData): string[] {
     "/feedback",
   ];
   const serviceRoutes = data.services.filter((s) => s.isActive).map((s) => `/services/${s.slug}`);
-  const charterPdf = data.citizensCharter?.pdfUrl ? [data.citizensCharter.pdfUrl] : [];
-  return [...staticRoutes, ...serviceRoutes, ...charterPdf];
+  return [...staticRoutes, ...serviceRoutes];
 }

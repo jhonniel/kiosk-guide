@@ -148,6 +148,10 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   spaces_folder: process.env.DIGITALOCEAN_SPACES_ROOT_PATH ?? "kiosk-downloads",
   spaces_public_cdn_url: (process.env.DIGITALOCEAN_SPACES_PATH ?? "").replace(/\/$/, ""),
   spaces_public_acl: "true",
+  promo_video_enabled: "true",
+  promo_video_url: "/videos/promo/islebethere.webm",
+  promo_idle_seconds: "20",
+  promo_countdown_seconds: "10",
 };
 
 export function parseJsonArraySetting(value: string | undefined, fallback: string[]): string[] {

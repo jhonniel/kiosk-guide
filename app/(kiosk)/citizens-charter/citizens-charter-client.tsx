@@ -161,6 +161,16 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
   const [isServiceClosing, setIsServiceClosing] = useState(false);
   const officeCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const serviceCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didApplyUrlQuery = useRef(false);
+
+  useEffect(() => {
+    if (didApplyUrlQuery.current || !edition) return;
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("q")?.trim();
+    if (!q) return;
+    didApplyUrlQuery.current = true;
+    setQuery(q);
+  }, [edition]);
 
   const groups = useMemo(() => {
     const offices = edition?.offices ?? [];

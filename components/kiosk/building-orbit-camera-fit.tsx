@@ -25,8 +25,9 @@ export function BuildingOrbitCameraFit({ graph, viewFloor }: BuildingOrbitCamera
     const orbit = controls as OrbitControlsImpl | null;
     if (orbit) {
       orbit.target.set(0, 0, 0);
-      orbit.minDistance = span * 0.45;
-      orbit.maxDistance = span * 1.65;
+      orbit.minDistance = span * 0.35;
+      orbit.maxDistance = span * 1.35;
+      orbit.enableZoom = true;
       orbit.update();
     }
 

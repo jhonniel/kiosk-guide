@@ -42,15 +42,7 @@ function exportedAtMs(data: KioskOfflineData) {
   return Number.isFinite(value) ? value : 0;
 }
 
-function pickFreshest(candidates: Array<KioskOfflineData | null>): KioskOfflineData | null {
-  return (
-    candidates
-      .filter((item): item is KioskOfflineData => Boolean(item))
-      .sort((a, b) => exportedAtMs(b) - exportedAtMs(a))[0] ?? null
-  );
-}
-
-const REMOTE_FETCH_TIMEOUT_MS = 5000;
+const REMOTE_FETCH_TIMEOUT_MS = 8000;
 
 async function fetchJson(url: string, timeoutMs?: number): Promise<unknown | null> {
   const controller = new AbortController();
@@ -76,7 +68,6 @@ async function loadBundledOfflineData(): Promise<KioskOfflineData | null> {
 }
 
 async function fetchRemoteOfflineData(): Promise<KioskOfflineData | null> {
-  // Cap wait time so a hung DB/API cannot block the kiosk loading gate forever.
   const data = await fetchJson("/api/kiosk/offline-data", REMOTE_FETCH_TIMEOUT_MS);
   return isValidOfflineData(data) ? data : null;
 }
@@ -90,18 +81,12 @@ async function loadCachedOfflineData(): Promise<KioskOfflineData | null> {
   }
 }
 
-async function resolveOfflineData(preferRemote: boolean): Promise<KioskOfflineData | null> {
-  const [remote, bundled, cached] = await Promise.all([
-    fetchRemoteOfflineData(),
-    loadBundledOfflineData(),
-    loadCachedOfflineData(),
-  ]);
-
-  const chosen = preferRemote
-    ? remote ?? pickFreshest([bundled, cached])
-    : pickFreshest([cached, bundled, remote]);
-
-  return chosen ? normalizeOfflineData(chosen) : null;
+function pickFreshest(candidates: Array<KioskOfflineData | null>): KioskOfflineData | null {
+  return (
+    candidates
+      .filter((item): item is KioskOfflineData => Boolean(item))
+      .sort((a, b) => exportedAtMs(b) - exportedAtMs(a))[0] ?? null
+  );
 }
 
 export function OfflineProvider({ children }: { children: ReactNode }) {
@@ -110,19 +95,20 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
   const [isOfflineReady, setIsOfflineReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const loadingRef = useRef(false);
-  const readyRef = useRef(false);
+  const dataRef = useRef<KioskOfflineData | null>(null);
 
-  useEffect(() => {
-    readyRef.current = isOfflineReady;
-  }, [isOfflineReady]);
-
-  const applyData = useCallback(async (data: KioskOfflineData) => {
+  const applyData = useCallback(async (data: KioskOfflineData, force = false) => {
     const normalized = normalizeOfflineData(data);
+    const current = dataRef.current;
+    if (!force && current && exportedAtMs(normalized) < exportedAtMs(current)) {
+      return;
+    }
     try {
       await saveKioskOfflineData(normalized);
     } catch {
       // Continue even if IndexedDB is unavailable (private mode, quota, etc.)
     }
+    dataRef.current = normalized;
     setOfflineData(normalized);
     setIsOfflineReady(true);
     setLoadError(null);
@@ -134,14 +120,34 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
     setLoadError(null);
 
     try {
-      const data = await resolveOfflineData(navigator.onLine);
-      if (data) {
-        await applyData(data);
-        return;
+      const cachedPromise = loadCachedOfflineData();
+      const bundledPromise = loadBundledOfflineData();
+      const remotePromise = navigator.onLine
+        ? fetchRemoteOfflineData()
+        : Promise.resolve(null);
+
+      // Paint quickly from local cache when present.
+      const cached = await cachedPromise;
+      if (cached) {
+        await applyData(cached);
       }
-      setLoadError("Could not load kiosk data. Check your connection and try again.");
+
+      const [bundled, remote] = await Promise.all([bundledPromise, remotePromise]);
+
+      // Prefer live API, then newest local snapshot (bundle over stale IndexedDB).
+      const chosen = navigator.onLine
+        ? remote ?? pickFreshest([bundled, cached])
+        : pickFreshest([cached, bundled, remote]);
+
+      if (chosen) {
+        await applyData(chosen, true);
+      } else if (!dataRef.current) {
+        setLoadError("Could not load kiosk data. Check your connection and try again.");
+      }
     } catch {
-      setLoadError("Could not load kiosk data. Check your connection and try again.");
+      if (!dataRef.current) {
+        setLoadError("Could not load kiosk data. Check your connection and try again.");
+      }
     } finally {
       loadingRef.current = false;
     }
@@ -165,16 +171,9 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
 
     void syncOfflineData();
 
-    const timeout = window.setTimeout(() => {
-      if (!readyRef.current) {
-        void syncOfflineData();
-      }
-    }, 8000);
-
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      window.clearTimeout(timeout);
     };
   }, [syncOfflineData]);
 

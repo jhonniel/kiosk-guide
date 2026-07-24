@@ -3,20 +3,26 @@
 import { ModulePageClient } from "@/features/kiosk/module-page-client";
 import { useKioskOfflineData } from "@/hooks/use-kiosk-offline-data";
 import { getSortedFaqs } from "@/features/offline/selectors";
+import { CamiChat } from "@/components/kiosk/cami-chat";
 import { FaqClient } from "./faq-client";
 
 export default function FaqPage() {
   const data = useKioskOfflineData();
+  const faqs = getSortedFaqs(data);
 
   return (
     <ModulePageClient
       icon="HelpCircle"
       titleEn="Frequently Asked Questions"
       titleFil="Mga Madalas Itanong"
-      descriptionEn="Quick answers to common service questions."
-      descriptionFil="Mabilis na mga sagot sa karaniwang tanong tungkol sa serbisyo."
+      titleBis="Mga Kanunayng Pangutana"
+      descriptionEn="Browse Camiguin and Capitol answers, or ask Cami for more help."
+      descriptionFil="Tingnan ang mga sagot tungkol sa Camiguin at Capitol, o magtanong kay Cami."
+      descriptionBis="Tan-awa ang mga tubag bahin sa Camiguin ug Capitol, o pangutana kang Cami."
+      bannerMeta="Ask Cami anytime from the bottom right"
     >
-      <FaqClient faqs={getSortedFaqs(data)} />
+      <FaqClient faqs={faqs} />
+      <CamiChat />
     </ModulePageClient>
   );
 }

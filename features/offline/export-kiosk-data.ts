@@ -9,10 +9,16 @@ import {
 import { getResolvedSettings, getSetting } from "@/features/settings/resolve-settings";
 import type { NavigationGraph } from "@/features/building-directory/navigation/types";
 import { getPublishedCharterEdition } from "@/features/citizens-charter/queries";
-import { KIOSK_OFFLINE_DATA_VERSION, type KioskOfflineData } from "./types";
+import {
+  KIOSK_OFFLINE_DATA_VERSION,
+  type CitizensCharterOfflineBundle,
+  type KioskOfflineData,
+} from "./types";
 
 export { KIOSK_OFFLINE_DATA_VERSION };
+export type { CitizensCharterOfflineBundle };
 
+/** Light core payload used for kiosk boot (excludes heavy Citizens' Charter body). */
 export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
   const [
     settings,
@@ -27,7 +33,6 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
     emergency,
     events,
     pages,
-    citizensCharter,
     guideContext,
     navData,
   ] = await Promise.all([
@@ -46,7 +51,6 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
     db.emergencyContact.findMany({ where: { isActive: true } }),
     db.event.findMany({ where: { isActive: true } }),
     db.page.findMany({ where: { isActive: true } }),
-    getPublishedCharterEdition(),
     getGuideContext(),
     getNavigationGraphForClient(),
   ]);
@@ -77,11 +81,21 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
     emergency,
     events,
     pages,
-    citizensCharter,
+    // Loaded on demand via /api/kiosk/citizens-charter — keeps boot payload small.
+    citizensCharter: null,
     guideContext,
     navigationGraph,
     uiConfigEn,
     uiConfigFil,
     uiConfigBis,
+  };
+}
+
+export async function exportCitizensCharterOfflineData(): Promise<CitizensCharterOfflineBundle> {
+  const citizensCharter = await getPublishedCharterEdition();
+  return {
+    version: KIOSK_OFFLINE_DATA_VERSION,
+    exportedAt: new Date().toISOString(),
+    citizensCharter,
   };
 }

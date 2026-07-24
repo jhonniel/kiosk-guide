@@ -52,7 +52,7 @@ export function ModulePageClient({
     <div
       className={cn(
         "flex flex-1 flex-col p-8",
-        fit && "min-h-0 basis-0 overflow-hidden px-5 pt-0 pb-4"
+        fit && "h-full min-h-0 basis-0 overflow-hidden pb-2"
       )}
     >
       <PageHeader title={title} language={language} compact />
@@ -61,7 +61,7 @@ export function ModulePageClient({
         <section
           className={cn(
             "relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-r from-kiosk-navy via-[#1f3a68] to-blue-600 px-6 py-7 text-white shadow-lg sm:px-8",
-            fit && "mb-4 py-4"
+            fit && "mb-4 py-5"
           )}
         >
           <div className="pointer-events-none absolute -top-12 -right-12 h-48 w-48 rounded-full bg-white/10" />

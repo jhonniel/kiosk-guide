@@ -118,6 +118,79 @@ function SettingField({
             disabled={uploading}
           />
         </div>
+        {value ? (
+          <Input value={value} onChange={(e) => onChange(e.target.value)} className="font-mono text-xs" />
+        ) : null}
+      </div>
+    );
+  }
+
+  if (field.type === "video") {
+    async function handleVideoChange(e: React.ChangeEvent<HTMLInputElement>) {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      setUploading(true);
+      try {
+        const body = new FormData();
+        body.append("file", file);
+        const res = await fetch("/api/admin/files/upload-promo-video", {
+          method: "POST",
+          body,
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Upload failed");
+        onChange(data.fileUrl);
+        toast.success("Video uploaded");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Upload failed");
+      } finally {
+        setUploading(false);
+        e.target.value = "";
+      }
+    }
+
+    return (
+      <div className="space-y-3 rounded-lg border bg-gray-50 p-4">
+        <div>
+          <Label htmlFor={field.key}>{field.label}</Label>
+          {field.description && <p className="text-xs text-gray-500">{field.description}</p>}
+        </div>
+        {value ? (
+          <video
+            src={value}
+            className="max-h-48 w-full rounded-xl border bg-black object-contain"
+            controls
+            preload="metadata"
+          />
+        ) : (
+          <p className="text-sm text-gray-500">No promotional video uploaded yet.</p>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <label
+            htmlFor={field.key}
+            className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-kiosk-navy px-4 py-2 text-sm font-medium text-white hover:bg-kiosk-navy/90"
+          >
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {uploading ? "Uploading..." : value ? "Replace video" : "Upload video"}
+          </label>
+          {value ? (
+            <Button type="button" variant="outline" onClick={() => onChange("")}>
+              Remove
+            </Button>
+          ) : null}
+          <input
+            id={field.key}
+            type="file"
+            className="hidden"
+            accept="video/mp4,video/webm,video/ogg,video/quicktime,.mp4,.webm,.ogg,.mov"
+            onChange={handleVideoChange}
+            disabled={uploading}
+          />
+        </div>
+        {value ? (
+          <Input value={value} onChange={(e) => onChange(e.target.value)} className="font-mono text-xs" />
+        ) : null}
       </div>
     );
   }
@@ -288,7 +361,8 @@ export function AdminSettingsEditor({ values: initialValues }: Props) {
                       field.type === "textarea" ||
                       field.type === "json" ||
                       field.type === "lines" ||
-                      field.type === "image"
+                      field.type === "image" ||
+                      field.type === "video"
                         ? "md:col-span-2"
                         : undefined
                     }
@@ -296,7 +370,12 @@ export function AdminSettingsEditor({ values: initialValues }: Props) {
                     <SettingField
                       field={field}
                       value={values[field.key] ?? ""}
-                      onChange={(v) => setField(field.key, v)}
+                      onChange={(v) => {
+                        setField(field.key, v);
+                        if (field.key === "promo_video_url" && v.trim()) {
+                          setField("promo_video_enabled", "true");
+                        }
+                      }}
                     />
                   </div>
                 ))}

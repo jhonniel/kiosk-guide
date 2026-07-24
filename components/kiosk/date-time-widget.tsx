@@ -4,13 +4,38 @@ import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { Calendar, Clock } from "lucide-react";
 
+function startOfMinute(date: Date) {
+  const next = new Date(date);
+  next.setSeconds(0, 0);
+  return next;
+}
+
 export function DateTimeWidget() {
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
-    setNow(new Date());
-    const interval = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(interval);
+    setNow(startOfMinute(new Date()));
+
+    const tick = () => {
+      const minute = startOfMinute(new Date());
+      setNow((prev) => {
+        if (prev && prev.getTime() === minute.getTime()) return prev;
+        return minute;
+      });
+    };
+
+    // Align to the next minute boundary so we don't re-render the header every second.
+    const msToNextMinute = 60_000 - (Date.now() % 60_000) + 50;
+    let intervalId = 0;
+    const timeoutId = window.setTimeout(() => {
+      tick();
+      intervalId = window.setInterval(tick, 60_000);
+    }, msToNextMinute);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      if (intervalId) window.clearInterval(intervalId);
+    };
   }, []);
 
   if (!now) {

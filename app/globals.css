@@ -122,8 +122,8 @@
   --color-kiosk-navy-dark: #0f1a2e;
   --color-kiosk-green: #22c55e;
   --color-kiosk-green-light: #4ade80;
-  --color-kiosk-bg: #eef2f7;
-  --color-kiosk-search: #dce8f5;
+  --color-kiosk-bg: #f7f9fc;
+  --color-kiosk-search: #e8f0fa;
 }
 
 @layer base {
@@ -156,8 +156,63 @@
   letter-spacing: 0.02em;
 }
 
+/* Kocha Rough — licensed file in public/fonts/KochaRough.otf */
+@font-face {
+  font-family: "Kocha";
+  src: url("/fonts/KochaRough.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-kocha {
+  font-family: "Kocha", ui-sans-serif, system-ui, sans-serif !important;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  font-feature-settings: "liga" 1, "calt" 1;
+}
+
+/* Hide scrollbars in kiosk main pane (scroll still works where enabled) */
+.kiosk-main-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.kiosk-main-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 html.kiosk-large-text {
   font-size: 118%;
+}
+
+/* Kiosk lockdown: no text selection / copy / image drag */
+.kiosk-lock-select,
+.kiosk-lock-select * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-drag: none;
+}
+
+.kiosk-lock-select img,
+.kiosk-lock-select svg,
+.kiosk-lock-select video,
+.kiosk-lock-select canvas {
+  -webkit-user-drag: none;
+  pointer-events: auto;
+}
+
+/* Keep typing fields usable (search, Cami chat, forms) */
+.kiosk-lock-select input,
+.kiosk-lock-select textarea,
+.kiosk-lock-select [contenteditable="true"] {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
 }
 
 html.kiosk-high-contrast {
@@ -305,6 +360,196 @@ html.kiosk-screen-reader *:focus-visible {
   animation: charter-detail-in 220ms ease-out both;
 }
 
+/* ---------- Event detail modal motion ---------- */
+
+@keyframes event-modal-backdrop-in {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+  }
+}
+
+@keyframes event-modal-backdrop-out {
+  from {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+  }
+  to {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+}
+
+@keyframes event-modal-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes event-modal-panel-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+}
+
+@keyframes event-modal-header-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes event-modal-body-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes event-modal-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.event-modal-backdrop-in {
+  animation: event-modal-backdrop-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.event-modal-backdrop-out {
+  animation: event-modal-backdrop-out 260ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.event-modal-panel-in {
+  animation: event-modal-panel-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.event-modal-panel-out {
+  animation: event-modal-panel-out 260ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.event-modal-header-in {
+  animation: event-modal-header-in 420ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+}
+
+.event-modal-body-in {
+  animation: event-modal-body-in 480ms cubic-bezier(0.22, 1, 0.36, 1) 140ms both;
+}
+
+.event-modal-item-in {
+  animation: event-modal-item-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ---------- Cami chatbot popup ---------- */
+
+@keyframes cami-popup-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes cami-popup-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+}
+
+.cami-popup-in {
+  animation: cami-popup-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.cami-popup-out {
+  animation: cami-popup-out 220ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@keyframes cami-typing-pulse {
+  0%,
+  80%,
+  100% {
+    opacity: 0.28;
+    transform: translateY(0) scale(0.92);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-1px) scale(1);
+  }
+}
+
+.cami-typing {
+  animation: cami-typing-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes cami-typing-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cami-typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.cami-typing-dot {
+  display: inline-block;
+  height: 0.35rem;
+  width: 0.35rem;
+  border-radius: 9999px;
+  background: #475569;
+  animation: cami-typing-pulse 1.25s ease-in-out infinite;
+}
+
+.cami-typing-dot:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.cami-typing-dot:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
 /* ---------- Global kiosk motion system ---------- */
 
 /* Smooth interaction feedback on every button / link / card */
@@ -337,6 +582,63 @@ a:active,
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes idle-caret-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.idle-tap-caret {
+  display: inline-block;
+  width: 0.09em;
+  height: 0.82em;
+  margin-left: 0.12em;
+  vertical-align: -0.06em;
+  background: rgba(255, 255, 255, 0.95);
+  animation: idle-caret-blink 1s steps(1, end) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .idle-tap-caret {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+@keyframes idle-prompt-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Global kiosk touch feedback */
+@keyframes kiosk-tap-ripple {
+  0% {
+    opacity: 0.85;
+    transform: translate(-50%, -50%) scale(0.35);
+  }
+  70% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.4);
+  }
+}
+
+.kiosk-tap-ripple {
+  animation: kiosk-tap-ripple 520ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
 }
 
 /* "backwards" fill so no transform lingers after the animation —
@@ -387,6 +689,124 @@ a:active,
   box-shadow: 0 12px 28px -12px rgba(26, 39, 68, 0.28);
 }
 
+@keyframes directory-swipe-nudge-right {
+  0%,
+  100% {
+    transform: translateX(0);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translateX(8px);
+    opacity: 0.9;
+  }
+}
+
+@keyframes directory-swipe-nudge-left {
+  0%,
+  100% {
+    transform: translateX(0);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translateX(-8px);
+    opacity: 0.9;
+  }
+}
+
+@keyframes directory-swipe-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.directory-swipe-hint {
+  animation: directory-swipe-fade-in 280ms ease-out both;
+}
+
+.directory-scroller {
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: none;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Soft blue edge fade on the tiles themselves — no hard cut line */
+.directory-scroller-right {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 0%,
+    #000 calc(100% - 5.5rem),
+    rgba(0, 0, 0, 0.55) calc(100% - 2.75rem),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    #000 0%,
+    #000 calc(100% - 5.5rem),
+    rgba(0, 0, 0, 0.55) calc(100% - 2.75rem),
+    transparent 100%
+  );
+}
+
+.directory-scroller-left {
+  -webkit-mask-image: linear-gradient(
+    to left,
+    #000 0%,
+    #000 calc(100% - 5.5rem),
+    rgba(0, 0, 0, 0.55) calc(100% - 2.75rem),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to left,
+    #000 0%,
+    #000 calc(100% - 5.5rem),
+    rgba(0, 0, 0, 0.55) calc(100% - 2.75rem),
+    transparent 100%
+  );
+}
+
+.directory-scroller-both {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(0, 0, 0, 0.55) 2.75rem,
+    #000 5.5rem,
+    #000 calc(100% - 5.5rem),
+    rgba(0, 0, 0, 0.55) calc(100% - 2.75rem),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(0, 0, 0, 0.55) 2.75rem,
+    #000 5.5rem,
+    #000 calc(100% - 5.5rem),
+    rgba(0, 0, 0, 0.55) calc(100% - 2.75rem),
+    transparent 100%
+  );
+}
+
+.directory-swipe-hint-right .directory-swipe-hint-icon {
+  animation: directory-swipe-nudge-right 1.2s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px rgba(37, 99, 235, 0.35));
+}
+
+.directory-swipe-hint-left .directory-swipe-hint-icon {
+  animation: directory-swipe-nudge-left 1.2s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px rgba(37, 99, 235, 0.35));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .directory-swipe-hint,
+  .directory-swipe-hint-right .directory-swipe-hint-icon,
+  .directory-swipe-hint-left .directory-swipe-hint-icon {
+    animation: none;
+  }
+}
+
 @keyframes news-xfade-in {
   from {
     opacity: 0;
@@ -420,12 +840,56 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Disable browser pinch/double-tap zoom site-wide. 3D/map canvases use touch-action: none. */
+html.kiosk-zoom-locked,
+html.kiosk-zoom-locked body {
+  touch-action: manipulation;
+  -ms-touch-action: manipulation;
+}
+
+/* Block edge swipe / overscroll navigation (swipe back) */
+html.kiosk-no-swipe-back,
+html.kiosk-no-swipe-back body {
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: none;
+  overscroll-behavior: none;
+}
+
+/* Keep kiosk chrome tight in browser fullscreen */
+:fullscreen,
+::backdrop {
+  background: #f7f9fc;
+}
+
+:fullscreen body,
+:-webkit-full-screen body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+html.kiosk-zoom-locked canvas,
+html.kiosk-zoom-locked [data-kiosk-zoom-surface] {
+  touch-action: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .charter-modal-backdrop-in,
   .charter-modal-backdrop-out,
   .charter-modal-panel-in,
   .charter-modal-panel-out,
   .charter-service-detail-in,
+  .event-modal-backdrop-in,
+  .event-modal-backdrop-out,
+  .event-modal-panel-in,
+  .event-modal-panel-out,
+  .event-modal-header-in,
+  .event-modal-body-in,
+  .event-modal-item-in,
+  .cami-popup-in,
+  .cami-popup-out,
+  .cami-typing,
+  .cami-typing-dot,
   .kiosk-page-transition,
   .kiosk-stagger > *,
   .news-xfade-in,

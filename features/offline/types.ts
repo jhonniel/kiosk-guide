@@ -17,7 +17,7 @@ import type {
 } from "@prisma/client";
 
 /** Bump when offline payload shape or required client cache invalidation changes. */
-export const KIOSK_OFFLINE_DATA_VERSION = 4;
+export const KIOSK_OFFLINE_DATA_VERSION = 6;
 
 export interface KioskOfflineData {
   version: number;
@@ -40,6 +40,12 @@ export interface KioskOfflineData {
   uiConfigEn: BuildingUiConfig;
   uiConfigFil: BuildingUiConfig;
   uiConfigBis: BuildingUiConfig;
+}
+
+export interface CitizensCharterOfflineBundle {
+  version: number;
+  exportedAt: string;
+  citizensCharter: CharterEditionView | null;
 }
 
 export interface QueuedFeedback {

@@ -64,6 +64,31 @@ export async function updateSettings(
     revalidatePath("/", "layout");
     revalidatePath("/building-directory");
     revalidatePath("/download-center");
+    revalidatePath("/api/kiosk/offline-data");
+
+    try {
+      const { writeFileSync, mkdirSync } = await import("fs");
+      const { exportCitizensCharterOfflineData, exportKioskOfflineData } = await import(
+        "@/features/offline/export-kiosk-data"
+      );
+      const { getKioskPrecacheRoutes } = await import("@/features/offline/selectors");
+      const [data, charter] = await Promise.all([
+        exportKioskOfflineData(),
+        exportCitizensCharterOfflineData(),
+      ]);
+      mkdirSync("public", { recursive: true });
+      writeFileSync("public/kiosk-offline-data.json", JSON.stringify(data, null, 0));
+      writeFileSync("public/kiosk-citizens-charter.json", JSON.stringify(charter, null, 0));
+      const routes = [
+        ...getKioskPrecacheRoutes(data),
+        "/kiosk-citizens-charter.json",
+        ...(charter.citizensCharter?.pdfUrl ? [charter.citizensCharter.pdfUrl] : []),
+      ];
+      writeFileSync("public/kiosk-precache-routes.json", JSON.stringify([...new Set(routes)]));
+    } catch {
+      // Settings still saved even if offline bundle refresh fails.
+    }
+
     return { success: true };
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : "Failed to save settings" };

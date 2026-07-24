@@ -45,6 +45,29 @@ export async function loadKioskOfflineData<T>(): Promise<T | null> {
   return result;
 }
 
+export async function saveCitizensCharterOfflineData<T>(data: T): Promise<void> {
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(KIOSK_DATA_STORE, "readwrite");
+    tx.objectStore(KIOSK_DATA_STORE).put(data, "citizens-charter");
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+}
+
+export async function loadCitizensCharterOfflineData<T>(): Promise<T | null> {
+  const db = await openDb();
+  const result = await new Promise<T | null>((resolve, reject) => {
+    const tx = db.transaction(KIOSK_DATA_STORE, "readonly");
+    const request = tx.objectStore(KIOSK_DATA_STORE).get("citizens-charter");
+    request.onsuccess = () => resolve((request.result as T) ?? null);
+    request.onerror = () => reject(request.error);
+  });
+  db.close();
+  return result;
+}
+
 export async function enqueueFeedback<T extends { id: string }>(item: T): Promise<void> {
   const db = await openDb();
   await new Promise<void>((resolve, reject) => {

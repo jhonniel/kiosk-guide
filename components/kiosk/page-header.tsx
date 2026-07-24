@@ -34,7 +34,9 @@ export function PageHeader({
                 <ArrowLeft className="h-4 w-4" />
               </Link>
             )}
-            <p className="truncate text-sm font-bold text-kiosk-navy">{title}</p>
+            <h1 className="truncate text-2xl font-bold tracking-tight text-kiosk-navy lg:text-3xl">
+              {title}
+            </h1>
           </div>
           <div className="shrink-0">
             <DateTimeWidget />

@@ -247,6 +247,7 @@ export function CamiguinInteractiveMap({ markers }: Props) {
       <div
         ref={viewportRef}
         className="relative h-full w-full touch-none overflow-hidden rounded-2xl border border-sky-900/20 bg-[#bfe3ee] shadow-xl"
+        data-kiosk-zoom-surface
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}

@@ -1,4 +1,13 @@
-export type SettingFieldType = "text" | "textarea" | "boolean" | "json" | "lines" | "number" | "password" | "image";
+export type SettingFieldType =
+  | "text"
+  | "textarea"
+  | "boolean"
+  | "json"
+  | "lines"
+  | "number"
+  | "password"
+  | "image"
+  | "video";
 
 export interface SettingFieldDef {
   key: string;
@@ -272,6 +281,40 @@ export const SETTING_GROUPS: SettingGroupDef[] = [
         label: "Public read access",
         type: "boolean",
         description: "Recommended for kiosk downloads. Disable only if files must stay private.",
+      },
+    ],
+  },
+  {
+    id: "attract",
+    label: "Idle Promo Video",
+    description:
+      "When the kiosk is unused, ask “Are you still there?” then play an admin-uploaded promotional video with Tap to Start.",
+    fields: [
+      {
+        key: "promo_video_enabled",
+        label: "Enable idle promotional video",
+        type: "boolean",
+        description: "Turn on attract-mode idle detection on the public kiosk.",
+      },
+      {
+        key: "promo_video_url",
+        label: "Promotional video",
+        type: "video",
+        description: "Upload an MP4/WebM video shown after idle confirmation. Max 80 MB.",
+      },
+      {
+        key: "promo_idle_seconds",
+        label: "Idle timeout (seconds)",
+        type: "number",
+        description: "How long without interaction before asking “Are you still there?” Default 20.",
+        placeholder: "20",
+      },
+      {
+        key: "promo_countdown_seconds",
+        label: "Countdown before video (seconds)",
+        type: "number",
+        description: "Seconds shown on the idle prompt before the promotional video starts. Default 10.",
+        placeholder: "10",
       },
     ],
   },

@@ -3,6 +3,9 @@
 import { Suspense, useEffect, useMemo, useRef, type RefObject } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
+import { Minus, Plus } from "lucide-react";
+import { Vector3 } from "three";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { cn } from "@/lib/utils";
 import { Building3DScene } from "@/components/kiosk/building-3d-scene";
 import { IsometricNavigationCamera } from "@/components/kiosk/building-isometric-camera";
@@ -19,6 +22,7 @@ import { getNodeByLocationId } from "@/features/building-directory/navigation/de
 import { calculateRoute } from "@/features/building-directory/navigation/routing-engine";
 import { useKiosk } from "@/hooks/use-kiosk";
 import { pickLang } from "@/lib/i18n/translations";
+import { uiText } from "@/lib/i18n/kiosk-ui";
 
 interface Building3DViewerProps {
   graph: NavigationGraph;
@@ -49,6 +53,22 @@ function SceneLoader() {
       <meshStandardMaterial color="#e2e8f0" wireframe />
     </mesh>
   );
+}
+
+function zoomOrbitControls(controls: OrbitControlsImpl | null, factor: number) {
+  if (!controls) return;
+  const cam = controls.object;
+  const offset = new Vector3().subVectors(cam.position, controls.target);
+  const distance = offset.length();
+  if (!Number.isFinite(distance) || distance <= 0) return;
+
+  const next = Math.min(
+    controls.maxDistance,
+    Math.max(controls.minDistance, distance * factor)
+  );
+  offset.setLength(next);
+  cam.position.copy(controls.target).add(offset);
+  controls.update();
 }
 
 export function Building3DViewer({
@@ -116,6 +136,7 @@ export function Building3DViewer({
   }, [graph, focusFloor]);
 
   const roomOverlayRef = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
 
   const roomAnchorPosition = useMemo(() => {
     if (!selectedNode || isNavigating || selectedNode.floor !== focusFloor) return null;
@@ -192,7 +213,12 @@ export function Building3DViewer({
             ? pickLang(language, "Following route…", "Sinusundan ang ruta…", "Ginasunod ang ruta…")
             : navigationMapMode
               ? pickLang(language, "Navigation map", "Mapa ng navigation", "Mapa sa navigation")
-              : `${floorLabel} · Drag to rotate`}
+              : pickLang(
+                  language,
+                  "Drag to rotate · Pinch or buttons to zoom",
+                  "I-drag para i-rotate · I-pinch o gumamit ng buttons para mag-zoom",
+                  "I-drag aron i-rotate · I-pinch o gamita ang buttons aron mag-zoom"
+                )}
         </p>
       </div>
 
@@ -221,7 +247,7 @@ export function Building3DViewer({
         </div>
       )}
 
-      <div style={{ height }} className="relative bg-[#f0f4f8]">
+      <div style={{ height }} className="relative bg-[#f0f4f8]" data-kiosk-zoom-surface>
         {selectedNode && !isNavigating && (
           <div
             ref={roomOverlayRef}
@@ -238,15 +264,15 @@ export function Building3DViewer({
         )}
 
         <Canvas
-          shadows={!navigationMapMode}
-          dpr={[1, 1.5]}
-          frameloop="always"
+          shadows={false}
+          dpr={1}
+          frameloop={isNavigating ? "always" : "demand"}
           camera={navigationMapMode ? undefined : { position: [0, 40, 40], fov: 44, near: 0.1, far: 160 }}
           gl={{
-            antialias: true,
+            antialias: false,
             alpha: true,
             powerPreference: "high-performance",
-            logarithmicDepthBuffer: true,
+            logarithmicDepthBuffer: false,
           }}
         >
           <color attach="background" args={["#f0f4f8"]} />
@@ -276,21 +302,44 @@ export function Building3DViewer({
             {!navigationMapMode && (
               <>
                 <OrbitControls
+                  ref={controlsRef}
                   makeDefault
                   target={[0, 0, 0]}
                   enablePan
-                  minDistance={floorSpan * 0.45}
-                  maxDistance={floorSpan * 1.65}
+                  enableZoom
+                  zoomSpeed={0.85}
+                  minDistance={floorSpan * 0.35}
+                  maxDistance={floorSpan * 1.35}
                   minPolarAngle={0.35}
                   maxPolarAngle={Math.PI / 2.15}
-                  enableDamping
-                  dampingFactor={0.08}
+                  enableDamping={false}
                 />
                 <BuildingOrbitCameraFit graph={graph} viewFloor={focusFloor} />
               </>
             )}
           </Suspense>
         </Canvas>
+
+        {!navigationMapMode && (
+          <div className="absolute right-3 bottom-3 z-20 flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => zoomOrbitControls(controlsRef.current, 0.82)}
+              className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-kiosk-navy shadow-md ring-1 ring-slate-200 transition hover:bg-slate-50 active:scale-95"
+              aria-label={uiText(language, "mapZoomIn")}
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => zoomOrbitControls(controlsRef.current, 1.22)}
+              className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-kiosk-navy shadow-md ring-1 ring-slate-200 transition hover:bg-slate-50 active:scale-95"
+              aria-label={uiText(language, "mapZoomOut")}
+            >
+              <Minus className="h-5 w-5" />
+            </button>
+          </div>
+        )}
 
         <div className="pointer-events-none absolute bottom-3 left-3 flex flex-wrap gap-2 text-[10px] text-gray-500">
           {navigationMapMode ? (

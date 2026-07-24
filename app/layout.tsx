@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Toaster } from "@/components/ui/sonner";
 import { OfflineProvider } from "@/components/providers/offline-provider";
 import { ServiceWorkerRegister } from "@/components/kiosk/service-worker-register";
+import { KioskZoomGuard } from "@/components/kiosk/kiosk-zoom-guard";
+import { KioskSwipeBackGuard } from "@/components/kiosk/kiosk-swipe-back-guard";
 import { KioskProvider } from "@/hooks/use-kiosk";
 import { fontSans, fontScript } from "@/lib/fonts";
 import "./globals.css";
@@ -19,7 +21,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1e3a5f",
+  themeColor: "#f7f9fc",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -32,6 +39,8 @@ export default function RootLayout({
       <body className={`${fontSans.variable} ${fontScript.variable} font-sans antialiased`}>
         <KioskProvider>
           <OfflineProvider>
+            <KioskZoomGuard />
+            <KioskSwipeBackGuard />
             {children}
             <ServiceWorkerRegister />
             <Toaster />

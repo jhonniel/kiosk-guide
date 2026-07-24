@@ -17,7 +17,12 @@ export function getSetting(
   key: string,
   fallback?: string
 ): string {
-  return settings[key] ?? SETTING_DEFAULTS[key] ?? fallback ?? "";
+  const value = settings[key] ?? SETTING_DEFAULTS[key] ?? fallback ?? "";
+  // Prefer full-quality promo over the old lite compress.
+  if (key === "promo_video_url" && /islebethere-lite\.webm$/i.test(value)) {
+    return "/videos/promo/islebethere.webm";
+  }
+  return value;
 }
 
 export function getBoolSetting(settings: Record<string, string>, key: string): boolean {

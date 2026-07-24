@@ -43,4 +43,5 @@ next-env.d.ts
 # generated PWA / offline assets
 /public/sw.js
 /public/kiosk-offline-data.json
+/public/kiosk-citizens-charter.json
 /public/kiosk-precache-routes.json

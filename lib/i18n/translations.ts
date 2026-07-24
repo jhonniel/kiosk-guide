@@ -14,6 +14,7 @@ export interface TranslationKeys {
   contactUs: string;
   feedback: string;
   tapToExplore: string;
+  tapToStart: string;
   english: string;
   filipino: string;
   cebuano: string;
@@ -36,7 +37,7 @@ export const translations: Record<Language, TranslationKeys> = {
     home: "HOME",
     smartSearch: "SMART SEARCH",
     smartSearchHint: "Ask a question or type what you need.",
-    smartSearchPlaceholder: "e.g. I need a business permit",
+    smartSearchPlaceholder: "Citizens' Charter",
     quickStart: "QUICK START",
     quickAccess: "QUICK ACCESS",
     welcome: "Welcome!",
@@ -44,6 +45,7 @@ export const translations: Record<Language, TranslationKeys> = {
     contactUs: "Contact Us",
     feedback: "Feedback",
     tapToExplore: "TAP ANYWHERE TO EXPLORE",
+    tapToStart: "TAP TO START",
     english: "ENGLISH",
     filipino: "FILIPINO",
     cebuano: "CEBUANO",
@@ -64,7 +66,7 @@ export const translations: Record<Language, TranslationKeys> = {
     home: "BAHAY",
     smartSearch: "MATALINONG PAGHAHANAP",
     smartSearchHint: "Magtanong o i-type ang kailangan mo.",
-    smartSearchPlaceholder: "hal. Kailangan ko ng business permit",
+    smartSearchPlaceholder: "Citizens' Charter",
     quickStart: "MABILIS NA SIMULA",
     quickAccess: "MABILIS NA ACCESS",
     welcome: "Maligayang Pagdating!",
@@ -72,6 +74,7 @@ export const translations: Record<Language, TranslationKeys> = {
     contactUs: "Makipag-ugnayan",
     feedback: "Feedback",
     tapToExplore: "PINDUTIN KAHIT SAAN PARA MAG-EXPLORE",
+    tapToStart: "PINDUTIN PARA MAGSIMULA",
     english: "ENGLISH",
     filipino: "FILIPINO",
     cebuano: "CEBUANO",
@@ -92,7 +95,7 @@ export const translations: Record<Language, TranslationKeys> = {
     home: "BALAY",
     smartSearch: "SMART PANGITA",
     smartSearchHint: "Pangutana o i-type ang imong gikinahanglan.",
-    smartSearchPlaceholder: "pananglitan, kinahanglan ko ug business permit",
+    smartSearchPlaceholder: "Citizens' Charter",
     quickStart: "DALI NGA SUGOD",
     quickAccess: "DALI NGA ACCESS",
     welcome: "Maayong Pag-abot!",
@@ -100,6 +103,7 @@ export const translations: Record<Language, TranslationKeys> = {
     contactUs: "Kontaka Kami",
     feedback: "Feedback",
     tapToExplore: "PINDOTA BISAN ASA ARON MAG-EXPLORAR",
+    tapToStart: "PINDOTA ARON MAGSUGOD",
     english: "ENGLISH",
     filipino: "FILIPINO",
     cebuano: "CEBUANO",
@@ -122,6 +126,51 @@ export const translations: Record<Language, TranslationKeys> = {
 export function t(lang: Language, key: keyof TranslationKeys): string {
   return translations[lang][key];
 }
+
+export const SMART_SEARCH_EXAMPLES: Record<Language, string[]> = {
+  en: [
+    "Citizens' Charter",
+    "Building Directory",
+    "Map of Camiguin",
+    "Government Directory",
+    "News and announcements",
+    "Download Center",
+    "Tourism Information",
+    "Emergency Contacts",
+    "Events Calendar",
+    "Frequently Asked Questions",
+    "Office Hours",
+    "Contact Us",
+  ],
+  fil: [
+    "Citizens' Charter",
+    "Direktoryo ng Gusali",
+    "Mapa ng Camiguin",
+    "Direktoryo ng Pamahalaan",
+    "Balita at anunsyo",
+    "Download Center",
+    "Impormasyon sa Turismo",
+    "Mga Emergency Contact",
+    "Kalendaryo ng mga kaganapan",
+    "Mga madalas itanong",
+    "Oras ng Opisina",
+    "Makipag-ugnayan",
+  ],
+  bis: [
+    "Citizens' Charter",
+    "Direktoryo sa Bilding",
+    "Mapa sa Camiguin",
+    "Direktoryo sa Gobyerno",
+    "Balita ug anunsyo",
+    "Download Center",
+    "Impormasyon sa Turismo",
+    "Mga Emergency Contact",
+    "Kalendaryo sa mga hitabo",
+    "Mga kanunayng pangutana",
+    "Oras sa Opisina",
+    "Kontaka Kami",
+  ],
+};
 
 function languageFieldSuffix(lang: Language): "En" | "Fil" | "Bis" {
   if (lang === "en") return "En";

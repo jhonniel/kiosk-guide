@@ -28,12 +28,12 @@ export function Sidebar({ language, quickLinks, settings }: SidebarProps) {
     <aside className="relative flex w-[300px] shrink-0 flex-col overflow-hidden bg-kiosk-navy text-white">
       <div className="relative z-10 flex min-h-0 flex-1 flex-col px-5 pt-6 pb-4">
         <div className="mb-7 flex items-center gap-3">
-          <div className="relative h-[66px] w-[66px] shrink-0 overflow-hidden rounded-full">
+          <div className="relative h-[66px] w-[66px] shrink-0 overflow-hidden rounded-full bg-white/5">
             <Image
               src={logoUrl}
               alt="Government logo"
               fill
-              className="object-cover"
+              className="object-contain p-0.5"
               unoptimized
             />
           </div>

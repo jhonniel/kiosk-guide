@@ -121,7 +121,7 @@ export function NewsClient({ announcements }: { announcements: Announcement[] })
   const [previousIndex, setPreviousIndex] = useState<number | null>(null);
   const [selected, setSelected] = useState<Announcement | null>(null);
   const [isClosing, setIsClosing] = useState(false);
-  const cleanupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cleanupTimerRef = useRef<number | null>(null);
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
   const indexRef = useRef(featuredIndex);

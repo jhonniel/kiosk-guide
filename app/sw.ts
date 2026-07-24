@@ -42,13 +42,15 @@ const serwist = new Serwist({
   navigationPreload: true,
   runtimeCaching: [
     {
-      matcher: ({ url }) => url.pathname === "/kiosk-offline-data.json",
-      handler: new CacheFirst({
+      matcher: ({ url }) =>
+        url.pathname === "/kiosk-offline-data.json" ||
+        url.pathname === "/kiosk-citizens-charter.json",
+      handler: new StaleWhileRevalidate({
         cacheName: "kiosk-offline-bundle",
         plugins: [
           new ExpirationPlugin({
-            maxEntries: 1,
-            maxAgeSeconds: 60 * 60 * 24 * 30,
+            maxEntries: 4,
+            maxAgeSeconds: 60 * 60 * 24 * 7,
           }),
         ],
       }),
@@ -62,8 +64,22 @@ const serwist = new Serwist({
         cacheName: "kiosk-static-assets",
         plugins: [
           new ExpirationPlugin({
-            maxEntries: 128,
-            maxAgeSeconds: 60 * 60 * 24 * 30,
+            maxEntries: 64,
+            maxAgeSeconds: 60 * 60 * 24 * 14,
+          }),
+        ],
+      }),
+    },
+    {
+      // Never cache huge promo videos in the service worker.
+      matcher: ({ url }) => url.pathname.startsWith("/videos/"),
+      handler: new NetworkFirst({
+        cacheName: "kiosk-videos",
+        networkTimeoutSeconds: 8,
+        plugins: [
+          new ExpirationPlugin({
+            maxEntries: 2,
+            maxAgeSeconds: 60 * 60 * 24,
           }),
         ],
       }),
@@ -81,13 +97,15 @@ const serwist = new Serwist({
       }),
     },
     {
-      matcher: ({ url }) => url.pathname === "/api/kiosk/offline-data",
+      matcher: ({ url }) =>
+        url.pathname === "/api/kiosk/offline-data" ||
+        url.pathname === "/api/kiosk/citizens-charter",
       handler: new NetworkFirst({
         cacheName: "kiosk-offline-data",
         networkTimeoutSeconds: 3,
         plugins: [
           new ExpirationPlugin({
-            maxEntries: 1,
+            maxEntries: 4,
             maxAgeSeconds: 60 * 60 * 24,
           }),
         ],

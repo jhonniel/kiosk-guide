@@ -26,7 +26,7 @@ export default function HomePage() {
         <SmartSearch />
       </div>
 
-      <div className="kiosk-stagger mb-5 grid min-h-0 flex-1 auto-rows-fr grid-cols-5 gap-4">
+      <div className="kiosk-stagger mb-4 grid min-h-0 flex-1 auto-rows-fr grid-cols-5 gap-3">
         {cards.map((card) => (
           <ServiceCard
             key={card.id}
@@ -36,7 +36,6 @@ export default function HomePage() {
             iconUrl={card.iconUrl}
             color={card.color}
             href={card.href}
-            className="justify-center"
           />
         ))}
       </div>

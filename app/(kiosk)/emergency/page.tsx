@@ -7,16 +7,19 @@ import { EmergencyClient } from "./emergency-client";
 
 export default function EmergencyPage() {
   const data = useKioskOfflineData();
+  const contacts = getSortedEmergency(data);
 
   return (
     <ModulePageClient
       icon="Phone"
       titleEn="Emergency Contacts"
       titleFil="Mga Contact sa Emergency"
-      descriptionEn="Hotlines for police, fire, health, and rescue."
-      descriptionFil="Mga hotline para sa pulis, bumbero, kalusugan, at rescue."
+      descriptionEn="Official hotline numbers for Camiguin province and municipalities."
+      descriptionFil="Opisyal na mga hotline number para sa probinsya at mga munisipyo ng Camiguin."
+      descriptionBis="Opisyal nga mga hotline number para sa probinsya ug mga lungsod sa Camiguin."
+      bannerMeta={`${contacts.length} hotlines · 6 areas`}
     >
-      <EmergencyClient contacts={getSortedEmergency(data)} />
+      <EmergencyClient contacts={contacts} />
     </ModulePageClient>
   );
 }

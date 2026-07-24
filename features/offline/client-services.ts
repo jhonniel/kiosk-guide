@@ -1,15 +1,18 @@
 import type { Language } from "@/lib/i18n/translations";
 import { localized } from "@/lib/i18n/translations";
 import type { SearchResult } from "@/features/search/search-service";
-import { askBuildingGuide, resolveBuildingGuideWithContext } from "@/features/building-directory/guide-service";
+import { resolveBuildingGuideWithContext } from "@/features/building-directory/guide-service";
 import { getLocationDisplay } from "@/features/building-directory/location-display";
 import { getLocalizedSetting } from "@/features/settings/resolve-settings";
 import type { GuideContext, GuideResponse } from "@/features/building-directory/types";
+import type { CharterEditionView } from "@/features/citizens-charter/types";
+import {
+  SEARCH_RESULT_LIMIT,
+  searchCitizensCharterEdition,
+  searchKioskModules,
+  textMatches,
+} from "@/features/search/kiosk-catalog";
 import type { KioskOfflineData } from "./types";
-
-function matches(text: string, q: string) {
-  return text.toLowerCase().includes(q);
-}
 
 function searchBuildingLocationsFromContext(query: string, context: GuideContext, lang: Language) {
   const q = query.trim();
@@ -53,10 +56,21 @@ function searchBuildingLocationsFromContext(query: string, context: GuideContext
     }));
 }
 
+function dedupeSearchResults(results: SearchResult[]) {
+  const seen = new Set<string>();
+  return results.filter((result) => {
+    const key = `${result.type}:${result.href}:${result.title.toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function searchAllOffline(
   query: string,
   lang: Language,
-  data: KioskOfflineData
+  data: KioskOfflineData,
+  citizensCharter?: CharterEditionView | null
 ): SearchResult[] {
   const q = query.toLowerCase().trim();
   if (!q) return [];
@@ -72,14 +86,45 @@ export function searchAllOffline(
     emergency,
     events,
     pages,
+    homepageCards,
+    quickLinks,
     guideContext,
   } = data;
+
+  results.push(...searchKioskModules(q, lang));
+
+  for (const card of homepageCards) {
+    const title = localized(card, lang, "title");
+    const desc = localized(card, lang, "description");
+    if (textMatches(title, q) || textMatches(desc, q) || textMatches(card.href, q)) {
+      results.push({
+        id: `home-card-${card.id}`,
+        type: "home-card",
+        title,
+        description: desc,
+        href: card.href,
+      });
+    }
+  }
+
+  for (const link of quickLinks) {
+    const title = localized(link, lang, "title");
+    if (textMatches(title, q) || textMatches(link.href, q)) {
+      results.push({
+        id: `quick-link-${link.id}`,
+        type: "quick-link",
+        title,
+        description: link.href,
+        href: link.href,
+      });
+    }
+  }
 
   for (const service of services) {
     const title = localized(service, lang, "title");
     const desc = localized(service, lang, "description");
     const reqs = localized(service, lang, "requirements");
-    if (matches(title, q) || matches(desc, q) || matches(reqs, q) || matches(service.slug, q)) {
+    if (textMatches(title, q) || textMatches(desc, q) || textMatches(reqs, q) || textMatches(service.slug, q)) {
       results.push({
         id: service.id,
         type: "service",
@@ -95,10 +140,12 @@ export function searchAllOffline(
     const title = localized(dir, lang, "name");
     const desc = localized(dir, lang, "description");
     if (
-      matches(title, q) ||
-      matches(desc, q) ||
-      matches(dir.department ?? "", q) ||
-      matches(dir.building ?? "", q)
+      textMatches(title, q) ||
+      textMatches(desc, q) ||
+      textMatches(dir.department ?? "", q) ||
+      textMatches(dir.building ?? "", q) ||
+      textMatches(dir.headName ?? "", q) ||
+      textMatches(dir.room ?? "", q)
     ) {
       results.push({
         id: dir.id,
@@ -114,7 +161,7 @@ export function searchAllOffline(
   for (const download of downloads) {
     const title = localized(download, lang, "title");
     const desc = localized(download, lang, "description");
-    if (matches(title, q) || matches(desc, q) || matches(download.category ?? "", q)) {
+    if (textMatches(title, q) || textMatches(desc, q) || textMatches(download.category ?? "", q)) {
       results.push({
         id: download.id,
         type: "download",
@@ -128,7 +175,7 @@ export function searchAllOffline(
   for (const faq of faqs) {
     const title = localized(faq, lang, "question");
     const desc = localized(faq, lang, "answer");
-    if (matches(title, q) || matches(desc, q)) {
+    if (textMatches(title, q) || textMatches(desc, q)) {
       results.push({
         id: faq.id,
         type: "faq",
@@ -142,7 +189,7 @@ export function searchAllOffline(
   for (const item of announcements) {
     const title = localized(item, lang, "title");
     const desc = localized(item, lang, "content");
-    if (matches(title, q) || matches(desc, q)) {
+    if (textMatches(title, q) || textMatches(desc, q)) {
       results.push({
         id: item.id,
         type: "announcement",
@@ -156,7 +203,7 @@ export function searchAllOffline(
   for (const item of tourism) {
     const title = localized(item, lang, "title");
     const desc = localized(item, lang, "description");
-    if (matches(title, q) || matches(desc, q) || matches(item.location ?? "", q)) {
+    if (textMatches(title, q) || textMatches(desc, q) || textMatches(item.location ?? "", q)) {
       results.push({
         id: item.id,
         type: "tourism",
@@ -171,7 +218,7 @@ export function searchAllOffline(
   for (const contact of emergency) {
     const title = localized(contact, lang, "name");
     const desc = localized(contact, lang, "description");
-    if (matches(title, q) || matches(desc, q) || matches(contact.phoneNumber, q)) {
+    if (textMatches(title, q) || textMatches(desc, q) || textMatches(contact.phoneNumber, q)) {
       results.push({
         id: contact.id,
         type: "emergency",
@@ -186,7 +233,7 @@ export function searchAllOffline(
   for (const event of events) {
     const title = localized(event, lang, "title");
     const desc = localized(event, lang, "description");
-    if (matches(title, q) || matches(desc, q) || matches(event.location ?? "", q)) {
+    if (textMatches(title, q) || textMatches(desc, q) || textMatches(event.location ?? "", q)) {
       results.push({
         id: event.id,
         type: "event",
@@ -201,7 +248,7 @@ export function searchAllOffline(
   for (const page of pages) {
     const title = localized(page, lang, "title");
     const desc = localized(page, lang, "content");
-    if (matches(title, q) || matches(desc, q) || matches(page.slug, q)) {
+    if (textMatches(title, q) || textMatches(desc, q) || textMatches(page.slug, q)) {
       results.push({
         id: page.id,
         type: "page",
@@ -211,6 +258,8 @@ export function searchAllOffline(
       });
     }
   }
+
+  results.push(...searchCitizensCharterEdition(citizensCharter ?? data.citizensCharter, q));
 
   for (const match of searchBuildingLocationsFromContext(q, guideContext, lang)) {
     results.push({
@@ -223,7 +272,7 @@ export function searchAllOffline(
     });
   }
 
-  return results.slice(0, 12);
+  return dedupeSearchResults(results).slice(0, SEARCH_RESULT_LIMIT);
 }
 
 function localizeGuideContext(
