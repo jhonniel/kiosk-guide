@@ -157,6 +157,14 @@ export function scoreChunk(query: string, chunk: CamiKnowledgeChunk) {
     score += 16;
   }
 
+  // Office / directory questions should prefer kiosk directory rows.
+  if (
+    isOfficeQuery(q) &&
+    (chunk.type === "directory" || chunk.type === "building" || chunk.id === "system-office-hours")
+  ) {
+    score += 12;
+  }
+
   // Soften FAQs that only matched via shared question-word titles when the query is thin.
   if (chunk.type === "faq" && /^(where|what|how|when|who)\b/.test(title) && tokens.length <= 1) {
     score -= 4;
@@ -180,6 +188,15 @@ export function isPlaceLookupQuery(query: string) {
     /\b(where\s+is|where\s+can\s+i\s+find|nasaan(?:\s+ang)?|saan(?:\s+ang)?|asa(?:\s+ang)?|location\s+of|located\s+in|nahimutang|makita)\b/.test(
       q
     ) && !isCamiguinLocationQuery(q)
+  );
+}
+
+/** “Who is X?” / Sino / Kinsa — looking up a person (try Camiguin web search). */
+export function isPersonLookupQuery(query: string) {
+  const q = query.toLowerCase().trim();
+  return (
+    /\b(who\s+is|who's|who\s+was|sino(?:\s+(?:si|ang|ba))?|kinsa(?:\s+(?:si|ang|ba))?)\b/.test(q) &&
+    !/\b(who\s+are\s+you|sino\s+ka|kinsa\s+ka)\b/.test(q)
   );
 }
 
@@ -300,6 +317,7 @@ export type CamiCorpusInput = {
       email?: string | null;
       headName?: string | null;
       headOfOffice?: string | null;
+      officeHours?: string | null;
     }
   >;
   downloads?: Array<
@@ -315,6 +333,8 @@ export type CamiCorpusInput = {
       category?: string | null;
     }
   >;
+  /** Global Capitol / kiosk office hours from settings */
+  officeHoursText?: string | null;
 };
 
 export function buildCamiCorpus(data: CamiCorpusInput, language: Language): CamiKnowledgeChunk[] {
@@ -398,16 +418,42 @@ export function buildCamiCorpus(data: CamiCorpusInput, language: Language): Cami
     const [name, description] = pickLocalized(dir, language, ["name", "description"]);
     const multi = multilingualBlob(dir, ["name", "description"]);
     const head = dir.headName || dir.headOfOffice || "";
+    const locationParts = [dir.building, dir.floor, dir.room ? `Room ${dir.room}` : ""]
+      .filter(Boolean)
+      .join(", ");
     chunks.push({
       id: `directory-${dir.id}`,
       type: dir.type === "building" ? "building" : "directory",
       title: name,
-      body: `${description || ""} ${dir.department ?? ""} ${dir.building ?? ""} ${dir.floor ?? ""} ${
-        dir.room ?? ""
-      } ${head ? `Head / Official: ${head}.` : ""} ${
-        dir.contactNumber ? `Contact: ${dir.contactNumber}.` : ""
-      } ${dir.email ? `Email: ${dir.email}.` : ""} ${multi}`.trim(),
+      body: [
+        description || "",
+        dir.department ? `Department: ${dir.department}.` : "",
+        locationParts ? `Location: ${locationParts}.` : "",
+        head ? `Head / Official: ${head}.` : "",
+        dir.contactNumber ? `Contact: ${dir.contactNumber}.` : "",
+        dir.email ? `Email: ${dir.email}.` : "",
+        dir.officeHours ? `Office hours: ${dir.officeHours}.` : "",
+        multi,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .trim(),
       href: dir.type === "building" ? "/building-directory" : "/government-directory",
+    });
+  }
+
+  if (data.officeHoursText?.trim()) {
+    chunks.push({
+      id: "system-office-hours",
+      type: "kiosk",
+      title: pickLang(language, "Capitol office hours", "Oras ng opisina sa Capitol", "Oras sa opisina sa Capitol"),
+      body: pickLang(
+        language,
+        `Provincial Capitol office hours: ${data.officeHoursText.trim()}. For specific offices, see the Building Directory or Government Directory.`,
+        `Oras ng Provincial Capitol: ${data.officeHoursText.trim()}. Para sa partikular na opisina, tingnan ang Building Directory o Government Directory.`,
+        `Oras sa Provincial Capitol: ${data.officeHoursText.trim()}. Para sa piho nga opisina, tan-awa ang Building Directory o Government Directory.`
+      ),
+      href: "/office-hours",
     });
   }
 
@@ -507,6 +553,174 @@ export function buildLocalReply(
   return body;
 }
 
+/** Default highlight spots when DB tourism rows are thin. */
+const DEFAULT_TOURIST_SPOTS = [
+  "White Island",
+  "Katibawasan Falls",
+  "Sunken Cemetery",
+  "Mantigue Island",
+  "Ardent Hot Springs",
+  "Old Church Ruins",
+  "Mt. Hibok-Hibok",
+  "Sto. Niño Cold Springs",
+  "Tuasan Falls",
+  "Giant Clam Sanctuary",
+];
+
+export function isTouristSpotsQuery(query: string) {
+  const q = query.toLowerCase();
+  return (
+    /\b(tourist\s*spots?|tourism|turismo|attractions?|atraksiyon|atraksyon|places?\s+to\s+(visit|see|go)|what\s+to\s+(see|do|visit)|things\s+to\s+do|must[- ]?see|destinations?|destinasyon|lugar\s+na\s+pupuntahan|mga\s+lugar|unsa\s+ang\s+makita|ano\s+ang\s+makikita|recommend|irekomenda|rekomenda|sugyot|i\-?suggest)\b/.test(
+      q
+    ) ||
+    /\b(visit|bisita|adto|pumunta|mag\-?tour)\b/.test(q) &&
+      /\b(camiguin|island|isla|spot|lugar|fall|falls|beach|spring)\b/.test(q)
+  );
+}
+
+export function suggestTouristSpotsReply(
+  language: Language,
+  ranked: CamiKnowledgeChunk[] = []
+): string {
+  const fromDb = ranked
+    .filter((chunk) => chunk.type === "tourism")
+    .map((chunk) => chunk.title.trim())
+    .filter(Boolean);
+
+  const seen = new Set<string>();
+  const spots: string[] = [];
+  for (const name of [...fromDb, ...DEFAULT_TOURIST_SPOTS]) {
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    spots.push(name);
+    if (spots.length >= 8) break;
+  }
+
+  const list = spots.map((name) => `• ${name}`).join("\n");
+
+  return pickLang(
+    language,
+    `Here are popular tourist spots in Camiguin:\n${list}\n\nOpen Tourism or the Map module for details and directions.`,
+    `Narito ang mga sikat na tourist spots sa Camiguin:\n${list}\n\nBuksan ang Tourism o Map module para sa detalye at direksyon.`,
+    `Ania ang mga sikat nga tourist spots sa Camiguin:\n${list}\n\nAblihi ang Tourism o Map module para sa detalye ug direksyon.`
+  );
+}
+
+export function isOfficeQuery(query: string) {
+  const q = query.toLowerCase();
+  return (
+    /\b(office|offices|opisina|departamento|department|capitol|directory|building\s+directory|government\s+directory|room|floor|gusali|where\s+is\s+the\s+\w+\s+office|asa\s+ang\s+\w+\s+opisina|nasaan\s+ang\s+\w+\s+opisina|office\s+hours|oras\s+ng\s+opisina|oras\s+sa\s+opisina|contact\s+number|telepono|head\s+of\s+office|treasurer|assessor|accountant|administrator|governor.?s?\s+office|mayor.?s?\s+office|permit\s+office|cedula)\b/.test(
+      q
+    ) || /\b(opisina|office)\b/.test(q)
+  );
+}
+
+function formatOfficeChunk(chunk: CamiKnowledgeChunk, language: Language): string {
+  const body = chunk.body.replace(/\s+/g, " ").trim();
+  return pickLang(
+    language,
+    `${chunk.title}: ${body}`,
+    `${chunk.title}: ${body}`,
+    `${chunk.title}: ${body}`
+  );
+}
+
+/** Answer office questions using kiosk directory / office-hours data only. */
+export function answerOfficeFromKiosk(
+  query: string,
+  corpus: CamiKnowledgeChunk[],
+  language: Language
+): { reply: string; citations: CamiKnowledgeChunk[] } | null {
+  const q = query.toLowerCase();
+  const officeChunks = corpus.filter(
+    (chunk) =>
+      chunk.type === "directory" ||
+      chunk.type === "building" ||
+      chunk.id === "system-office-hours" ||
+      chunk.id === "system-leadership"
+  );
+
+  if (!officeChunks.length) return null;
+
+  const rankedOffices = rankChunks(query, officeChunks, 8).filter((c) => (c.score ?? 0) > 0);
+
+  // General office hours
+  if (/\b(office\s+hours|oras\s+(ng|sa)\s+opisina|open(?:ing)?\s+hours|anong\s+oras|unsa\s+ang\s+oras)\b/.test(q)) {
+    const hoursChunk =
+      officeChunks.find((c) => c.id === "system-office-hours") ||
+      rankedOffices.find((c) => /office hours|oras/i.test(`${c.title} ${c.body}`));
+    if (hoursChunk) {
+      return { reply: formatOfficeChunk(hoursChunk, language), citations: [hoursChunk] };
+    }
+    return {
+      reply: pickLang(
+        language,
+        "Capitol offices are generally open Monday to Friday, 8:00 AM – 5:00 PM. Check Building Directory or Office Hours on this kiosk for details.",
+        "Ang mga opisina sa Capitol ay bukas karaniwang Lunes hanggang Biyernes, 8:00 AM – 5:00 PM. Tingnan ang Building Directory o Office Hours sa kiosk para sa detalye.",
+        "Ang mga opisina sa Capitol abli kasagaran Lunes hangtod Biyernes, 8:00 AM – 5:00 PM. Tan-awa ang Building Directory o Office Hours sa kiosk para sa detalye."
+      ),
+      citations: [],
+    };
+  }
+
+  // List offices
+  if (
+    /\b(list|mga\s+opisina|unsa\s+nga\s+opisina|ano\s+ang\s+mga\s+opisina|what\s+offices|which\s+offices|offices\s+in\s+(the\s+)?capitol)\b/.test(
+      q
+    ) ||
+    (/^\s*(offices|opisina|mga\s+opisina)\s*\??\s*$/.test(q) && !rankedOffices[0])
+  ) {
+    const listSource = officeChunks
+      .filter((c) => c.type === "directory" || c.type === "building")
+      .slice(0, 10);
+    if (!listSource.length) return null;
+    const list = listSource.map((c) => `• ${c.title}`).join("\n");
+    return {
+      reply: pickLang(
+        language,
+        `Offices in this kiosk directory:\n${list}\n\nAsk about a specific office for location and contact details, or open Building / Government Directory.`,
+        `Mga opisina sa directory ng kiosk:\n${list}\n\nMagtanong tungkol sa partikular na opisina para sa lokasyon at contact, o buksan ang Building / Government Directory.`,
+        `Mga opisina sa directory sa kiosk:\n${list}\n\nPangutana bahin sa piho nga opisina para sa lokasyon ug contact, o ablihi ang Building / Government Directory.`
+      ),
+      citations: listSource.slice(0, 5),
+    };
+  }
+
+  // Specific office match from kiosk data
+  if (rankedOffices.length > 0) {
+    const top = rankedOffices[0]!;
+    // Prefer real directory rows over the generic hours/leadership chunk when possible
+    const best =
+      rankedOffices.find((c) => c.type === "directory" || c.type === "building") || top;
+
+    if ((best.score ?? 0) >= 4 || /office|opisina|room|floor|department|departamento/i.test(q)) {
+      const extras = rankedOffices
+        .filter((c) => c.id !== best.id && (c.type === "directory" || c.type === "building"))
+        .slice(0, 2);
+      let reply = formatOfficeChunk(best, language);
+      if (extras.length && /\b(list|mga|offices)\b/.test(q)) {
+        reply +=
+          "\n\n" +
+          pickLang(language, "Related:", "Kaugnay:", "May kalabutan:") +
+          "\n" +
+          extras.map((c) => `• ${c.title}`).join("\n");
+      }
+      reply +=
+        "\n\n" +
+        pickLang(
+          language,
+          "Source: kiosk Building / Government Directory.",
+          "Batay sa Building / Government Directory ng kiosk.",
+          "Gikan sa Building / Government Directory sa kiosk."
+        );
+      return { reply, citations: [best, ...extras] };
+    }
+  }
+
+  return null;
+}
+
 function buildDirectFactAnswer(
   query: string,
   ranked: CamiKnowledgeChunk[],
@@ -514,6 +728,15 @@ function buildDirectFactAnswer(
   language: Language
 ): string | null {
   const q = query.toLowerCase();
+
+  if (isTouristSpotsQuery(q)) {
+    return suggestTouristSpotsReply(language, ranked);
+  }
+
+  if (isOfficeQuery(q)) {
+    const officeAnswer = answerOfficeFromKiosk(query, ranked, language);
+    if (officeAnswer) return officeAnswer.reply;
+  }
 
   if (isCamiguinLocationQuery(q)) {
     return pickLang(
@@ -604,12 +827,18 @@ const KIOSK_TOPIC_CUES = [
   "dive",
   "beach",
   "port",
+  "pantalan",
   "sinulog",
   "governor",
   "gobernador",
+  "gubernador",
   "vice governor",
   "mayor",
+  "alkalde",
   "romualdo",
+  "yggy",
+  "yñigo",
+  "ynigo",
   "service",
   "serbisyo",
   "faq",
@@ -620,6 +849,10 @@ const KIOSK_TOPIC_CUES = [
   "event",
   "travel",
   "how to get",
+  "paano pumunta",
+  "paano makapunta",
+  "unsaon pag-adto",
+  "unsaon pagadto",
   "panahon",
   "weather",
   "climate",
@@ -638,11 +871,58 @@ const KIOSK_TOPIC_CUES = [
   "destinasyon",
   "atraksiyon",
   "atraksyon",
+  "attraction",
   "hotline",
   "kontakt",
   "kontak",
   "telepono",
   "numero",
+  "oras",
+  "hours",
+  "schedule",
+  "iskedyul",
+  "pagkaon",
+  "food",
+  "restaurant",
+  "hotel",
+  "accommodation",
+  "stay",
+  "visit",
+  "bisita",
+  "adto",
+  "pumunta",
+  "tour",
+  "snorkel",
+  "diving",
+  "volcano",
+  "bulkan",
+  "waterfall",
+  "busay",
+  "talon",
+  "municipality",
+  "munisipyo",
+  "lungsod",
+  "tourist spot",
+  "tourist spots",
+  "tourist",
+  "must see",
+  "must-see",
+  "things to do",
+  "what to do",
+  "what can i",
+  "ano ang makikita",
+  "unsa ang makita",
+  "directory",
+  "building",
+  "gusali",
+  "floor",
+  "room",
+  "feedback",
+  "charter",
+  "recommend",
+  "irekomenda",
+  "rekomenda",
+  "sugyot",
 ];
 
 const OUT_OF_ISLAND_PLACES = [
@@ -685,6 +965,52 @@ const OUT_OF_ISLAND_PLACES = [
   "usa",
   "america",
   "europe",
+  "china",
+  "taiwan",
+  "australia",
+];
+
+/** Clearly general / off-kiosk topics (refuse unless tied to Camiguin). */
+const UNRELATED_TOPIC_CUES = [
+  "stock market",
+  "write a novel",
+  "python code",
+  "javascript",
+  "homework",
+  "nba",
+  "crypto",
+  "bitcoin",
+  "recipe",
+  "dating advice",
+  "movie review",
+  "football score",
+  "who won",
+  "chatgpt",
+  "write me a poem",
+  "write a poem",
+  "translate this paragraph",
+  "tell me a joke",
+  "kwento ng biro",
+  "sulti og joke",
+  "quantum",
+  "physics",
+  "calculus",
+  "algebra",
+  "elon musk",
+  "taylor swift",
+  "president of the",
+  "pangulo ng amerika",
+  "who is the president of",
+  "capital of france",
+  "capital of japan",
+  "how to code",
+  "programming",
+  "make me rich",
+  "lottery",
+  "horoscope",
+  "astrology",
+  "love advice",
+  "relationship advice",
 ];
 
 function hasAnyCue(q: string, cues: string[]) {
@@ -715,12 +1041,16 @@ export function isGreetingOrMetaQuery(query: string) {
 export function outOfScopeReply(language: Language) {
   return pickLang(
     language,
-    "Sorry—Cami only answers questions about Camiguin Province and this kiosk. Ask about tourism, services, events, emergency contacts, maps, downloads, or other info available here.",
-    "Pasensya—si Cami ay para sa Camiguin at sa impormasyon ng kiosk lang. Magtanong tungkol sa turismo, serbisyo, events, emergency contacts, mapa, downloads, o iba pang impormasyon dito.",
-    "Pasayloa—si Cami para sa Camiguin ug sa impormasyon sa kiosk lang. Pangutana bahin sa turismo, serbisyo, events, emergency contacts, mapa, downloads, o ubang impormasyon dinhi."
+    "All I know is within Camiguin and this kiosk’s information only. Please ask about tourism, services, events, emergency contacts, maps, downloads, offices, or other Camiguin kiosk topics.",
+    "Ang alam ko lang ay nasa loob ng Camiguin at ng impormasyon sa kiosk na ito. Magtanong tungkol sa turismo, serbisyo, events, emergency contacts, mapa, downloads, opisina, o iba pang paksang Camiguin/kiosk.",
+    "Ang akong nahibaloan anaa ra sulod sa Camiguin ug sa impormasyon niining kiosk. Pangutana bahin sa turismo, serbisyo, events, emergency contacts, mapa, downloads, opisina, o ubang topiko sa Camiguin/kiosk."
   );
 }
 
+/**
+ * Only Camiguin Province + this kiosk’s information.
+ * Unrelated general questions are refused.
+ */
 export function isInScopeQuery(query: string) {
   const q = query.toLowerCase().trim();
   if (!q) return false;
@@ -734,7 +1064,7 @@ export function isInScopeQuery(query: string) {
   ];
   if (blocked.some((item) => q.includes(item))) return false;
 
-  // Greetings / simple help stay allowed.
+  // Greetings / “who are you” stay allowed.
   if (isGreetingOrMetaQuery(q)) {
     return true;
   }
@@ -751,35 +1081,36 @@ export function isInScopeQuery(query: string) {
     return false;
   }
 
+  // Explicitly unrelated general topics → refuse.
+  if (hasAnyCue(q, UNRELATED_TOPIC_CUES) && !linkedToCamiguin) {
+    return false;
+  }
+
   // “Where is X?” for an unknown/non-island place → refuse.
   if (isPlaceLookupQuery(q) && !hasCamiguinPlace && !knownIslandPlaceLookup(q)) {
     return false;
   }
 
-  const unrelated = [
-    "stock market",
-    "write a novel",
-    "python code",
-    "homework",
-    "nba",
-    "crypto",
-    "bitcoin",
-    "recipe",
-    "dating advice",
-    "movie review",
-    "football score",
-    "who won",
-    "chatgpt",
-    "write me a poem",
-    "translate this paragraph",
-  ];
-  if (unrelated.some((item) => q.includes(item)) && !linkedToCamiguin && !hasKioskTopic) {
-    return false;
+  // Must touch Camiguin places or kiosk topics (tourism, offices, weather, etc.).
+  if (linkedToCamiguin || hasKioskTopic) {
+    return true;
   }
 
-  // Default: treat every other question as about Camiguin Province
-  // (weather, food, climate, travel tips, etc. — even without saying “Camiguin”).
-  return true;
+  // “Who is X?” — allow through so Camiguin-scoped web search can resolve local people
+  // (e.g. mayor Yggy). Unrelated celebrities still blocked by UNRELATED_TOPIC_CUES.
+  if (isPersonLookupQuery(q)) {
+    return true;
+  }
+
+  // Short follow-ups that only make sense on a kiosk (hours, fees, hotline, map)
+  if (
+    /\b(hours?|oras|fee|bayad|hotline|number|numero|map|mapa|form|permit|cedula|download)\b/.test(q)
+  ) {
+    return true;
+  }
+
+  // Everything else (random trivia, general chat, other places) → out of scope.
+  return false;
 }
 
 function knownIslandPlaceLookup(q: string) {
@@ -788,3 +1119,4 @@ function knownIslandPlaceLookup(q: string) {
   const p = place.toLowerCase();
   return CAMIGUIN_PLACE_CUES.some((cue) => p.includes(cue) || cue.includes(p));
 }
+

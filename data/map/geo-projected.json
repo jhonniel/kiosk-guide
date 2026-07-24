@@ -1,0 +1,124 @@
+{
+  "attractions": {
+    "white-island": {
+      "x": 18,
+      "y": 10,
+      "lat": 9.2553411,
+      "lng": 124.6545324
+    },
+    "mantigue-island": {
+      "x": 86,
+      "y": 51,
+      "lat": 9.1744129,
+      "lng": 124.8266494
+    },
+    "sunken-cemetery": {
+      "x": 13,
+      "y": 28,
+      "lat": 9.208083,
+      "lng": 124.631408
+    },
+    "old-church-ruins": {
+      "x": 16,
+      "y": 34,
+      "lat": 9.2055,
+      "lng": 124.6385
+    },
+    "katibawasan-falls": {
+      "x": 47,
+      "y": 34,
+      "lat": 9.2135773,
+      "lng": 124.7179298
+    },
+    "tuasan-falls": {
+      "x": 38,
+      "y": 51,
+      "lat": 9.1768324,
+      "lng": 124.6809727
+    },
+    "binangawan-falls": {
+      "x": 55,
+      "y": 55,
+      "lat": 9.1559631,
+      "lng": 124.7331718
+    },
+    "soda-water-pool": {
+      "x": 22,
+      "y": 48,
+      "lat": 9.185,
+      "lng": 124.655
+    },
+    "ardent-hot-spring": {
+      "x": 40,
+      "y": 24,
+      "lat": 9.2259257,
+      "lng": 124.6882386
+    },
+    "sto-nino-cold-spring": {
+      "x": 42,
+      "y": 64,
+      "lat": 9.1484523,
+      "lng": 124.673318
+    },
+    "volcano-observatory": {
+      "x": 32,
+      "y": 30,
+      "lat": 9.2098777,
+      "lng": 124.6825565
+    },
+    "mt-hibok-hibok": {
+      "x": 34,
+      "y": 37,
+      "lat": 9.1994295,
+      "lng": 124.6759878
+    },
+    "giant-clam-sanctuary": {
+      "x": 78,
+      "y": 72,
+      "lat": 9.1061427,
+      "lng": 124.8030098
+    },
+    "cabuan-eco-village": {
+      "x": 72,
+      "y": 72,
+      "lat": 9.1196144,
+      "lng": 124.8063311
+    },
+    "moro-watch-tower": {
+      "x": 68,
+      "y": 84,
+      "lat": 9.108,
+      "lng": 124.785
+    },
+    "walkway-old-volcano": {
+      "x": 22,
+      "y": 38,
+      "lat": 9.2105795,
+      "lng": 124.640567
+    },
+    "macau-springs": {
+      "x": 70,
+      "y": 36,
+      "lat": 9.145,
+      "lng": 124.71
+    },
+    "benoni-port": {
+      "x": 74,
+      "y": 48,
+      "lat": 9.1390412,
+      "lng": 124.7941987
+    },
+    "balbagon-port": {
+      "x": 56,
+      "y": 12,
+      "lat": 9.2438966,
+      "lng": 124.7379353
+    },
+    "airport": {
+      "x": 64,
+      "y": 22,
+      "lat": 9.253611,
+      "lng": 124.707222
+    }
+  }
+}

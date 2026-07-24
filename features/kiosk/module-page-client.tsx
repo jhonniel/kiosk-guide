@@ -18,6 +18,8 @@ interface ModulePageClientProps {
   fit?: boolean;
   /** Hide the large gradient title banner (useful when the content is visual, e.g. the map). */
   hideBanner?: boolean;
+  /** Hide the compact page header (back + title + date/time). */
+  hideHeader?: boolean;
   /** Optional element rendered on the right side of the gradient banner. */
   bannerAction?: React.ReactNode;
   /** Optional secondary line shown under the banner description. */
@@ -35,6 +37,7 @@ export function ModulePageClient({
   icon = "FileText",
   fit = false,
   hideBanner = false,
+  hideHeader = false,
   bannerAction,
   bannerMeta,
   children,
@@ -55,7 +58,7 @@ export function ModulePageClient({
         fit && "h-full min-h-0 basis-0 overflow-hidden pb-2"
       )}
     >
-      <PageHeader title={title} language={language} compact />
+      {!hideHeader && <PageHeader title={title} language={language} compact />}
 
       {!hideBanner && (
         <section

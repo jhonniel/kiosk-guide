@@ -1517,6 +1517,9 @@ async function main() {
       : `Citizens' Charter imported (published=${charterImport.publishedId}, draft=${charterImport.draftId}).`
   );
 
+  const { seedMapEngine } = await import("./seed-map");
+  await seedMapEngine(prisma);
+
   // Remove accidental duplicates from older create-only seed runs.
   await dedupeByKey(prisma.faq, "questionEn");
   await dedupeByKey(prisma.emergencyContact, "nameEn");

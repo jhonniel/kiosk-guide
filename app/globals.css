@@ -584,34 +584,6 @@ a:active,
   }
 }
 
-@keyframes idle-caret-blink {
-  0%,
-  45% {
-    opacity: 1;
-  }
-  50%,
-  100% {
-    opacity: 0;
-  }
-}
-
-.idle-tap-caret {
-  display: inline-block;
-  width: 0.09em;
-  height: 0.82em;
-  margin-left: 0.12em;
-  vertical-align: -0.06em;
-  background: rgba(255, 255, 255, 0.95);
-  animation: idle-caret-blink 1s steps(1, end) infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .idle-tap-caret {
-    animation: none;
-    opacity: 1;
-  }
-}
-
 @keyframes idle-prompt-in {
   from {
     opacity: 0;
@@ -853,6 +825,279 @@ html.kiosk-no-swipe-back body {
   overscroll-behavior-x: none;
   overscroll-behavior-y: none;
   overscroll-behavior: none;
+}
+
+/* ---------- Camiguin tourism map ambient effects ---------- */
+
+@keyframes map-ocean-drift {
+  0% {
+    background-position: 0% 40%;
+  }
+  100% {
+    background-position: 100% 60%;
+  }
+}
+
+@keyframes map-cloud-drift-a {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(18%);
+  }
+}
+
+@keyframes map-cloud-drift-b {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-14%);
+  }
+}
+
+@keyframes map-marker-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(15, 118, 110, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(15, 118, 110, 0);
+  }
+}
+
+@keyframes map-ripple {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.map-ocean-sheen {
+  background: radial-gradient(
+      ellipse at 20% 30%,
+      rgba(255, 255, 255, 0.22),
+      transparent 45%
+    ),
+    radial-gradient(ellipse at 80% 70%, rgba(56, 189, 248, 0.18), transparent 50%),
+    linear-gradient(
+      120deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.12) 40%,
+      transparent 70%
+    );
+  background-size: 200% 200%;
+  animation: map-ocean-drift 18s linear infinite;
+}
+
+/* Zoom/pan library defaults to fit-content — force map to fill the panel */
+.react-transform-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+}
+.react-transform-component {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+}
+
+.map-cloud-a {
+  animation: map-cloud-drift-a 42s ease-in-out infinite alternate;
+}
+
+.map-cloud-b {
+  animation: map-cloud-drift-b 55s ease-in-out infinite alternate;
+}
+
+.map-cloud-c {
+  animation: map-cloud-drift-a 65s ease-in-out infinite alternate-reverse;
+}
+
+.map-marker-pulse {
+  animation: map-marker-pulse 1.8s ease-out infinite;
+}
+
+.map-ripple {
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  animation: map-ripple 1.2s ease-out infinite;
+}
+
+/* Tourism-map style spot labels */
+.map-spot-label {
+  color: #0f172a;
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 0.01em;
+  text-shadow:
+    -1px -1px 0 rgba(255, 255, 255, 0.95),
+    1px -1px 0 rgba(255, 255, 255, 0.95),
+    -1px 1px 0 rgba(255, 255, 255, 0.95),
+    1px 1px 0 rgba(255, 255, 255, 0.95),
+    0 0 4px rgba(255, 255, 255, 0.8);
+}
+
+.map-spot-label-active {
+  color: #9a3412;
+  font-size: 11px;
+}
+
+@keyframes map-wave-drift {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-8%);
+  }
+}
+
+@keyframes map-boat-drift-a {
+  0% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(6px, 1px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes map-boat-drift-b {
+  0% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-8px, 1.5px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes map-forest-sway {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(0.15%);
+  }
+}
+
+@keyframes map-reef-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes map-sun-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes map-birds-drift {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(4%);
+  }
+}
+
+.map-wave-layer {
+  animation: map-wave-drift 14s ease-in-out infinite alternate;
+}
+
+.map-boat-a {
+  animation: map-boat-drift-a 18s ease-in-out infinite;
+}
+
+.map-boat-b {
+  animation: map-boat-drift-b 22s ease-in-out infinite;
+}
+
+.map-forest-sway {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: map-forest-sway 7s ease-in-out infinite;
+}
+
+.map-reef-pulse {
+  animation: map-reef-pulse 8s ease-in-out infinite;
+}
+
+.map-sun-rays {
+  background: radial-gradient(
+    circle,
+    rgba(255, 247, 214, 0.55) 0%,
+    rgba(255, 247, 214, 0.15) 35%,
+    transparent 70%
+  );
+  animation: map-sun-pulse 12s ease-in-out infinite;
+}
+
+.map-birds {
+  animation: map-birds-drift 30s ease-in-out infinite alternate;
+}
+
+.map-fog {
+  animation: map-cloud-drift-a 50s ease-in-out infinite alternate;
+}
+
+.map-art-night {
+  filter: brightness(0.72) saturate(0.85) contrast(1.05);
+}
+
+@keyframes map-road-glow {
+  0%,
+  100% {
+    stroke-opacity: 0.75;
+  }
+  50% {
+    stroke-opacity: 1;
+  }
+}
+
+.map-road-illuminate {
+  animation: map-road-glow 1.6s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.85));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-ocean-sheen,
+  .map-cloud-a,
+  .map-cloud-b,
+  .map-cloud-c,
+  .map-marker-pulse,
+  .map-ripple,
+  .map-wave-layer,
+  .map-boat-a,
+  .map-boat-b,
+  .map-forest-sway,
+  .map-reef-pulse,
+  .map-sun-rays,
+  .map-birds,
+  .map-fog,
+  .map-road-illuminate {
+    animation: none;
+  }
 }
 
 /* Keep kiosk chrome tight in browser fullscreen */

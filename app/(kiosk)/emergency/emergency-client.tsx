@@ -2,12 +2,18 @@
 
 import { useMemo, useState } from "react";
 import {
+  Ambulance,
   Building2,
   Flame,
   Hospital,
+  Info,
+  Landmark,
+  Map,
   Phone,
   Shield,
   Siren,
+  Waves,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { useKiosk } from "@/hooks/use-kiosk";
@@ -17,11 +23,16 @@ import type { EmergencyContact } from "@prisma/client";
 
 const AREA_ORDER = ["Province", "Mambajao", "Mahinog", "Guinsiliban", "Sagay", "Catarman"] as const;
 
-type Area = (typeof AREA_ORDER)[number] | "Other";
+type AreaFilter = (typeof AREA_ORDER)[number] | "All";
+
+type ServiceTone = {
+  iconWrap: string;
+  icon: string;
+  title: string;
+};
 
 function telHref(label: string) {
   const digits = label.replace(/[^\d+]/g, "");
-  // Keep short emergency codes like 911 / 9111
   if (!digits) return undefined;
   return `tel:${digits}`;
 }
@@ -31,6 +42,10 @@ function phoneEntries(phoneNumber: string) {
     .split(/\s*\/\s*/)
     .map((part) => part.trim())
     .filter(Boolean);
+}
+
+function primaryPhone(phoneNumber: string) {
+  return phoneEntries(phoneNumber)[0] ?? phoneNumber;
 }
 
 function serviceLabel(name: string, area: string) {
@@ -45,6 +60,10 @@ function serviceLabel(name: string, area: string) {
 
 function serviceIcon(name: string): LucideIcon {
   const lower = name.toLowerCase();
+  if (lower.includes("ambulance")) return Ambulance;
+  if (lower.includes("coast")) return Waves;
+  if (lower.includes("disaster") || lower.includes("reduction")) return Building2;
+  if (lower.includes("information") || lower.includes("pio")) return Info;
   if (lower.includes("police")) return Shield;
   if (lower.includes("fire")) return Flame;
   if (lower.includes("hospital")) return Hospital;
@@ -52,35 +71,139 @@ function serviceIcon(name: string): LucideIcon {
   return Building2;
 }
 
-function serviceTone(name: string) {
+function serviceTone(name: string): ServiceTone {
   const lower = name.toLowerCase();
-  if (lower.includes("police")) return "bg-sky-50 text-sky-700 ring-sky-100";
-  if (lower.includes("fire")) return "bg-orange-50 text-orange-700 ring-orange-100";
-  if (lower.includes("hospital")) return "bg-emerald-50 text-emerald-700 ring-emerald-100";
-  if (lower.includes("emergency")) return "bg-rose-50 text-rose-700 ring-rose-100";
-  return "bg-slate-50 text-slate-700 ring-slate-100";
+  if (lower.includes("police") || lower.includes("coast")) {
+    return {
+      iconWrap: "bg-[#e8f1fb]",
+      icon: "text-[#1d6bb8]",
+      title: "text-[#1d6bb8]",
+    };
+  }
+  if (lower.includes("fire")) {
+    return {
+      iconWrap: "bg-[#fff0e6]",
+      icon: "text-[#e0671a]",
+      title: "text-[#d45a12]",
+    };
+  }
+  if (lower.includes("hospital") || lower.includes("disaster")) {
+    return {
+      iconWrap: "bg-[#e8f7ef]",
+      icon: "text-[#1f9d55]",
+      title: "text-[#1b8a4a]",
+    };
+  }
+  if (lower.includes("information") || lower.includes("pio")) {
+    return {
+      iconWrap: "bg-[#fff4e5]",
+      icon: "text-[#d97706]",
+      title: "text-[#c2410c]",
+    };
+  }
+  return {
+    iconWrap: "bg-[#fde8ea]",
+    icon: "text-[#c1121f]",
+    title: "text-[#c1121f]",
+  };
+}
+
+function CallButton({
+  phone,
+  className,
+  fullWidth,
+}: {
+  phone: string;
+  className?: string;
+  fullWidth?: boolean;
+}) {
+  const href = telHref(phone);
+  const classes = cn(
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#c1121f] px-4 py-2.5 text-[15px] font-bold text-white shadow-sm shadow-rose-900/10 transition-transform duration-150 hover:bg-[#a50e19] active:scale-[0.98]",
+    fullWidth && "w-full",
+    className
+  );
+
+  if (href) {
+    return (
+      <a href={href} className={classes}>
+        <Phone className="h-4 w-4 shrink-0 opacity-95" strokeWidth={2.5} />
+        <span className="tabular-nums tracking-wide">{phone}</span>
+      </a>
+    );
+  }
+
+  return (
+    <span className={classes}>
+      <Phone className="h-4 w-4 shrink-0 opacity-95" strokeWidth={2.5} />
+      <span className="tabular-nums tracking-wide">{phone}</span>
+    </span>
+  );
 }
 
 export function EmergencyClient({ contacts }: { contacts: EmergencyContact[] }) {
   const { language } = useKiosk();
-  const [activeArea, setActiveArea] = useState<Area>("Province");
+  const [activeArea, setActiveArea] = useState<AreaFilter>("Province");
+
+  const provinceContacts = useMemo(
+    () =>
+      contacts
+        .filter((contact) => contact.category === "Province")
+        .sort((a, b) => a.sortOrder - b.sortOrder),
+    [contacts]
+  );
+
+  const quickAccess = useMemo(() => {
+    const preferred = ["emergency", "police", "fire", "hospital"];
+    const ranked = [...provinceContacts].sort((a, b) => {
+      const aName = a.nameEn.toLowerCase();
+      const bName = b.nameEn.toLowerCase();
+      const aIdx = preferred.findIndex((key) => aName.includes(key));
+      const bIdx = preferred.findIndex((key) => bName.includes(key));
+      const aRank = aIdx === -1 ? 99 : aIdx;
+      const bRank = bIdx === -1 ? 99 : bIdx;
+      if (aRank !== bRank) return aRank - bRank;
+      return a.sortOrder - b.sortOrder;
+    });
+    return ranked.slice(0, 4);
+  }, [provinceContacts]);
 
   const grouped = useMemo(() => {
-    const sections = AREA_ORDER.map((area) => ({
-      area: area as Area,
-      items: contacts.filter((contact) => contact.category === area),
+    return AREA_ORDER.map((area) => ({
+      area,
+      items: contacts
+        .filter((contact) => contact.category === area)
+        .sort((a, b) => a.sortOrder - b.sortOrder),
     })).filter((group) => group.items.length > 0);
-
-    const other = contacts.filter((contact) => !AREA_ORDER.includes(contact.category as (typeof AREA_ORDER)[number]));
-    if (other.length) sections.push({ area: "Other", items: other });
-    return sections;
   }, [contacts]);
 
-  const areas = grouped.map((group) => group.area);
-  const currentArea = areas.includes(activeArea) ? activeArea : areas[0];
-  const currentGroup = grouped.find((group) => group.area === currentArea) ?? grouped[0];
+  const areaCounts = useMemo(() => {
+    const map = Object.fromEntries(grouped.map((group) => [group.area, group.items.length])) as Record<
+      string,
+      number
+    >;
+    map.All = contacts.length;
+    return map;
+  }, [grouped, contacts.length]);
 
-  if (!currentGroup) {
+  const listItems = useMemo(() => {
+    if (activeArea === "All") {
+      return contacts
+        .slice()
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((contact) => ({
+          contact,
+          area: (contact.category as string) || "Other",
+        }));
+    }
+    const group = grouped.find((item) => item.area === activeArea);
+    return (group?.items ?? []).map((contact) => ({
+      contact,
+      area: group?.area ?? activeArea,
+    }));
+  }, [activeArea, contacts, grouped]);
+
+  if (!contacts.length) {
     return (
       <p className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center text-slate-500">
         {pickLang(language, "No emergency contacts available.", "Walang emergency contacts.", "Walay emergency contacts.")}
@@ -89,107 +212,195 @@ export function EmergencyClient({ contacts }: { contacts: EmergencyContact[] }) 
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-5">
-      <div className="flex flex-wrap gap-2">
-        {areas.map((area) => {
-          const count = grouped.find((group) => group.area === area)?.items.length ?? 0;
-          const selected = area === currentArea;
-          return (
-            <button
-              key={area}
-              type="button"
-              onClick={() => setActiveArea(area)}
-              className={cn(
-                "rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200",
-                selected
-                  ? "bg-kiosk-navy text-white shadow-md shadow-kiosk-navy/20"
-                  : "bg-white text-kiosk-navy/80 ring-1 ring-slate-200 hover:bg-slate-50 hover:ring-slate-300"
-              )}
-            >
-              {area}
-              <span
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
+      {/* Quick Access — Province */}
+      <section className="kiosk-page-transition">
+        <div className="mb-3 flex items-center gap-2">
+          <Zap className="h-4 w-4 text-[#c1121f]" strokeWidth={2.5} fill="currentColor" />
+          <h2 className="text-sm font-extrabold tracking-[0.08em] text-kiosk-navy uppercase">
+            {pickLang(
+              language,
+              "Quick Access — Province",
+              "Mabilisang Access — Probinsya",
+              "Dalíng Access — Probinsya"
+            )}
+          </h2>
+        </div>
+
+        <div className="kiosk-stagger grid grid-cols-2 gap-3 xl:grid-cols-4">
+          {quickAccess.map((contact) => {
+            const name = localized(contact, language, "name");
+            const label = serviceLabel(name, "Province");
+            const Icon = serviceIcon(name);
+            const tone = serviceTone(name);
+            const phone = primaryPhone(contact.phoneNumber);
+
+            return (
+              <article
+                key={contact.id}
+                className="kiosk-hover-lift flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-[0_8px_28px_-18px_rgba(15,23,42,0.45)] ring-1 ring-slate-200/70"
+              >
+                <div className="flex items-start gap-3">
+                  <span
+                    className={cn(
+                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-transform duration-300",
+                      tone.iconWrap
+                    )}
+                  >
+                    <Icon className={cn("h-[22px] w-[22px]", tone.icon)} strokeWidth={2.25} />
+                  </span>
+                  <div className="min-w-0 pt-0.5">
+                    <h3 className={cn("text-[13px] font-extrabold leading-snug tracking-wide uppercase", tone.title)}>
+                      {label}
+                    </h3>
+                    <p className="mt-0.5 text-xs font-medium text-slate-400">
+                      {pickLang(language, "Province", "Probinsya", "Probinsya")}
+                    </p>
+                  </div>
+                </div>
+                <CallButton phone={phone} fullWidth />
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* By Municipality */}
+      <section className="min-h-0 flex-1">
+        <div className="mb-3 flex items-center gap-2">
+          <Landmark className="h-4 w-4 text-kiosk-navy" strokeWidth={2.25} />
+          <h2 className="text-sm font-extrabold tracking-[0.08em] text-kiosk-navy uppercase">
+            {pickLang(language, "By Municipality", "Ayon sa Munisipyo", "Pinaagi sa Munisipyo")}
+          </h2>
+        </div>
+
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          {AREA_ORDER.filter((area) => (areaCounts[area] ?? 0) > 0).map((area) => {
+            const selected = activeArea === area;
+            const count = areaCounts[area] ?? 0;
+            return (
+              <button
+                key={area}
+                type="button"
+                onClick={() => setActiveArea(area)}
                 className={cn(
-                  "ml-2 inline-flex min-w-5 items-center justify-center rounded-md px-1.5 text-xs font-bold",
-                  selected ? "bg-white/15 text-white" : "bg-slate-100 text-slate-500"
+                  "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200",
+                  selected
+                    ? "scale-[1.03] bg-kiosk-navy text-white shadow-md shadow-kiosk-navy/20"
+                    : "bg-[#e8eef6] text-kiosk-navy/85 hover:scale-[1.02] hover:bg-[#dce6f3] active:scale-[0.98]"
                 )}
               >
-                {count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+                {area === "Province"
+                  ? pickLang(language, "Province", "Probinsya", "Probinsya")
+                  : area}
+                <span
+                  className={cn(
+                    "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold transition-colors duration-200",
+                    selected ? "bg-white/20 text-white" : "bg-white text-slate-500"
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
 
-      <section
-        key={currentGroup.area}
-        className="kiosk-page-transition overflow-hidden rounded-2xl bg-white shadow-[0_10px_40px_-24px_rgba(15,23,42,0.45)] ring-1 ring-slate-200/80"
-      >
-        <header className="flex items-end justify-between gap-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-rose-50/40 px-5 py-4 sm:px-6">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-600/80">
-              {pickLang(language, "Emergency Hotlines", "Mga Emergency Hotline", "Mga Emergency Hotline")}
-            </p>
-            <h2 className="mt-1 text-xl font-extrabold tracking-tight text-kiosk-navy sm:text-2xl">
-              {currentGroup.area}
-            </h2>
-          </div>
-          <p className="pb-0.5 text-sm font-medium text-slate-500">
-            {currentGroup.items.length}{" "}
-            {pickLang(language, "services", "serbisyo", "serbisyo")}
-          </p>
-        </header>
+          <button
+            type="button"
+            onClick={() => setActiveArea("All")}
+            className={cn(
+              "ml-auto inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200",
+              activeArea === "All"
+                ? "scale-[1.03] bg-kiosk-navy text-white shadow-md shadow-kiosk-navy/20"
+                : "bg-white text-kiosk-navy ring-1 ring-slate-200 hover:scale-[1.02] hover:bg-slate-50 active:scale-[0.98]"
+            )}
+          >
+            <Map className="h-4 w-4 text-[#1d6bb8]" strokeWidth={2.25} />
+            {pickLang(language, "View All Areas", "Tingnan ang Lahat", "Tan-awa ang Tanan")}
+          </button>
+        </div>
 
-        <ul className="kiosk-stagger divide-y divide-slate-100">
-          {currentGroup.items.map((contact) => {
+        <div
+          key={activeArea}
+          className="kiosk-stagger grid grid-cols-1 gap-3 md:grid-cols-2"
+        >
+          {listItems.map(({ contact, area }) => {
             const name = localized(contact, language, "name");
-            const label = serviceLabel(name, currentGroup.area);
+            const label = serviceLabel(name, area);
             const Icon = serviceIcon(name);
+            const tone = serviceTone(name);
             const phones = phoneEntries(contact.phoneNumber);
 
             return (
-              <li
+              <article
                 key={contact.id}
-                className="flex flex-col gap-4 px-5 py-4 transition-colors duration-200 hover:bg-slate-50/80 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+                className="kiosk-hover-lift flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3.5 shadow-[0_6px_22px_-16px_rgba(15,23,42,0.4)] ring-1 ring-slate-200/70"
               >
-                <div className="flex min-w-0 items-start gap-3.5">
+                <div className="flex min-w-0 items-center gap-3">
                   <span
                     className={cn(
-                      "mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1",
-                      serviceTone(name)
+                      "flex h-11 w-11 shrink-0 items-center justify-center rounded-full",
+                      tone.iconWrap
                     )}
                   >
-                    <Icon className="h-5 w-5" strokeWidth={2.25} />
+                    <Icon className={cn("h-5 w-5", tone.icon)} strokeWidth={2.25} />
                   </span>
                   <div className="min-w-0">
-                    <h3 className="text-[17px] font-bold leading-snug text-kiosk-navy">{label}</h3>
-                    <p className="mt-0.5 text-sm text-slate-500">{currentGroup.area}</p>
+                    <h3 className="truncate text-[15px] font-bold text-kiosk-navy">{label}</h3>
+                    <p className="text-xs font-medium text-slate-400">{area}</p>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2 sm:justify-end">
-                  {phones.map((phone) => {
-                    const href = telHref(phone);
-                    const className =
-                      "inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#c1121f] px-4 py-2.5 text-[15px] font-bold text-white shadow-sm shadow-rose-900/10 transition-transform duration-150 hover:bg-[#a50e19] active:scale-[0.98]";
-
-                    return href ? (
-                      <a key={phone} href={href} className={className}>
-                        <Phone className="h-4 w-4 shrink-0 opacity-90" />
-                        {phone}
-                      </a>
-                    ) : (
-                      <span key={phone} className={className}>
-                        <Phone className="h-4 w-4 shrink-0 opacity-90" />
-                        {phone}
-                      </span>
-                    );
-                  })}
+                <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                  {phones.slice(0, 2).map((phone) => (
+                    <CallButton key={phone} phone={phone} className="min-h-10 px-3 py-2 text-sm" />
+                  ))}
                 </div>
-              </li>
+              </article>
             );
           })}
-        </ul>
+        </div>
       </section>
+
+      {/* Important reminder */}
+      <aside className="mt-auto flex flex-col gap-4 rounded-2xl bg-[#fdeced] px-5 py-4 animate-[kiosk-stagger-in_480ms_cubic-bezier(0.22,1,0.36,1)_both] sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#c1121f] text-sm font-black text-white">
+            !
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-extrabold tracking-wide text-[#c1121f] uppercase">
+              {pickLang(language, "Important Reminder", "Mahalagang Paalala", "Importante nga Paahinumdom")}
+            </p>
+            <p className="mt-0.5 text-sm leading-snug text-kiosk-navy/80">
+              {pickLang(
+                language,
+                "In case of emergency, stay calm and dial the appropriate hotline. Your safety is our priority.",
+                "Sa oras ng emergency, manatiling kalmado at tumawag sa tamang hotline. Priority namin ang inyong kaligtasan.",
+                "Kung emergency, magpabilin nga kalmado ug tawagi ang hustong hotline. Una namo ang inyong kaluwasan."
+              )}
+            </p>
+          </div>
+        </div>
+
+        <a
+          href="tel:911"
+          className="flex shrink-0 items-center gap-3 self-end rounded-xl px-2 py-1 transition-transform duration-200 hover:scale-[1.03] hover:opacity-90 active:scale-[0.98] sm:self-center"
+        >
+          <Phone className="h-7 w-7 text-[#c1121f]" strokeWidth={2.5} />
+          <div className="leading-none">
+            <p className="text-4xl font-black tracking-tight text-[#c1121f]">911</p>
+            <p className="mt-1 text-[10px] font-bold tracking-[0.14em] text-kiosk-navy uppercase">
+              {pickLang(
+                language,
+                "National Emergency Hotline",
+                "Pambansang Emergency Hotline",
+                "Nasudnong Emergency Hotline"
+              )}
+            </p>
+          </div>
+        </a>
+      </aside>
     </div>
   );
 }

@@ -5,6 +5,7 @@
 
 import {
   extractPlaceName,
+  isPersonLookupQuery,
   isPlaceLookupQuery,
   textMentionsPlace,
 } from "./retrieve-context";
@@ -31,8 +32,8 @@ function ensureCamiguinQuery(query: string) {
     .replace(/\bnasaan(?:\s+ang)?\b/gi, "where is")
     .replace(/\bsaan(?:\s+ang)?\b/gi, "where is")
     .replace(/\basa(?:\s+ang)?\b/gi, "where is")
-    .replace(/\bsino(?:\s+ang)?\b/gi, "who is")
-    .replace(/\bkinsa(?:\s+ang)?\b/gi, "who is")
+    .replace(/\bsino(?:\s+(?:si|ang))?\b/gi, "who is")
+    .replace(/\bkinsa(?:\s+(?:si|ang))?\b/gi, "who is")
     .replace(/\bpaano\b/gi, "how to")
     .replace(/\bunsaon\b/gi, "how to")
     .replace(/\bunsayon\b/gi, "how to");
@@ -75,10 +76,49 @@ function isLikelyCamiguinHit(title: string, snippet: string, url: string) {
     "ardent hot",
     "romualdo",
     "governor of camiguin",
+    "mayor of mambajao",
+    "yggy",
+    "yñigo",
+    "ynigo jesus",
   ];
   const weakNoise = ["forest rat", "camiguin forest", "genus ", "species of"];
   if (weakNoise.some((item) => hay.includes(item))) return false;
   return strong.some((cue) => hay.includes(cue));
+}
+
+/** Curated Camiguin people facts when free web search has thin coverage. */
+function knownCamiguinPeopleHits(query: string): WebSearchHit[] {
+  const q = query.toLowerCase();
+  const hits: WebSearchHit[] = [];
+
+  if (
+    /\b(yggy|yñigo|ynigo)\b/.test(q) ||
+    (/\b(mayor|alkalde)\b/.test(q) && !/\b(governor|gobernador|gubernador)\b/.test(q)) ||
+    (isPersonLookupQuery(q) && /\b(yggy|yñigo|ynigo)\b/.test(q))
+  ) {
+    hits.push({
+      title: "Mayor Yñigo Jesus “Yggy” Romualdo",
+      url: "https://en.wikipedia.org/wiki/Mambajao",
+      snippet:
+        "Yñigo Jesus dela Fuente Romualdo, commonly known as Yggy Romualdo, is the Mayor of Mambajao, the capital municipality of Camiguin Province, Philippines. He is a member of the Romualdo family active in Camiguin public service.",
+      provider: "camiguin-officials",
+    });
+  }
+
+  if (
+    /\b(governor|gobernador|gubernador)\b/.test(q) ||
+    (isPersonLookupQuery(q) && /\b(jj|xavier)\b/.test(q) && /\bromualdo\b/.test(q))
+  ) {
+    hits.push({
+      title: "Governor Xavier Jesus “JJ” Romualdo",
+      url: "https://en.wikipedia.org/wiki/Xavier_Jesus_Romualdo",
+      snippet:
+        "Xavier Jesus Dela Fuente Romualdo (JJ Romualdo) is a Filipino politician who has served as Governor of Camiguin. He is part of the Romualdo family of Camiguin public officials.",
+      provider: "camiguin-officials",
+    });
+  }
+
+  return hits;
 }
 
 async function fetchKnownTopicPages(query: string): Promise<WebSearchHit[]> {
@@ -93,8 +133,9 @@ async function fetchKnownTopicPages(query: string): Promise<WebSearchHit[]> {
   if (/hibok/.test(q)) titles.push("Hibok-Hibok");
   if (/lanzones|festival/.test(q)) titles.push("Mambajao");
   if (/mantigue/.test(q)) titles.push("Mantigue");
-  if (/governor|gobernador|romualdo|who is the/.test(q)) {
+  if (/governor|gobernador|romualdo|who is the|yggy|yñigo|ynigo|mayor|alkalde/.test(q)) {
     titles.unshift("Xavier_Jesus_Romualdo");
+    titles.unshift("Mambajao");
   }
   if (/panaad|holy week|pilgrim|sinulog|ardent|katibawasan|sunken|cemetery|falls/.test(q)) {
     titles.push("Camiguin");
@@ -545,6 +586,7 @@ export async function fetchCamiguinWebContext(query: string): Promise<WebSearchR
     searchTavily(query),
     searchSerper(query),
     searchDuckDuckGo(query),
+    Promise.resolve(knownCamiguinPeopleHits(query)),
     fetchKnownTopicPages(query),
     searchWikipedia(primary),
     secondary && secondary.toLowerCase() !== primary.toLowerCase()
@@ -596,7 +638,10 @@ function buildSecondaryQueries(query: string) {
   if (/panaad|holy week/.test(q)) extras.push("Panaad Camiguin");
   if (/sinulog/.test(q)) extras.push("Sinulog Camiguin");
   if (/ardent|hot spring/.test(q)) extras.push("Ardent Hot Springs Camiguin");
-  if (/governor|gobernador|romualdo|who is the/.test(q)) extras.push("Xavier Jesus Romualdo Camiguin governor");
+  if (/governor|gobernador|romualdo|who is the|yggy|yñigo|ynigo|mayor|alkalde/.test(q)) {
+    extras.push("Yñigo Yggy Romualdo Mayor Mambajao Camiguin");
+    extras.push("Xavier Jesus Romualdo Camiguin governor");
+  }
   if (/benoni|how to get|arrive|transport/.test(q)) extras.push("Camiguin travel Benoni Port");
   if (/weather|climate|ulan|init|tag-ulan|tag-init|rainy|temperature|forecast|panahon/.test(q)) {
     extras.push("Camiguin weather climate Philippines");

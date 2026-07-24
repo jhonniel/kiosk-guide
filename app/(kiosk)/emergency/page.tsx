@@ -17,7 +17,7 @@ export default function EmergencyPage() {
       descriptionEn="Official hotline numbers for Camiguin province and municipalities."
       descriptionFil="Opisyal na mga hotline number para sa probinsya at mga munisipyo ng Camiguin."
       descriptionBis="Opisyal nga mga hotline number para sa probinsya ug mga lungsod sa Camiguin."
-      bannerMeta={`${contacts.length} hotlines · 6 areas`}
+      bannerMeta={`${contacts.length} hotlines · Province + 5 municipalities`}
     >
       <EmergencyClient contacts={contacts} />
     </ModulePageClient>

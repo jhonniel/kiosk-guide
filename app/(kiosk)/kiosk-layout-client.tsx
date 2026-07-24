@@ -18,7 +18,7 @@ function KioskLayoutInner({ children }: KioskLayoutClientProps) {
   const settings = data.settings ?? {};
   const promoEnabled = getBoolSetting(settings, "promo_video_enabled");
   const promoVideoUrl = getSetting(settings, "promo_video_url").trim();
-  const idleSeconds = getNumberSetting(settings, "promo_idle_seconds", 20);
+  const idleSeconds = getNumberSetting(settings, "promo_idle_seconds", 60);
   const countdownSeconds = getNumberSetting(settings, "promo_countdown_seconds", 10);
 
   return (
@@ -34,7 +34,7 @@ function KioskLayoutInner({ children }: KioskLayoutClientProps) {
         language={language}
         enabled={promoEnabled && Boolean(promoVideoUrl)}
         videoUrl={promoVideoUrl}
-        idleSeconds={idleSeconds > 0 ? idleSeconds : 20}
+        idleSeconds={idleSeconds > 0 ? idleSeconds : 60}
         countdownSeconds={countdownSeconds > 0 ? countdownSeconds : 10}
       />
     </>

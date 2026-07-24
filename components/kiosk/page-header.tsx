@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { DateTimeWidget } from "@/components/kiosk/date-time-widget";
 import { t, type Language } from "@/lib/i18n/translations";
+import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {
   title: string;
@@ -11,6 +12,8 @@ interface PageHeaderProps {
   description?: string;
   showBack?: boolean;
   compact?: boolean;
+  /** Let a page-level scenic background show through (home / charter-style headers). */
+  transparent?: boolean;
 }
 
 export function PageHeader({
@@ -19,10 +22,18 @@ export function PageHeader({
   description,
   showBack = true,
   compact = false,
+  transparent = false,
 }: PageHeaderProps) {
   if (compact) {
     return (
-      <div className="sticky top-0 z-30 -mx-8 mb-5 border-b border-gray-200/60 bg-kiosk-bg/95 px-8 py-3 backdrop-blur-sm supports-[backdrop-filter]:bg-kiosk-bg/85">
+      <div
+        className={cn(
+          "sticky top-0 z-30 -mx-8 mb-5 border-b px-8 py-3",
+          transparent
+            ? "border-transparent bg-transparent"
+            : "border-gray-200/60 bg-kiosk-bg/95 backdrop-blur-sm supports-[backdrop-filter]:bg-kiosk-bg/85"
+        )}
+      >
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
             {showBack && (
@@ -47,8 +58,15 @@ export function PageHeader({
   }
 
   return (
-    <div className="sticky top-0 z-30 -mx-8 mb-6 border-b border-transparent bg-kiosk-bg/95 px-8 py-4 backdrop-blur-sm supports-[backdrop-filter]:bg-kiosk-bg/85">
-      <div className="flex items-start justify-between gap-4">
+    <div
+      className={cn(
+        "sticky top-0 z-30 -mx-8 mb-6 border-b px-8 py-4",
+        transparent
+          ? "border-transparent bg-transparent"
+          : "border-transparent bg-kiosk-bg/95 backdrop-blur-sm supports-[backdrop-filter]:bg-kiosk-bg/85"
+      )}
+    >
+      <div className="relative z-10 flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1 pr-2">
           {showBack && (
             <Link

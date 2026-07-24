@@ -1,5 +1,12 @@
-/** Percentage positions (0–100) aligned to camiguin-tourist-map.png (1024×721) */
+/** Geographic helpers for Camiguin (vector map engine — no bitmap base). */
 
+export {
+  CAMIGUIN_GEO_BOUNDS,
+  mapPercentToLatLng,
+  MAP_VIEWBOX,
+} from "@/data/map/geometry";
+
+/** @deprecated Legacy illustrated PNG — not used by the vector map engine at `/map`. */
 export const CAMIGUIN_ISLAND_MAP_SRC = "/images/camiguin-tourist-map.png";
 
 export const CAMIGUIN_LANDMARK_COORDS: Record<string, { x: number; y: number }> = {

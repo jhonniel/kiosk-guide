@@ -115,7 +115,6 @@ function TapToStartCycle({ active }: { active: boolean }) {
       aria-live="polite"
     >
       {display}
-      <span className="idle-tap-caret" aria-hidden="true" />
     </p>
   );
 }
@@ -287,8 +286,10 @@ export function KioskIdleAttract({
   useEffect(() => {
     if (phaseRef.current === "watching" && pathname) {
       lastPathRef.current = pathname;
+      // Navigating between kiosk pages counts as activity.
+      armIdleTimer();
     }
-  }, [pathname]);
+  }, [pathname, armIdleTimer]);
 
   useEffect(() => {
     if (!enabled || !videoUrl) {
@@ -317,20 +318,28 @@ export function KioskIdleAttract({
       "touchstart",
       "keydown",
       "wheel",
+      "scroll",
     ];
 
+    let lastArm = 0;
     const onActivity = () => {
       if (phaseRef.current !== "watching") return;
+      const now = Date.now();
+      // Throttle re-arms so continuous scroll/move doesn't thrash timers.
+      if (now - lastArm < 500) return;
+      lastArm = now;
       armIdleTimer();
     };
 
     for (const eventName of events) {
       window.addEventListener(eventName, onActivity, { passive: true });
     }
+    document.addEventListener("scroll", onActivity, { passive: true, capture: true });
     return () => {
       for (const eventName of events) {
         window.removeEventListener(eventName, onActivity);
       }
+      document.removeEventListener("scroll", onActivity, true);
     };
   }, [enabled, videoUrl, armIdleTimer]);
 

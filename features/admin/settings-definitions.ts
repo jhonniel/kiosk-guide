@@ -306,8 +306,8 @@ export const SETTING_GROUPS: SettingGroupDef[] = [
         key: "promo_idle_seconds",
         label: "Idle timeout (seconds)",
         type: "number",
-        description: "How long without interaction before asking “Are you still there?” Default 20.",
-        placeholder: "20",
+        description: "How long without interaction before asking “Are you still there?” Default 60.",
+        placeholder: "60",
       },
       {
         key: "promo_countdown_seconds",

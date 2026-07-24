@@ -467,3 +467,195 @@ model CharterMedicine {
 
   @@index([serviceId, sortOrder])
 }
+
+// ---------- Interactive Map Engine (vector / data-driven) ----------
+
+model MapMunicipality {
+  id          String          @id @default(cuid())
+  slug        String          @unique
+  nameEn      String
+  nameFil     String
+  nameBis     String?
+  description String?
+  svgPath     String
+  labelX      Float
+  labelY      Float
+  fillColor   String          @default("#d8efe6")
+  sortOrder   Int             @default(0)
+  attractions MapAttraction[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model MapCategory {
+  id          String          @id @default(cuid())
+  slug        String          @unique
+  nameEn      String
+  nameFil     String
+  nameBis     String?
+  color       String
+  icon        String?
+  sortOrder   Int             @default(0)
+  attractions MapAttraction[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model MapAttraction {
+  id              String           @id @default(cuid())
+  slug            String           @unique
+  nameEn          String
+  nameFil         String
+  nameBis         String?
+  descriptionEn   String
+  descriptionFil  String
+  descriptionBis  String?
+  historyEn       String?
+  historyFil      String?
+  historyBis      String?
+  categoryId      String
+  category        MapCategory      @relation(fields: [categoryId], references: [id])
+  municipalityId  String?
+  municipality    MapMunicipality? @relation(fields: [municipalityId], references: [id])
+  latitude        Float
+  longitude       Float
+  mapX            Float
+  mapY            Float
+  svgPath         String?
+  coverImage      String?
+  entranceFeeEn   String?
+  entranceFeeFil  String?
+  entranceFeeBis  String?
+  openingHoursEn  String?
+  openingHoursFil String?
+  openingHoursBis String?
+  rating          Float            @default(4.5)
+  website         String?
+  phone           String?
+  travelTipsEn    String?
+  travelTipsFil   String?
+  travelTipsBis  String?
+  featured        Boolean          @default(false)
+  isActive        Boolean          @default(true)
+  sortOrder       Int              @default(0)
+  photos          MapPhoto[]
+  reviews         MapReview[]
+  favorites       MapFavorite[]
+  routeStarts     MapRoute[]       @relation("RouteFrom")
+  routeEnds       MapRoute[]       @relation("RouteTo")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([categoryId])
+  @@index([municipalityId])
+  @@index([isActive, sortOrder])
+}
+
+model MapPhoto {
+  id           String        @id @default(cuid())
+  attractionId String
+  attraction   MapAttraction @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+  url          String
+  caption      String?
+  sortOrder    Int           @default(0)
+  createdAt    DateTime      @default(now())
+
+  @@index([attractionId, sortOrder])
+}
+
+model MapRoute {
+  id            String        @id @default(cuid())
+  slug          String        @unique
+  nameEn        String
+  nameFil       String
+  nameBis       String?
+  kind          String
+  fromId        String
+  toId          String
+  from          MapAttraction @relation("RouteFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to            MapAttraction @relation("RouteTo", fields: [toId], references: [id], onDelete: Cascade)
+  pointsJson    String
+  travelTimeEn  String?
+  travelTimeFil String?
+  travelTimeBis String?
+  distanceKm    Float?
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([fromId])
+  @@index([toId])
+}
+
+model MapFeature {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  kind      String
+  nameEn    String?
+  nameFil   String?
+  nameBis   String?
+  svgPath   String
+  fill      String?
+  stroke    String?
+  zIndex    Int      @default(0)
+  animated  Boolean  @default(false)
+  metaJson  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([kind, zIndex])
+}
+
+model MapReview {
+  id           String        @id @default(cuid())
+  attractionId String
+  attraction   MapAttraction @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+  author       String?
+  rating       Int
+  comment      String?
+  createdAt    DateTime      @default(now())
+
+  @@index([attractionId])
+}
+
+model MapFavorite {
+  id           String        @id @default(cuid())
+  attractionId String
+  attraction   MapAttraction @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+  sessionId    String
+  createdAt    DateTime      @default(now())
+
+  @@unique([attractionId, sessionId])
+  @@index([sessionId])
+}
+
+model MapRestaurant {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  nameEn      String
+  nameFil     String
+  nameBis     String?
+  description String?
+  mapX        Float
+  mapY        Float
+  rating      Float    @default(4)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MapHotel {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  nameEn      String
+  nameFil     String
+  nameBis     String?
+  description String?
+  mapX        Float
+  mapY        Float
+  rating      Float    @default(4)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

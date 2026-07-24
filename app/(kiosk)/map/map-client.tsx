@@ -1,12 +1,27 @@
 "use client";
 
-import { CamiguinInteractiveMap } from "@/components/kiosk/camiguin-interactive-map";
-import type { MapMarker } from "@/features/map/types";
+import dynamic from "next/dynamic";
+import type { MapEnginePayload } from "@/services/map/load-map-engine-data";
 
-interface MapClientProps {
-  markers: MapMarker[];
-}
+const CamiguinTourismMap = dynamic(
+  () =>
+    import("@/components/kiosk/map/CamiguinTourismMap").then(
+      (m) => m.CamiguinTourismMap
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex min-h-0 flex-1 items-center justify-center rounded-2xl bg-[#5eb8d9] text-sm font-medium text-kiosk-navy">
+        Loading Camiguin map…
+      </div>
+    ),
+  }
+);
 
-export function MapClient({ markers }: MapClientProps) {
-  return <CamiguinInteractiveMap markers={markers} />;
+type Props = {
+  data: MapEnginePayload;
+};
+
+export function MapClient({ data }: Props) {
+  return <CamiguinTourismMap data={data} />;
 }

@@ -7,14 +7,8 @@ import { useKiosk } from "@/hooks/use-kiosk";
 import { useKioskOfflineData } from "@/hooks/use-kiosk-offline-data";
 import { pickLang } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
-import {
-  buildCamiCorpus,
-  buildLocalReply,
-  isGreetingOrMetaQuery,
-  isInScopeQuery,
-  outOfScopeReply,
-  rankChunks,
-} from "@/features/cami/retrieve-context";
+import { askCami } from "@/features/cami/client";
+import { resolveReplyLanguage } from "@/features/cami/detect-language";
 import type { CamiCitation, CamiMessage } from "@/features/cami/types";
 
 const CAMI_ICON = "/images/cami/cami-clear.webp";
@@ -29,9 +23,14 @@ type ChatItem = CamiMessage & {
 
 const SUGGESTIONS = [
   {
-    en: "What can I find on this kiosk?",
-    fil: "Ano ang makikita sa kiosk na ito?",
-    bis: "Unsa ang makita niining kiosk?",
+    en: "What tourist spots can I visit?",
+    fil: "Anong tourist spots ang pwedeng bisitahin?",
+    bis: "Unsa nga tourist spots ang pwede bisitahan?",
+  },
+  {
+    en: "Where is the Treasurer's Office?",
+    fil: "Nasaan ang Treasurer's Office?",
+    bis: "Asa ang Treasurer's Office?",
   },
   {
     en: "What are the Capitol office hours?",
@@ -39,14 +38,14 @@ const SUGGESTIONS = [
     bis: "Unsa ang oras sa opisina sa Capitol?",
   },
   {
+    en: "What can I find on this kiosk?",
+    fil: "Ano ang makikita sa kiosk na ito?",
+    bis: "Unsa ang makita niining kiosk?",
+  },
+  {
     en: "Where are emergency hotlines?",
     fil: "Saan ang emergency hotlines?",
     bis: "Asa ang emergency hotlines?",
-  },
-  {
-    en: "How do I download forms?",
-    fil: "Paano mag-download ng forms?",
-    bis: "Unsaon pag-download og forms?",
   },
 ];
 
@@ -155,108 +154,32 @@ export function CamiChat() {
     setBusy(true);
 
     try {
-      const online = typeof navigator === "undefined" ? true : navigator.onLine;
-      if (online) {
-        const res = await fetch("/api/cami/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: text,
-            language,
-            history: history.slice(-8),
-          }),
-        });
-
-        if (res.ok) {
-          const data = (await res.json()) as {
-            reply: string;
-            citations?: CamiCitation[];
-            source?: string;
-            usedWeb?: boolean;
-          };
-          touchActivity();
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "assistant",
-              content: data.reply,
-              citations: data.citations,
-              source: data.source,
-              usedWeb: data.usedWeb,
-            },
-          ]);
-          return;
-        }
-      }
-
-      const corpus = buildCamiCorpus(
-        {
-          faqs: offlineData?.faqs,
-          tourism: offlineData?.tourism,
-          events: offlineData?.events,
-          emergency: offlineData?.emergency,
-          services: offlineData?.services,
-          directories: offlineData?.directories,
-          downloads: offlineData?.downloads,
-          announcements: offlineData?.announcements,
-        },
-        language
-      );
-
-      if (!isInScopeQuery(text)) {
-        touchActivity();
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: outOfScopeReply(language),
-            source: "offline",
-          },
-        ]);
-        return;
-      }
-
-      if (isGreetingOrMetaQuery(text)) {
-        touchActivity();
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: pickLang(
-              language,
-              "Hi! I’m Cami. Ask me about Camiguin—tourism, services, events, emergency contacts, or other info on this kiosk.",
-              "Kumusta! Ako si Cami. Magtanong tungkol sa Camiguin—turismo, serbisyo, events, emergency contacts, o iba pang impormasyon sa kiosk.",
-              "Kumusta! Ako si Cami. Pangutana bahin sa Camiguin—turismo, serbisyo, events, emergency contacts, o ubang impormasyon sa kiosk."
-            ),
-            source: "offline",
-          },
-        ]);
-        return;
-      }
-
-      const ranked = rankChunks(text, corpus, 6);
+      const data = await askCami({
+        message: text,
+        language,
+        history: history.slice(-8),
+        offlineBundle: offlineData,
+      });
       touchActivity();
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: buildLocalReply(text, ranked, language),
-          citations: ranked.slice(0, 4).map((chunk) => ({
-            title: chunk.title,
-            href: chunk.href,
-            type: chunk.type,
-          })),
-          source: "offline",
+          content: data.reply,
+          citations: data.citations,
+          source: data.source,
+          usedWeb: data.usedWeb,
         },
       ]);
     } catch {
       touchActivity();
+      const replyLang = resolveReplyLanguage(text, language);
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
           content: pickLang(
-            language,
+            replyLang,
             "I couldn’t reach the assistant service just now. Please try again.",
             "Hindi maabot ang assistant service sa ngayon. Subukan ulit.",
             "Dili maabot ang assistant service karon. Sulayi pag-usab."

@@ -40,6 +40,11 @@ export const downloadEmailRequestSchema = z.object({
   lang: languageSchema.default("en"),
 });
 
+export const charterPdfEmailRequestSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  lang: languageSchema.default("en"),
+});
+
 export type FeedbackInput = z.infer<typeof feedbackSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ServiceInput = z.infer<typeof serviceSchema>;

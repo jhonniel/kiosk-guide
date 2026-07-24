@@ -1,3 +1,56 @@
+export type AttractionCategory =
+  | "beach"
+  | "falls"
+  | "volcano"
+  | "hot_spring"
+  | "cold_spring"
+  | "marine"
+  | "port"
+  | "church"
+  | "landmark"
+  | "village"
+  | "restaurant"
+  | "hotel"
+  | "hospital";
+
+export type LocalizedString = {
+  en: string;
+  fil: string;
+  bis: string;
+};
+
+export type Attraction = {
+  id: string;
+  name: LocalizedString;
+  description: LocalizedString;
+  category: AttractionCategory;
+  /** Percent position on illustrated map (0–100) */
+  x: number;
+  y: number;
+  /** Optional SVG path in viewBox 0 0 100 100 for hit region */
+  region?: string;
+  photos: string[];
+  openingHours: LocalizedString;
+  entranceFee: LocalizedString;
+  rating: number;
+  travelTips: LocalizedString;
+  travelTime: LocalizedString;
+  distanceFromCapitol: LocalizedString;
+};
+
+export type MapRouteKind = "road" | "boat";
+
+export type MapRoute = {
+  id: string;
+  fromId: string;
+  toId: string;
+  kind: MapRouteKind;
+  /** Polyline points as percent coords */
+  points: Array<{ x: number; y: number }>;
+  travelTime: LocalizedString;
+};
+
+/** Legacy marker type kept for offline helpers that may still reference it */
 export type MapMarkerKind = "office" | "landmark" | "municipality";
 
 export interface MapMarker {
@@ -21,6 +74,5 @@ export interface MapMarker {
   building?: string;
   floor?: string;
   room?: string;
-  /** Opens building directory with this search to start indoor navigation */
   navigationQuery?: string;
 }

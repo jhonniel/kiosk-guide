@@ -1,6 +1,10 @@
 import { db } from "@/lib/db";
 import type { Language } from "@/lib/i18n/translations";
 import {
+  languageReplyInstruction,
+  resolveReplyLanguage,
+} from "./detect-language";
+import {
   buildCamiCorpus,
   buildLocalReply,
   contextMentionsPlace,
@@ -8,13 +12,19 @@ import {
   hasStrongLocalMatch,
   isInScopeQuery,
   isPlaceLookupQuery,
+  isPersonLookupQuery,
   isGreetingOrMetaQuery,
+  isOfficeQuery,
+  isTouristSpotsQuery,
+  answerOfficeFromKiosk,
   outOfScopeReply,
   rankChunks,
+  suggestTouristSpotsReply,
   unknownPlaceReply,
 } from "./retrieve-context";
 import { fetchCamiguinWebContext } from "./web-enrichment";
 import type { CamiChatResponse, CamiCitation, CamiMessage } from "./types";
+import { getLocalizedSetting } from "@/features/settings/resolve-settings";
 
 const SYSTEM_RULES = `You are Cami, the friendly Camiguin Island kiosk assistant for the Provincial Government of Camiguin information kiosk.
 
@@ -25,11 +35,17 @@ LANGUAGE (NON-NEGOTIABLE):
 - “Nasaan ang White Island?” / “Asa ang White Island?” = “Where is White Island?”
 - Reply in the SAME language the user just used. If mixed, prefer the dominant language. If unclear, use the kiosk UI language given below.
 - Keep replies natural in that language — do not force English when the user wrote Filipino or Cebuano.
+- Never answer a Tagalog or Cebuano question in English unless the user mixed mostly English.
 
 STRICT SCOPE (NON-NEGOTIABLE):
-- EVERY user question is about Camiguin Province, Philippines — always. Never answer for Manila, Cebu, Davao, or any other place unless the user explicitly asks about travel TO Camiguin from that place.
+- You ONLY know Camiguin Province and the information in THIS kiosk. Nothing else.
+- If the question is NOT about Camiguin or this kiosk (random trivia, other cities, coding, jokes, celebrities, world news, homework, etc.), refuse immediately.
+- Refusal MUST be in the SAME language as the user (English / Filipino / Cebuano).
+- Refusal meaning: “All I know is within Camiguin and this kiosk’s information only.” Then invite a Camiguin/kiosk question.
+- EVERY in-scope user question is about Camiguin Province, Philippines — always. Never answer for Manila, Cebu, Davao, or any other place unless the user explicitly asks about travel TO Camiguin from that place.
 - If the user asks “how is the weather?”, “kumusta ang panahon?”, “unsa ang panahon?”, etc., answer for Camiguin Province only.
 - Prefer KIOSK SYSTEM CONTEXT when it clearly answers (hotlines, offices, events, services, FAQs).
+- For office / opisina questions, use ONLY kiosk directory data (building, floor, room, contact, office hours). Do not invent offices.
 - If the answer is not in kiosk system data, answer from REFERENCE CONTEXT about Camiguin, or from well-known Camiguin facts (climate, tourism character, municipalities). Still stay Camiguin-only.
 - Topics: tourism, weather/climate, festivals/events, emergency contacts, government offices/services, downloads/forms, FAQs, news, maps/municipalities, travel tips for Camiguin, and how to use this kiosk.
 - Do NOT answer questions about other cities, provinces, countries, or unrelated topics. Refuse and redirect to Camiguin.
@@ -40,7 +56,8 @@ STRICT SCOPE (NON-NEGOTIABLE):
 
 ANSWER STYLE (VERY IMPORTANT):
 - Answer ONLY what the user asked. Do not add extra tips, related topics, module suggestions, or background unless the user asks for them.
-- Keep replies short and direct. Prefer 1–3 sentences, or a short bullet list only when listing is required.
+- Keep replies short and direct. Prefer 1–3 sentences, or a short bullet list only when listing is required (e.g. tourist spots).
+- When asked for tourist spots / places to visit / atraksiyon / what to do in Camiguin, suggest popular Camiguin attractions as a short bullet list (White Island, Katibawasan Falls, Sunken Cemetery, Mantigue Island, Ardent Hot Springs, etc.) and mention Tourism or Map on the kiosk.
 - Do not pad answers with “you can also…”, “for more details…”, festival lists, travel tips, or office directions unless asked.
 - Example: If asked “Who is the governor?” / “Sino ang gobernador?” / “Kinsa ang gobernador?”, reply with the name only (and title if needed).
 - Do not invent phone numbers, fees, office hours, or place names that are not in the context.
@@ -54,60 +71,14 @@ PRIORITY FOR ACCURACY:
 5) If you truly cannot answer about Camiguin, say you don’t have that Camiguin info yet — in the user's language — do not invent official numbers or service steps.
 6) If the question is explicitly about another place (not Camiguin), refuse immediately.`;
 
-function languageLabel(language: Language) {
-  if (language === "fil") return "Filipino (Tagalog)";
-  if (language === "bis") return "Cebuano (Bisaya)";
-  return "English";
-}
-
-function languageReplyInstruction(language: Language, message: string) {
-  const detected = detectMessageLanguage(message);
-  const ui = languageLabel(language);
-  const replyIn =
-    detected === "fil"
-      ? "Filipino (Tagalog)"
-      : detected === "bis"
-        ? "Cebuano (Bisaya)"
-        : detected === "en"
-          ? "English"
-          : ui;
-
-  return `Kiosk UI language: ${ui}.
-Detected user message language: ${replyIn}.
-Reply in ${replyIn}. Understand Filipino and Cebuano questions fully even if the UI is English.`;
-}
-
-function detectMessageLanguage(message: string): Language | "mixed" {
-  const q = message.toLowerCase();
-  const filHits =
-    (q.match(
-      /\b(ang|mga|sa|ng|na|ay|po|ba|naman|kumusta|nasaan|saan|paano|ano|sino|bakit|kailan|magtanong|paki|opo|hindi|walang|meron|mayroon|gusto|pwede|puwede|salamat|pasensya|panahon)\b/g
-    )?.length ?? 0) + (/[ñ]/i.test(q) ? 1 : 0);
-  const bisHits =
-    q.match(
-      /\b(asa|unsa|kinsa|unsaon|unsayon|ngano|kanus-a|naa|wala|ko|ka|mi|ninyo|inyo|kani|kana|mao|pangutana|pasayloa|maayong|panahon|nagaulan|init)\b/g
-    )?.length ?? 0;
-  const enHits =
-    q.match(
-      /\b(the|what|where|when|who|how|is|are|can|please|weather|governor|office|emergency|tourism|download|map)\b/g
-    )?.length ?? 0;
-
-  if (filHits >= 2 && filHits >= bisHits && filHits >= enHits) return "fil";
-  if (bisHits >= 2 && bisHits >= filHits && bisHits >= enHits) return "bis";
-  if (enHits >= 2 && enHits >= filHits && enHits >= bisHits) return "en";
-  if (filHits > 0 && filHits >= bisHits) return "fil";
-  if (bisHits > 0) return "bis";
-  if (enHits > 0) return "en";
-  return "mixed";
-}
-
 export async function answerWithCami(opts: {
   message: string;
   language: Language;
   history?: CamiMessage[];
 }): Promise<CamiChatResponse> {
   const message = opts.message.trim();
-  const language = opts.language;
+  const uiLanguage = opts.language;
+  const language = resolveReplyLanguage(message, uiLanguage);
 
   if (!message) {
     return {
@@ -141,7 +112,7 @@ export async function answerWithCami(opts: {
     };
   }
 
-  const [faqs, tourism, events, emergency, services, directories, downloads, announcements] =
+  const [faqs, tourism, events, emergency, services, directories, downloads, announcements, settingsRows] =
     await Promise.all([
       db.faq.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
       db.tourism.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
@@ -155,7 +126,15 @@ export async function answerWithCami(opts: {
         orderBy: { publishedAt: "desc" },
         take: 12,
       }),
+      db.setting.findMany({
+        where: {
+          key: { in: ["office_hours_en", "office_hours_fil", "office_hours_bis", "office_hours"] },
+        },
+      }),
     ]);
+
+  const settingsMap = Object.fromEntries(settingsRows.map((row) => [row.key, row.value]));
+  const officeHoursText = getLocalizedSetting(settingsMap, "office_hours", language);
 
   const corpus = buildCamiCorpus(
     {
@@ -167,9 +146,42 @@ export async function answerWithCami(opts: {
       directories,
       downloads,
       announcements,
+      officeHoursText: officeHoursText || undefined,
     },
     language
   );
+
+  // Tourist-spot asks → curated Camiguin suggestions (DB tourism + known highlights)
+  if (isTouristSpotsQuery(message)) {
+    const tourismChunks = corpus.filter((chunk) => chunk.type === "tourism");
+    return {
+      reply: suggestTouristSpotsReply(language, tourismChunks),
+      citations: tourismChunks.slice(0, 5).map((chunk) => ({
+        title: chunk.title,
+        href: chunk.href,
+        type: chunk.type,
+      })),
+      source: "local",
+      usedWeb: false,
+    };
+  }
+
+  // Office asks → answer only from kiosk directory / office-hours data
+  if (isOfficeQuery(message)) {
+    const officeAnswer = answerOfficeFromKiosk(message, corpus, language);
+    if (officeAnswer) {
+      return {
+        reply: officeAnswer.reply,
+        citations: officeAnswer.citations.map((chunk) => ({
+          title: chunk.title,
+          href: chunk.href,
+          type: chunk.type,
+        })),
+        source: "local",
+        usedWeb: false,
+      };
+    }
+  }
 
   const ranked = rankChunks(message, corpus, 8);
   const strongLocal = hasStrongLocalMatch(ranked);
@@ -181,6 +193,16 @@ export async function answerWithCami(opts: {
 
   const webHits = web.hits ?? [];
   const usedWeb = Boolean(web.context) || webHits.length > 0;
+
+  // Person asks with no Camiguin kiosk/web evidence → don't invent world knowledge.
+  if (isPersonLookupQuery(message) && !strongLocal && !web.context) {
+    return {
+      reply: unknownPersonReply(language),
+      citations: [],
+      source: "local",
+      usedWeb: false,
+    };
+  }
 
   const place = extractPlaceName(message);
   if (
@@ -227,7 +249,7 @@ export async function answerWithCami(opts: {
     ...citationWeb.map((hit) => ({
       title: hit.title,
       href: hit.url,
-      type: "reference",
+      type: "reference" as const,
     })),
   ];
 
@@ -250,11 +272,18 @@ export async function answerWithCami(opts: {
           ? `KIOSK SYSTEM CONTEXT (weak/generic match only — prefer REFERENCE CONTEXT if it answers the question better):\n${systemContext}`
           : "KIOSK SYSTEM CONTEXT: No strong local matches. Answer about Camiguin Province using REFERENCE CONTEXT or known Camiguin facts.";
 
+      const replyLangName =
+        language === "fil"
+          ? "Filipino (Tagalog)"
+          : language === "bis"
+            ? "Cebuano (Bisaya)"
+            : "English";
+
       const messages = [
         { role: "system", content: SYSTEM_RULES },
         {
           role: "system",
-          content: languageReplyInstruction(language, message),
+          content: languageReplyInstruction(uiLanguage, message),
         },
         {
           role: "system",
@@ -284,7 +313,7 @@ export async function answerWithCami(opts: {
         ...history.map((item) => ({ role: item.role, content: item.content })),
         {
           role: "user",
-          content: `${message}\n\n(Answer for Camiguin Province, Philippines. Reply in the user's language.)`,
+          content: `${message}\n\n(Answer for Camiguin Province, Philippines. Reply entirely in ${replyLangName}.)`,
         },
       ];
 
@@ -345,6 +374,16 @@ function missingCamiguinInfoReply(language: Language) {
     return "Wala pa koy detalyadong tubag ana para sa Camiguin. Sulayi pangutana bahin sa turismo, serbisyo, events, o emergency contacts sa isla.";
   }
   return "I don’t have that Camiguin detail yet. Try asking about tourism, services, events, or emergency contacts on the island.";
+}
+
+function unknownPersonReply(language: Language) {
+  if (language === "fil") {
+    return "Hindi ko mahanap ang taong iyan sa impormasyon ng Camiguin o ng kiosk na ito. Magtanong tungkol sa opisyal, opisina, o iba pang paksang Camiguin.";
+  }
+  if (language === "bis") {
+    return "Wala nako makita ang tawo ana sa impormasyon sa Camiguin o niining kiosk. Pangutana bahin sa opisyal, opisina, o ubang topiko sa Camiguin.";
+  }
+  return "I couldn’t find that person in Camiguin’s or this kiosk’s information. Ask about local officials, offices, or other Camiguin topics.";
 }
 
 function pickLangGreeting(language: Language) {

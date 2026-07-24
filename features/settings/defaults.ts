@@ -150,7 +150,7 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   spaces_public_acl: "true",
   promo_video_enabled: "true",
   promo_video_url: "/videos/promo/islebethere.webm",
-  promo_idle_seconds: "20",
+  promo_idle_seconds: "60",
   promo_countdown_seconds: "10",
 };
 
