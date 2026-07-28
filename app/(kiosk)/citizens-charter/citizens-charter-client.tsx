@@ -9,6 +9,7 @@ import {
   Building2,
   CheckCircle2,
   ChevronRight,
+  Clock,
   FileText,
   HeartPulse,
   Info,
@@ -20,11 +21,12 @@ import {
   QrCode,
   Search,
   Signpost,
+  UserPlus,
   X,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { DateTimeWidget } from "@/components/kiosk/date-time-widget";
+import { kioskDateTimeReserveClass } from "@/components/kiosk/date-time-widget";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -36,6 +38,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useKiosk } from "@/hooks/use-kiosk";
+import { logVisitor } from "@/features/kiosk/actions";
+import {
+  charterOfficeVisitKey,
+  charterServiceVisitKey,
+} from "@/features/kiosk/charter-quick-start";
+import { getKioskSessionId } from "@/features/kiosk/visit-tracking";
+import { useQuickStartVisits } from "@/components/kiosk/quick-start-visit-provider";
 import { pickLang, t } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
 import type {
@@ -47,7 +56,6 @@ import {
   CHARTER_BROWSE_CATEGORIES,
   CHARTER_CORE_TOPICS,
   CHARTER_COVER_IMAGE,
-  CHARTER_SCENIC_IMAGE,
   categoryForOffice,
   countServices,
   mostRequestedServices,
@@ -135,6 +143,7 @@ function usePdfQr(pdfUrl?: string | null) {
 
 export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
   const { language } = useKiosk();
+  const { recordVisit } = useQuickStartVisits();
   const [view, setView] = useState<CharterView>("overview");
   const [browseMode, setBrowseMode] = useState<BrowseMode>("category");
   const [query, setQuery] = useState("");
@@ -147,15 +156,33 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
   const officeCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const serviceCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const didApplyUrlQuery = useRef(false);
+  const didApplyUrlParams = useRef(false);
   const qrDataUrl = usePdfQr(edition?.pdfUrl);
 
   useEffect(() => {
-    if (didApplyUrlQuery.current || !edition) return;
+    if (didApplyUrlParams.current || !edition) return;
     const params = new URLSearchParams(window.location.search);
+    const officeId = params.get("office");
+    const serviceId = params.get("service");
+
+    if (officeId) {
+      didApplyUrlParams.current = true;
+      setView("browse");
+      const office = edition.offices.find((item) => item.id === officeId);
+      if (office) {
+        const category = categoryForOffice(office.name);
+        setExpandedCategoryId(category?.id ?? null);
+        setExpandedOfficeId(officeId);
+        if (serviceId) {
+          window.setTimeout(() => setExpandedServiceId(serviceId), 40);
+        }
+      }
+      return;
+    }
+
     const q = params.get("q")?.trim();
     if (!q) return;
-    didApplyUrlQuery.current = true;
+    didApplyUrlParams.current = true;
     setQuery(q);
     setView("browse");
     setBrowseMode("department");
@@ -230,14 +257,21 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
   const activeTopic =
     CHARTER_CORE_TOPICS.find((topic) => topic.id === activeTopicId) ?? CHARTER_CORE_TOPICS[0];
 
-  const openOffice = useCallback((officeId: string) => {
-    if (officeCloseTimerRef.current) clearTimeout(officeCloseTimerRef.current);
-    if (serviceCloseTimerRef.current) clearTimeout(serviceCloseTimerRef.current);
-    setIsOfficeClosing(false);
-    setIsServiceClosing(false);
-    setExpandedServiceId(null);
-    setExpandedOfficeId(officeId);
-  }, []);
+  const openOffice = useCallback(
+    (officeId: string) => {
+      if (officeCloseTimerRef.current) clearTimeout(officeCloseTimerRef.current);
+      if (serviceCloseTimerRef.current) clearTimeout(serviceCloseTimerRef.current);
+      setIsOfficeClosing(false);
+      setIsServiceClosing(false);
+      setExpandedServiceId(null);
+      setExpandedOfficeId(officeId);
+
+      const visitKey = charterOfficeVisitKey(officeId);
+      recordVisit(visitKey);
+      void logVisitor(visitKey, language, getKioskSessionId()).catch(() => undefined);
+    },
+    [language, recordVisit]
+  );
 
   const closeService = useCallback(() => {
     if (isServiceClosing || !expandedServiceId) return;
@@ -259,16 +293,24 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
     officeCloseTimerRef.current = setTimeout(() => {
       setExpandedOfficeId(null);
       setExpandedServiceId(null);
+      setExpandedCategoryId(null);
       setIsOfficeClosing(false);
       officeCloseTimerRef.current = null;
     }, 220);
   }, [closeService, expandedServiceId, isOfficeClosing]);
 
-  const openService = useCallback((serviceId: string) => {
-    if (serviceCloseTimerRef.current) clearTimeout(serviceCloseTimerRef.current);
-    setIsServiceClosing(false);
-    setExpandedServiceId(serviceId);
-  }, []);
+  const openService = useCallback(
+    (serviceId: string) => {
+      if (serviceCloseTimerRef.current) clearTimeout(serviceCloseTimerRef.current);
+      setIsServiceClosing(false);
+      setExpandedServiceId(serviceId);
+
+      const visitKey = charterServiceVisitKey(serviceId);
+      recordVisit(visitKey);
+      void logVisitor(visitKey, language, getKioskSessionId()).catch(() => undefined);
+    },
+    [language, recordVisit]
+  );
 
   useEffect(() => {
     if (!activeGroup) return;
@@ -292,6 +334,18 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
     []
   );
 
+  const modalCategory = useMemo(() => {
+    if (activeCategory) return activeCategory;
+    if (!activeGroup) return null;
+    return categoryForOffice(activeGroup.name);
+  }, [activeCategory, activeGroup]);
+
+  const modalRelatedOffices = useMemo(() => {
+    if (!activeGroup) return [];
+    if (modalCategory) return officesInCategory(groups, modalCategory.id);
+    return [activeGroup];
+  }, [activeGroup, groups, modalCategory]);
+
   if (!edition) {
     return (
       <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center">
@@ -307,41 +361,15 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
   const editionLabel = `${edition.year}${edition.editionLabel ? ` (${edition.editionLabel})` : ""}`;
 
   return (
-    <div
-      className={cn(
-        "relative -mx-8 min-h-0 flex-1 overflow-hidden",
-        view === "overview"
-          ? "-mt-8 bg-[#f7f9fc] px-6 pb-3 pt-0 sm:px-8"
-          : "-mt-2 px-8 pb-2"
-      )}
-    >
-      {view === "overview" ? (
-        <div
-          className="pointer-events-none absolute top-0 right-0 z-0 h-[17rem] w-[min(70%,46rem)] sm:h-[19rem]"
-          aria-hidden
-        >
-          <div
-            className="absolute inset-0 bg-cover bg-[center_top]"
-            style={{ backgroundImage: `url(${CHARTER_SCENIC_IMAGE})` }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#f7f9fc] from-[8%] via-[#f7f9fc]/75 via-[42%] to-transparent to-[78%]" />
-          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#f7f9fc] to-transparent" />
-        </div>
-      ) : (
-        <>
-          <div
-            className="pointer-events-none absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${CHARTER_SCENIC_IMAGE})` }}
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/82 via-white/92 to-[#f4f7fb]"
-            aria-hidden
-          />
-        </>
-      )}
-
-      <div className="relative z-10 flex h-full min-h-0 flex-col">
+    <div className="relative flex min-h-0 flex-1 basis-0 flex-col overflow-hidden bg-transparent">
+      <div
+        className={cn(
+          "relative z-10 flex min-h-0 flex-1 flex-col",
+          view === "overview"
+            ? "overflow-y-auto px-4 pb-3 sm:overflow-hidden sm:px-6 sm:pb-4 lg:px-8 lg:pb-5"
+            : "overflow-y-auto px-4 pb-2 sm:px-6 lg:overflow-hidden lg:px-8"
+        )}
+      >
         {view === "overview" ? (
           <OverviewView
             languageBackLabel={t(language, "backToHome")}
@@ -364,9 +392,21 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
             onBack={() => setView("overview")}
             onBrowseMode={setBrowseMode}
             onQueryChange={setQuery}
-            onOpenCategory={setExpandedCategoryId}
-            onOpenOffice={openOffice}
+            onOpenCategory={(categoryId) => {
+              setExpandedCategoryId(categoryId);
+              const offices = officesInCategory(groups, categoryId);
+              if (offices[0]) openOffice(offices[0].id);
+            }}
+            onOpenOffice={(officeId) => {
+              const office = groups.find((item) => item.id === officeId);
+              const category = office ? categoryForOffice(office.name) : null;
+              setExpandedCategoryId(category?.id ?? null);
+              openOffice(officeId);
+            }}
             onOpenRequested={(officeId, serviceId) => {
+              const office = groups.find((item) => item.id === officeId);
+              const category = office ? categoryForOffice(office.name) : null;
+              setExpandedCategoryId(category?.id ?? null);
               openOffice(officeId);
               window.setTimeout(() => openService(serviceId), 40);
             }}
@@ -379,25 +419,17 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
         )}
       </div>
 
-      {expandedCategoryId && activeCategory && !activeGroup && (
-        <CategoryOfficesModal
-          category={activeCategory}
-          offices={activeCategoryOffices}
-          onClose={() => setExpandedCategoryId(null)}
-          onOpenOffice={(officeId) => {
-            setExpandedCategoryId(null);
-            openOffice(officeId);
-          }}
-        />
-      )}
-
       {activeGroup && (
         <OfficeModal
           group={activeGroup}
+          relatedOffices={modalRelatedOffices}
+          category={modalCategory}
+          edition={edition}
           isOfficeClosing={isOfficeClosing}
           isServiceClosing={isServiceClosing}
           expandedServiceId={expandedServiceId}
           activeService={activeService}
+          onSelectOffice={openOffice}
           onCloseOffice={closeOffice}
           onOpenService={openService}
           onCloseService={closeService}
@@ -462,39 +494,33 @@ function OverviewView({
 
   return (
     <div className="relative flex h-full min-h-0 flex-col bg-transparent">
-      <header className="relative z-10 shrink-0 pt-6 pb-3">
+      <header className={cn("relative z-10 shrink-0 pt-3 pb-2 sm:pt-4 sm:pb-3", kioskDateTimeReserveClass)}>
         <Link
           href="/"
-          className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1.5 text-[13px] font-medium text-kiosk-navy/75 shadow-sm transition hover:bg-white hover:text-kiosk-navy"
+          className="mb-2 inline-flex items-center gap-2 rounded-full border-0 bg-white/70 px-3 py-1.5 text-[13px] font-medium text-kiosk-navy/75 shadow-none backdrop-blur-sm transition hover:bg-white/90 hover:text-kiosk-navy sm:mb-3"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           {languageBackLabel}
         </Link>
 
-        <div className="flex items-start justify-between gap-5">
-          <div className="min-w-0 max-w-xl">
-            <h1 className="text-[1.85rem] leading-none font-black tracking-tight text-kiosk-navy uppercase sm:text-[2.15rem] lg:text-[2.35rem]">
-              Citizens&apos; Charter
-            </h1>
-            <p className="mt-1.5 text-[11px] font-bold tracking-[0.34em] text-[#0f766e] uppercase">
-              Overview
-            </p>
-            <p className="mt-2 max-w-lg text-[13px] leading-relaxed text-slate-500">
-              Your guide to government services in Camiguin. Explore services, requirements,
-              processing time, and fees all in one place.
-            </p>
-          </div>
-          <div className="shrink-0 pt-1">
-            <DateTimeWidget subtle />
-          </div>
+        <div className="min-w-0 max-w-xl">
+          <h1 className="text-[1.5rem] leading-none font-black tracking-tight text-kiosk-navy uppercase sm:text-[1.85rem] lg:text-[2.15rem] xl:text-[2.35rem]">
+            Citizens&apos; Charter
+          </h1>
+          <p className="mt-1 text-[10px] font-bold tracking-[0.34em] text-[#0f766e] uppercase sm:mt-1.5 sm:text-[11px]">
+            Overview
+          </p>
+          <p className="mt-1.5 max-w-lg text-[12px] leading-relaxed text-slate-500 sm:mt-2 sm:text-[13px]">
+            Your guide to government services in Camiguin. Explore services, requirements,
+            processing time, and fees all in one place.
+          </p>
         </div>
       </header>
 
-      {/* Fill remaining kiosk height so content isn't stuck in the top half */}
-      <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col gap-4 pb-1 lg:flex-row lg:items-stretch lg:gap-5">
-        <article className="flex w-full shrink-0 flex-col rounded-[20px] bg-white p-3.5 shadow-[0_10px_28px_-16px_rgba(15,35,70,0.32)] lg:w-[320px] xl:w-[360px]">
-          {/* Crop bottom pillar strip (Transparent / Accountable / …) — not needed on Overview */}
-          <div className="relative min-h-[16rem] flex-1 overflow-hidden rounded-[16px] bg-slate-100">
+      {/* Fluid layout: scales icons/type so nothing clips on shorter screens */}
+      <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col gap-3 pb-1 sm:gap-4 lg:flex-row lg:items-stretch lg:gap-5">
+        <article className="flex w-full shrink-0 flex-col rounded-[20px] border-0 bg-white p-3 shadow-[0_12px_40px_-24px_rgba(15,35,70,0.35)] ring-0 sm:p-3.5 lg:w-[min(32vw,360px)] lg:max-w-[360px]">
+          <div className="relative min-h-[10rem] flex-1 overflow-hidden rounded-[16px] bg-slate-100 sm:min-h-[12rem] lg:min-h-[14rem]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={CHARTER_COVER_IMAGE}
@@ -502,14 +528,14 @@ function OverviewView({
               className="absolute inset-0 h-[118%] w-full object-cover object-top"
             />
           </div>
-          <div className="mt-3 shrink-0 text-center">
-            <h2 className="text-[17px] font-extrabold text-kiosk-navy">{editionLabel}</h2>
-            <p className="mt-0.5 text-[13px] text-slate-500">Complete Citizens&apos; Charter</p>
+          <div className="mt-2.5 shrink-0 text-center sm:mt-3">
+            <h2 className="text-[15px] font-extrabold text-kiosk-navy sm:text-[17px]">{editionLabel}</h2>
+            <p className="mt-0.5 text-[12px] text-slate-500 sm:text-[13px]">Complete Citizens&apos; Charter</p>
             {edition.pdfUrl ? (
               <button
                 type="button"
                 onClick={openEmailDialog}
-                className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[#e8eef6] text-[13px] font-semibold text-kiosk-navy transition hover:bg-[#dce5f1]"
+                className="mt-2.5 flex h-9 w-full items-center justify-center gap-2 rounded-full bg-[#e8eef6] text-[12px] font-semibold text-kiosk-navy transition hover:bg-[#dce5f1] sm:mt-3 sm:h-10 sm:text-[13px]"
               >
                 <FileText className="h-4 w-4 text-slate-500" />
                 <span>PDF Document</span>
@@ -520,56 +546,55 @@ function OverviewView({
           </div>
         </article>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
-          {/* Browse + QR share equal height */}
-          <div className="grid min-h-0 flex-1 grid-rows-2 gap-4">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 sm:gap-4">
+          <div className="grid min-h-0 flex-1 grid-rows-2 gap-3 sm:gap-4">
             <button
               type="button"
               onClick={onBrowse}
-              className="flex h-full min-h-0 items-center gap-6 rounded-[22px] bg-white px-6 py-5 text-left shadow-[0_8px_24px_-16px_rgba(15,35,70,0.28)] transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.995]"
+              className="flex h-full min-h-0 items-center gap-3 rounded-[20px] border-0 bg-white px-4 py-3 text-left shadow-[0_12px_40px_-24px_rgba(15,35,70,0.32)] ring-0 transition hover:-translate-y-0.5 active:scale-[0.995] sm:gap-4 sm:rounded-[22px] sm:px-5 sm:py-4 lg:gap-6 lg:px-6 lg:py-5"
             >
-              <span className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-[#0d9488] text-white">
-                <Landmark className="h-14 w-14" strokeWidth={2} />
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#0d9488] text-white sm:h-20 sm:w-20 lg:h-24 lg:w-24 xl:h-28 xl:w-28">
+                <Landmark className="h-7 w-7 sm:h-10 sm:w-10 lg:h-12 lg:w-12 xl:h-14 xl:w-14" strokeWidth={2} />
               </span>
               <div className="min-w-0 flex-1">
-                <h2 className="text-[1.65rem] leading-tight font-extrabold text-kiosk-navy sm:text-[1.85rem]">
+                <h2 className="text-base leading-tight font-extrabold text-kiosk-navy sm:text-xl lg:text-[1.65rem] xl:text-[1.85rem]">
                   Browse By Department / Category
                 </h2>
-                <p className="mt-2 text-base leading-snug text-slate-500 sm:text-lg">
+                <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-slate-500 sm:mt-1.5 sm:text-base lg:mt-2 lg:text-lg">
                   Browse official services, published fees, processing time, and source pages.
                 </p>
               </div>
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#eef2f7] text-slate-500">
-                <ChevronRight className="h-6 w-6" />
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eef2f7]/90 text-slate-500 sm:h-11 sm:w-11 lg:h-12 lg:w-12">
+                <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
               </span>
             </button>
 
-            <div className="flex h-full min-h-0 items-center gap-6 rounded-[22px] border-2 border-dashed border-[#14b8a6] bg-white px-6 py-5 shadow-[0_8px_24px_-16px_rgba(15,35,70,0.2)]">
-              <div className="flex min-w-0 flex-1 items-center gap-6">
-                <span className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-[#7c3aed] text-white">
-                  <QrCode className="h-14 w-14" strokeWidth={2} />
+            <div className="flex h-full min-h-0 items-center gap-3 rounded-[20px] border-0 bg-white px-4 py-3 shadow-[0_12px_40px_-24px_rgba(15,35,70,0.28)] outline outline-2 outline-dashed outline-[#14b8a6]/55 ring-0 sm:gap-4 sm:rounded-[22px] sm:px-5 sm:py-4 lg:gap-6 lg:px-6 lg:py-5">
+              <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4 lg:gap-6">
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#7c3aed] text-white sm:h-20 sm:w-20 lg:h-24 lg:w-24 xl:h-28 xl:w-28">
+                  <QrCode className="h-7 w-7 sm:h-10 sm:w-10 lg:h-12 lg:w-12 xl:h-14 xl:w-14" strokeWidth={2} />
                 </span>
                 <div className="min-w-0">
-                  <h2 className="text-[1.65rem] leading-tight font-extrabold text-kiosk-navy sm:text-[1.85rem]">
+                  <h2 className="text-base leading-tight font-extrabold text-kiosk-navy sm:text-xl lg:text-[1.65rem] xl:text-[1.85rem]">
                     Scan QR to Open the Document
                   </h2>
-                  <p className="mt-2 max-w-xl text-base leading-snug text-slate-500 sm:text-lg">
+                  <p className="mt-1 line-clamp-2 max-w-xl text-[13px] leading-snug text-slate-500 sm:mt-1.5 sm:text-base lg:mt-2 lg:text-lg">
                     Scan the QR code to view or download the complete {edition.year} Citizens&apos;
                     Charter.
                   </p>
                 </div>
               </div>
-              <div className="flex w-[148px] shrink-0 flex-col items-center gap-2.5">
-                <div className="rounded-xl bg-white p-2 ring-1 ring-slate-200">
+              <div className="flex w-[5.5rem] shrink-0 flex-col items-center gap-1.5 sm:w-[7.5rem] sm:gap-2 lg:w-[148px] lg:gap-2.5">
+                <div className="rounded-lg bg-white p-1 sm:rounded-xl sm:p-1.5 lg:p-2">
                   {qrDataUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={qrDataUrl}
                       alt="Citizens' Charter PDF QR code"
-                      className="h-[7.75rem] w-[7.75rem]"
+                      className="h-16 w-16 sm:h-24 sm:w-24 lg:h-[7.75rem] lg:w-[7.75rem]"
                     />
                   ) : (
-                    <div className="flex h-[7.75rem] w-[7.75rem] items-center justify-center rounded-md bg-slate-100 text-xs text-slate-400">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-md bg-slate-100 text-xs text-slate-400 sm:h-24 sm:w-24 lg:h-[7.75rem] lg:w-[7.75rem]">
                       QR
                     </div>
                   )}
@@ -578,7 +603,7 @@ function OverviewView({
                   <button
                     type="button"
                     onClick={() => setQrOpen(true)}
-                    className="inline-flex w-full items-center justify-center rounded-md bg-[#0d9488] px-3 py-2.5 text-sm font-bold tracking-wide text-white uppercase transition hover:bg-[#0f766e]"
+                    className="inline-flex w-full items-center justify-center rounded-md bg-[#0d9488] px-2 py-1.5 text-[10px] font-bold tracking-wide text-white uppercase transition hover:bg-[#0f766e] sm:px-3 sm:py-2 sm:text-xs lg:py-2.5 lg:text-sm"
                   >
                     Scan Here
                   </button>
@@ -587,12 +612,12 @@ function OverviewView({
             </div>
           </div>
 
-          <div className="grid shrink-0 gap-3.5 lg:grid-cols-[minmax(0,1.3fr)_minmax(220px,0.85fr)] lg:items-end">
+          <div className="grid shrink-0 gap-3 sm:gap-3.5 lg:grid-cols-[minmax(0,1.3fr)_minmax(200px,0.85fr)] lg:items-end">
             <div className="min-w-0">
-              <p className="mb-2 text-[11px] font-bold tracking-[0.18em] text-slate-400 uppercase">
+              <p className="mb-1.5 text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase sm:mb-2 sm:text-[11px]">
                 Core Charter Topics
               </p>
-              <div className="grid grid-cols-4 gap-2.5">
+              <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
                 {CHARTER_CORE_TOPICS.map((topic) => {
                   const Icon = topic.icon;
                   const selected = topic.id === activeTopicId;
@@ -605,22 +630,22 @@ function OverviewView({
                         setTopicOpen(true);
                       }}
                       className={cn(
-                        "flex aspect-square flex-col items-center justify-center gap-2.5 rounded-[16px] bg-white px-1.5 text-center shadow-[0_6px_18px_-12px_rgba(15,35,70,0.3)] transition",
+                        "flex aspect-square max-h-[7.5rem] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-[14px] border-0 bg-white px-1 text-center shadow-[0_10px_28px_-18px_rgba(15,35,70,0.28)] ring-0 transition sm:gap-2 sm:rounded-[16px] sm:px-1.5 lg:max-h-none",
                         selected
-                          ? "ring-2 ring-[#f59e0b]"
-                          : "ring-1 ring-slate-200/80 hover:-translate-y-0.5 hover:shadow-md"
+                          ? "outline outline-2 outline-[#f59e0b] outline-offset-0"
+                          : "hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-16px_rgba(15,35,70,0.32)]"
                       )}
                     >
                       <span
                         className={cn(
-                          "flex h-14 w-14 items-center justify-center rounded-full sm:h-16 sm:w-16",
+                          "flex h-9 w-9 items-center justify-center rounded-full sm:h-12 sm:w-12 lg:h-14 lg:w-14 xl:h-16 xl:w-16",
                           topic.soft,
                           topic.accent
                         )}
                       >
-                        <Icon className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.25} />
+                        <Icon className="h-4 w-4 sm:h-6 sm:w-6 lg:h-7 lg:w-7 xl:h-8 xl:w-8" strokeWidth={2.25} />
                       </span>
-                      <span className="text-[11px] leading-tight font-extrabold tracking-wide text-kiosk-navy uppercase sm:text-xs">
+                      <span className="px-0.5 text-[9px] leading-tight font-extrabold tracking-wide text-kiosk-navy uppercase sm:text-[11px] lg:text-xs">
                         {topic.title}
                       </span>
                     </button>
@@ -629,15 +654,15 @@ function OverviewView({
               </div>
             </div>
 
-            <aside className="flex items-start gap-4 rounded-[16px] bg-[#eef5ff] px-4 py-4 ring-1 ring-[#dbeafe]">
-              <span className="mt-0.5 flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#2563eb] text-white">
-                <Info className="h-6 w-6" strokeWidth={2.5} />
+            <aside className="flex items-start gap-3 rounded-[16px] border-0 bg-[#eef5ff] px-3.5 py-3.5 shadow-none ring-0 sm:gap-4 sm:px-4 sm:py-4">
+              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2563eb] text-white sm:h-12 sm:w-12">
+                <Info className="h-4 w-4 sm:h-6 sm:w-6" strokeWidth={2.5} />
               </span>
               <div className="min-w-0">
-                <p className="text-base font-extrabold text-kiosk-navy sm:text-lg">
+                <p className="text-sm font-extrabold text-kiosk-navy sm:text-base lg:text-lg">
                   For Reference and Information Only
                 </p>
-                <p className="mt-1.5 text-sm leading-snug text-slate-500 sm:text-[15px]">
+                <p className="mt-1 text-[12px] leading-snug text-slate-500 sm:mt-1.5 sm:text-sm lg:text-[15px]">
                   The Citizens&apos; Charter provides detailed information on our services, policies,
                   and commitments to the public.
                 </p>
@@ -649,34 +674,34 @@ function OverviewView({
 
       {topicOpen && (
         <div
-          className="charter-modal-backdrop-in fixed inset-0 z-50 flex items-center justify-center bg-kiosk-navy/50 p-6 backdrop-blur-sm sm:p-8"
+          className="charter-modal-backdrop-in fixed inset-0 z-50 flex items-center justify-center bg-kiosk-navy/50 p-4 backdrop-blur-sm sm:p-6 lg:p-8"
           role="dialog"
           aria-modal="true"
           onClick={() => setTopicOpen(false)}
         >
           <div
-            className="charter-modal-panel-in w-full max-w-3xl rounded-[28px] bg-white p-8 shadow-2xl sm:p-10"
+            className="charter-modal-panel-in w-full max-w-3xl rounded-[28px] bg-white p-5 shadow-2xl sm:p-8 lg:p-10"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="mb-5 flex items-start justify-between gap-4">
+            <div className="mb-4 flex items-start justify-between gap-4 sm:mb-5">
               <div className="min-w-0 pr-2">
                 <p className="text-xs font-bold tracking-[0.18em] text-[#0d9488] uppercase sm:text-sm">
                   Core Charter Topic
                 </p>
-                <h3 className="mt-2 text-3xl font-extrabold tracking-tight text-kiosk-navy sm:text-4xl">
+                <h3 className="mt-2 text-2xl font-extrabold tracking-tight text-kiosk-navy sm:text-3xl lg:text-4xl">
                   {activeTopic.title}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setTopicOpen(false)}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 sm:h-11 sm:w-11"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <p className="text-lg leading-relaxed text-slate-600 sm:text-xl sm:leading-8">
+            <p className="text-base leading-relaxed text-slate-600 sm:text-lg sm:leading-8 lg:text-xl">
               {activeTopic.body}
             </p>
           </div>
@@ -713,10 +738,10 @@ function OverviewView({
                 <img
                   src={qrDataUrl}
                   alt="Citizens' Charter PDF QR code"
-                  className="h-[16rem] w-[16rem]"
+                  className="h-48 w-48 sm:h-56 sm:w-56 lg:h-[16rem] lg:w-[16rem]"
                 />
               ) : (
-                <div className="flex h-[16rem] w-[16rem] items-center justify-center rounded-lg bg-slate-100 text-sm text-slate-400">
+                <div className="flex h-48 w-48 items-center justify-center rounded-lg bg-slate-100 text-sm text-slate-400 sm:h-56 sm:w-56 lg:h-[16rem] lg:w-[16rem]">
                   <Loader2 className="h-8 w-8 animate-spin text-[#0d9488]" />
                 </div>
               )}
@@ -876,31 +901,27 @@ function BrowseView({
   onViewAll: () => void;
 }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-2">
-      <header className="flex flex-wrap items-start justify-between gap-4 pt-1">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden pb-2 sm:gap-4">
+      <header className={cn("flex shrink-0 flex-wrap items-start gap-3 pt-1 sm:gap-4", kioskDateTimeReserveClass)}>
         <div className="min-w-0 flex-1">
           <button
             type="button"
             onClick={onBack}
-            className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-kiosk-navy/70 transition-colors hover:text-kiosk-navy"
+            className="mb-2 inline-flex items-center gap-2 text-sm font-medium text-kiosk-navy/70 transition-colors hover:text-kiosk-navy sm:mb-3"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Overview
           </button>
-          <h1 className="text-3xl font-black tracking-tight text-kiosk-navy uppercase sm:text-4xl">
+          <h1 className="text-2xl font-black tracking-tight text-kiosk-navy uppercase sm:text-3xl lg:text-4xl">
             Browse Services
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-xs text-slate-500 sm:text-sm">
             Find services, requirements, processing time, and fees.
           </p>
         </div>
-
-        <div className="shrink-0 pt-1">
-          <DateTimeWidget />
-        </div>
       </header>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
         <p className="text-sm font-semibold text-kiosk-navy">Browse By</p>
         <div className="flex flex-wrap gap-2">
           <ModeChip
@@ -924,7 +945,7 @@ function BrowseView({
       </div>
 
       {browseMode === "category" ? (
-        <div className="kiosk-stagger grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <div className="kiosk-stagger grid grid-cols-2 gap-3 xl:min-h-0 xl:flex-1 xl:grid-cols-4 xl:grid-rows-2 xl:auto-rows-fr xl:gap-4">
           {categoryCards.map(({ category, serviceCount }) => {
             const Icon = category.icon;
             return (
@@ -932,41 +953,34 @@ function BrowseView({
                 key={category.id}
                 type="button"
                 onClick={() => onOpenCategory(category.id)}
-                className="kiosk-hover-lift flex min-h-[148px] flex-col rounded-[22px] bg-white p-4 text-left shadow-[0_10px_28px_-18px_rgba(15,35,70,0.35)] ring-1 ring-slate-200/70"
+                className="kiosk-hover-lift flex min-h-[120px] flex-col justify-between rounded-[18px] bg-white p-4 text-left shadow-[0_10px_28px_-18px_rgba(15,35,70,0.35)] sm:min-h-[136px] sm:p-5 lg:min-h-[148px] xl:h-full xl:min-h-0 xl:rounded-[20px] xl:p-6"
               >
-                <div className="flex items-start gap-3">
-                  <span
-                    className={cn(
-                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white",
-                      category.accent
-                    )}
-                  >
-                    <Icon className="h-5 w-5" strokeWidth={2.25} />
-                  </span>
+                <div className="flex items-start gap-3 sm:gap-3.5 xl:gap-4">
+                  <Icon className="h-14 w-14 shrink-0 sm:h-16 sm:w-16 xl:h-[4.75rem] xl:w-[4.75rem]" />
                   <h3
                     className={cn(
-                      "pt-1 text-[13px] font-extrabold tracking-wide uppercase",
+                      "line-clamp-2 pt-1 text-[12px] font-extrabold tracking-wide uppercase sm:text-[13px] xl:pt-2 xl:text-[15px] xl:leading-snug",
                       category.titleColor
                     )}
                   >
                     {category.title}
                   </h3>
                 </div>
-                <p className="mt-3 line-clamp-2 flex-1 text-sm leading-snug text-slate-500">
+                <p className="mt-3 line-clamp-3 flex-1 text-xs leading-snug text-slate-600 sm:mt-4 sm:text-sm xl:mt-5 xl:text-[15px] xl:leading-relaxed">
                   {category.description}
                 </p>
-                <div className="mt-3 flex items-center justify-between">
-                  <span className="text-sm font-bold text-kiosk-navy">
+                <div className="mt-3 flex items-center justify-between sm:mt-4 xl:mt-5">
+                  <span className="text-xs font-bold text-kiosk-navy sm:text-sm xl:text-base">
                     {serviceCount} {serviceCount === 1 ? "Service" : "Services"}
                   </span>
-                  <ChevronRight className="h-4 w-4 text-slate-400" />
+                  <ChevronRight className="h-4 w-4 text-slate-400 xl:h-5 xl:w-5" />
                 </div>
               </button>
             );
           })}
         </div>
       ) : (
-        <div className="kiosk-stagger grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <div className="kiosk-stagger grid grid-cols-2 gap-3 xl:min-h-0 xl:flex-1 xl:grid-cols-4 xl:auto-rows-fr">
           {groups.map((office) => {
             const theme = categoryForOffice(office.name);
             const Icon = officeThemeIcon(office.name);
@@ -976,35 +990,39 @@ function BrowseView({
                 key={office.id}
                 type="button"
                 onClick={() => onOpenOffice(office.id)}
-                className="kiosk-hover-lift flex min-h-[148px] flex-col rounded-[22px] bg-white p-4 text-left shadow-[0_10px_28px_-18px_rgba(15,35,70,0.35)] ring-1 ring-slate-200/70"
+                className="kiosk-hover-lift flex min-h-[120px] flex-col justify-between rounded-[18px] bg-white p-4 text-left shadow-[0_10px_28px_-18px_rgba(15,35,70,0.35)] sm:min-h-[136px] sm:p-5 lg:min-h-[148px] xl:h-full xl:min-h-0 xl:rounded-[20px] xl:p-6"
               >
-                <div className="flex items-start gap-3">
-                  <span
-                    className={cn(
-                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white",
-                      theme?.accent ?? "bg-kiosk-navy"
-                    )}
-                  >
-                    <Icon className="h-5 w-5" strokeWidth={2.25} />
-                  </span>
+                <div className="flex items-start gap-3 sm:gap-3.5 xl:gap-4">
+                  {theme ? (
+                    <Icon className="h-14 w-14 shrink-0 sm:h-16 sm:w-16 xl:h-[4.75rem] xl:w-[4.75rem]" />
+                  ) : (
+                    <span
+                      className={cn(
+                        "flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-white shadow-sm sm:h-16 sm:w-16 xl:h-[4.75rem] xl:w-[4.75rem]",
+                        "bg-kiosk-navy"
+                      )}
+                    >
+                      <Icon className="h-6 w-6 sm:h-7 sm:w-7 xl:h-8 xl:w-8" />
+                    </span>
+                  )}
                   <h3
                     className={cn(
-                      "line-clamp-2 pt-1 text-[13px] font-extrabold tracking-wide uppercase",
+                      "line-clamp-2 pt-1 text-[12px] font-extrabold tracking-wide uppercase sm:text-[13px] xl:pt-2 xl:text-[15px] xl:leading-snug",
                       theme?.titleColor ?? "text-kiosk-navy"
                     )}
                   >
                     {office.name}
                   </h3>
                 </div>
-                <p className="mt-3 line-clamp-2 flex-1 text-sm leading-snug text-slate-500">
+                <p className="mt-3 line-clamp-3 flex-1 text-xs leading-snug text-slate-600 sm:mt-4 sm:text-sm xl:mt-5 xl:text-[15px] xl:leading-relaxed">
                   {office.categories.map((category) => category.name).slice(0, 2).join(" · ") ||
                     "Provincial office services"}
                 </p>
-                <div className="mt-3 flex items-center justify-between">
-                  <span className="text-sm font-bold text-kiosk-navy">
+                <div className="mt-3 flex items-center justify-between sm:mt-4 xl:mt-5">
+                  <span className="text-xs font-bold text-kiosk-navy sm:text-sm xl:text-base">
                     {serviceCount} {serviceCount === 1 ? "Service" : "Services"}
                   </span>
-                  <ChevronRight className="h-4 w-4 text-slate-400" />
+                  <ChevronRight className="h-4 w-4 text-slate-400 xl:h-5 xl:w-5" />
                 </div>
               </button>
             );
@@ -1017,7 +1035,7 @@ function BrowseView({
       ) : null}
       {!groups.length && browseMode === "department" ? <EmptySearch /> : null}
 
-      <section className="mt-auto shrink-0 rounded-[22px] bg-[#e8eef6]/90 px-4 py-4 ring-1 ring-[#d5deea]/80 sm:px-5">
+      <section className="mt-auto shrink-0 rounded-[22px] bg-[#e8eef6]/90 px-4 py-4 sm:px-5">
         <h2 className="mb-3 text-[13px] font-extrabold tracking-[0.14em] text-kiosk-navy uppercase">
           Most Requested Services
         </h2>
@@ -1030,7 +1048,7 @@ function BrowseView({
                 key={service.id}
                 type="button"
                 onClick={() => onOpenRequested(office.id, service.id)}
-                className="inline-flex min-h-[48px] min-w-0 flex-1 items-center gap-2.5 rounded-2xl border border-slate-200/90 bg-white px-3.5 py-2.5 text-left shadow-[0_1px_2px_rgba(15,35,70,0.04)] transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md active:scale-[0.99] sm:flex-none sm:px-4"
+                className="inline-flex min-h-[48px] min-w-0 flex-1 items-center gap-2.5 rounded-2xl bg-white px-3.5 py-2.5 text-left shadow-[0_1px_2px_rgba(15,35,70,0.04)] transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] sm:flex-none sm:px-4"
               >
                 <Icon className={cn("h-[18px] w-[18px] shrink-0", meta.iconClass)} strokeWidth={2} />
                 <span className="truncate text-[13px] font-semibold text-kiosk-navy sm:text-sm">
@@ -1042,7 +1060,7 @@ function BrowseView({
           <button
             type="button"
             onClick={onViewAll}
-            className="inline-flex min-h-[48px] items-center gap-1.5 rounded-2xl border border-slate-200/90 bg-white px-4 py-2.5 text-[13px] font-semibold text-[#2563eb] shadow-[0_1px_2px_rgba(15,35,70,0.04)] transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md active:scale-[0.99] sm:text-sm"
+            className="inline-flex min-h-[48px] items-center gap-1.5 rounded-2xl bg-white px-4 py-2.5 text-[13px] font-semibold text-[#2563eb] shadow-[0_1px_2px_rgba(15,35,70,0.04)] transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] sm:text-sm"
           >
             View All
             <ChevronRight className="h-4 w-4" strokeWidth={2.25} />
@@ -1072,7 +1090,7 @@ function ModeChip({
         "inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition",
         active
           ? "bg-[#0d9488] text-white shadow-md shadow-teal-900/10"
-          : "bg-white text-kiosk-navy ring-1 ring-slate-200 hover:bg-slate-50"
+          : "bg-white text-kiosk-navy shadow-sm hover:bg-slate-50"
       )}
     >
       <Icon className="h-4 w-4" />
@@ -1221,7 +1239,7 @@ function CharterCollapsibleSearch({
           expand();
         }}
       >
-        <div className="relative h-12 rounded-full bg-white shadow-sm ring-1 ring-slate-200/80">
+        <div className="relative h-12 rounded-full bg-white shadow-sm">
           {showHint && (
             <span
               aria-hidden="true"
@@ -1316,83 +1334,45 @@ function requestedServiceMeta(serviceName: string): {
   return { icon: Building2, iconClass: "text-kiosk-navy", label: name };
 }
 
-function CategoryOfficesModal({
-  category,
-  offices,
-  onClose,
-  onOpenOffice,
-}: {
-  category: CharterBrowseCategory;
-  offices: CharterOfficeView[];
-  onClose: () => void;
-  onOpenOffice: (officeId: string) => void;
-}) {
-  const Icon = category.icon;
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+function officeInitials(name: string) {
+  const words = name
+    .replace(/[^a-zA-Z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length >= 2) {
+    return words
+      .slice(0, 3)
+      .map((word) => word[0] ?? "")
+      .join("")
+      .toUpperCase();
+  }
+  return name.slice(0, 3).toUpperCase();
+}
 
-  return (
-    <div
-      className="charter-modal-backdrop-in fixed inset-0 z-50 flex items-center justify-center bg-kiosk-navy/65 p-3 backdrop-blur-sm sm:p-6"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-    >
-      <section
-        className="charter-modal-panel-in flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <header className="flex items-center gap-4 border-b border-slate-100 px-5 py-5">
-          <span
-            className={cn(
-              "flex h-12 w-12 items-center justify-center rounded-2xl text-white",
-              category.accent
-            )}
-          >
-            <Icon className="h-5 w-5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold tracking-[0.16em] text-[#0d9488] uppercase">Category</p>
-            <h3 className="text-lg font-bold text-kiosk-navy">{category.title}</h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-500 ring-1 ring-slate-200"
-            aria-label="Close category"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </header>
-        <div className="kiosk-stagger grid gap-3 overflow-y-auto bg-[#f7f9fc] p-4 sm:grid-cols-2 sm:p-5">
-          {offices.map((office) => {
-            const serviceCount = countServices(office);
-            return (
-              <button
-                key={office.id}
-                type="button"
-                onClick={() => onOpenOffice(office.id)}
-                className="kiosk-hover-lift flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-4 text-left shadow-sm ring-1 ring-slate-200/80"
-              >
-                <div className="min-w-0">
-                  <p className="font-bold text-kiosk-navy">{office.name}</p>
-                  <p className="mt-0.5 text-xs text-slate-500">
-                    {serviceCount} {serviceCount === 1 ? "service" : "services"}
-                  </p>
-                </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
-              </button>
-            );
-          })}
-        </div>
-      </section>
-    </div>
-  );
+function publishedFee(service: CharterServiceView) {
+  const fees = service.steps
+    .map((step) => step.fee.trim())
+    .filter((fee) => fee && !/^none$|^n\/a$|^-$|^—$/i.test(fee));
+  if (!fees.length) return "None";
+  const unique = [...new Set(fees)];
+  if (unique.length === 1) return unique[0];
+  return "See steps";
+}
+
+function totalProcessingTime(service: CharterServiceView) {
+  const times = service.steps
+    .map((step) => step.time.trim())
+    .filter((time) => time && !/^none$|^n\/a$|^-$|^—$/i.test(time));
+  if (!times.length) return "See charter";
+  if (times.length === 1) return times[0];
+  return times[0];
+}
+
+function officeBlurb(office: CharterOfficeView) {
+  const first = office.categories[0]?.services[0];
+  if (first?.description) return first.description;
+  if (first?.whoMayAvail) return `Services for ${first.whoMayAvail.toLowerCase()}.`;
+  return "Official services, published fees, processing time, and charter source pages.";
 }
 
 function themeForOffice(name: string) {
@@ -1400,45 +1380,60 @@ function themeForOffice(name: string) {
   if (category) {
     return {
       icon: category.icon,
+      iconSrc: category.iconSrc,
       accent: category.accent,
       soft: category.soft,
       badge: `${category.titleColor} ${category.soft}`,
+      titleColor: category.titleColor,
     };
   }
   return {
     icon: Building2,
+    iconSrc: null as string | null,
     accent: "bg-kiosk-navy",
     soft: "bg-[#f1f5f9]",
     badge: "text-kiosk-navy bg-[#e2e8f0]",
+    titleColor: "text-kiosk-navy",
   };
 }
 
 function OfficeModal({
   group,
+  relatedOffices,
+  category,
+  edition,
   isOfficeClosing,
   isServiceClosing,
   expandedServiceId,
   activeService,
+  onSelectOffice,
   onCloseOffice,
   onOpenService,
   onCloseService,
 }: {
   group: CharterOfficeView;
+  relatedOffices: CharterOfficeView[];
+  category: CharterBrowseCategory | null;
+  edition: CharterEditionView;
   isOfficeClosing: boolean;
   isServiceClosing: boolean;
   expandedServiceId: string | null;
   activeService: CharterServiceView | null;
+  onSelectOffice: (officeId: string) => void;
   onCloseOffice: () => void;
   onOpenService: (serviceId: string) => void;
   onCloseService: () => void;
 }) {
   const theme = themeForOffice(group.name);
-  const Icon = theme.icon;
   const serviceCount = countServices(group);
+  const services = group.categories.flatMap((item) => item.services);
+  const initials = officeInitials(group.name);
+  const whoMayAvail =
+    services.find((service) => service.whoMayAvail)?.whoMayAvail || "Clients and citizens";
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-kiosk-navy/65 p-3 backdrop-blur-sm sm:p-6 ${
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-kiosk-navy/55 p-3 backdrop-blur-sm sm:p-5 ${
         isOfficeClosing ? "charter-modal-backdrop-out" : "charter-modal-backdrop-in"
       }`}
       role="dialog"
@@ -1447,118 +1442,207 @@ function OfficeModal({
       onClick={onCloseOffice}
     >
       <section
-        className={`flex max-h-[92vh] w-full max-w-7xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5 ${
+        className={`flex h-[min(92vh,920px)] w-full max-w-7xl overflow-hidden rounded-[28px] bg-[#eef3f8] shadow-2xl ring-1 ring-black/5 ${
           isOfficeClosing ? "charter-modal-panel-out" : "charter-modal-panel-in"
         }`}
         onClick={(event) => event.stopPropagation()}
       >
-        <header className="flex shrink-0 items-center gap-4 border-b border-slate-100 bg-white px-5 py-5">
-          <span
-            className={cn(
-              "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-sm",
-              theme.accent
-            )}
-          >
-            <Icon className="h-5 w-5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold tracking-[0.16em] text-kiosk-green uppercase">
-              List of Services
-            </p>
-            <h3 id="charter-office-title" className="text-lg font-bold text-kiosk-navy">
-              {group.name}
-            </h3>
-            <p className="mt-0.5 text-xs font-medium text-slate-500">
-              {serviceCount} {serviceCount === 1 ? "service" : "services"} · {group.categories.length}{" "}
-              {group.categories.length === 1 ? "category" : "categories"}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onCloseOffice}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-100 hover:text-kiosk-navy"
-            aria-label="Close list of services"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </header>
-
-        <div className="space-y-6 overflow-y-auto bg-[#f7f9fc] p-4 sm:p-6">
-          {group.categories.map((category) => (
-            <div key={category.id}>
-              <div className="mb-3 flex items-center gap-3">
-                <h4 className="text-xs font-bold tracking-[0.14em] text-kiosk-navy uppercase">
-                  {category.name}
-                </h4>
-                <div className="h-px flex-1 bg-slate-200" />
-                <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-500 ring-1 ring-slate-200">
-                  {category.services.length}
+        <aside className="flex w-[min(20rem,34%)] shrink-0 flex-col border-r border-slate-200/80 bg-[#f7fafc] p-4 sm:p-5">
+          <div className="mb-4 flex items-start justify-between gap-2">
+            <div>
+              <p className="text-[10px] font-bold tracking-[0.16em] text-[#0d9488] uppercase">
+                Provincial Offices
+              </p>
+              <div className="mt-1 flex items-center gap-2">
+                <h3 className="text-xl font-extrabold text-kiosk-navy">Departments</h3>
+                <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#dbeafe] px-1.5 text-xs font-bold text-[#1d4ed8]">
+                  {relatedOffices.length}
                 </span>
               </div>
-              <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {category.services.map((service, serviceIndex) => {
-                  const isSelected = expandedServiceId === service.id;
-                  return (
-                    <li key={service.id}>
-                      <button
-                        type="button"
-                        onClick={() => onOpenService(service.id)}
-                        className={cn(
-                          "flex min-h-[148px] w-full flex-col rounded-2xl border bg-white p-3.5 text-left shadow-sm transition-all duration-300",
-                          "hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]",
-                          isSelected
-                            ? "border-kiosk-green ring-2 ring-kiosk-green/20"
-                            : "border-slate-200/80 hover:border-kiosk-navy/20"
-                        )}
-                      >
-                        <div className="mb-2.5 flex items-start justify-between gap-2">
-                          <span
-                            className={cn(
-                              "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white",
-                              theme.accent
-                            )}
-                          >
-                            {serviceIndex + 1}
-                          </span>
-                          <span className="flex items-center gap-1.5">
-                            {service.pageNumber != null && (
-                              <span className="rounded-lg bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200">
-                                p. {service.pageNumber}
-                              </span>
-                            )}
-                            <ChevronRight className="h-4 w-4 text-kiosk-green" />
-                          </span>
-                        </div>
-                        <p className="text-sm leading-snug font-semibold text-kiosk-navy">
-                          {service.name}
-                        </p>
-                        {service.details.length > 0 && (
-                          <ul className="mt-2 space-y-1 text-xs text-slate-600">
-                            {service.details.slice(0, 2).map((detail) => (
-                              <li
-                                key={detail}
-                                className="line-clamp-1 before:mr-1.5 before:text-kiosk-green before:content-['•']"
-                              >
-                                {detail}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                        {service.requirements.length > 0 && (
-                          <p className="mt-auto flex items-center gap-1 pt-3 text-[10px] font-semibold text-kiosk-green">
-                            <ListChecks className="h-3.5 w-3.5" />
-                            {service.requirements.length}{" "}
-                            {service.requirements.length === 1 ? "requirement" : "requirements"} · Tap
-                            to view
-                          </p>
-                        )}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ol>
             </div>
-          ))}
+            <button
+              type="button"
+              onClick={onCloseOffice}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+            {relatedOffices.map((office) => {
+              const active = office.id === group.id;
+              const count = countServices(office);
+              return (
+                <button
+                  key={office.id}
+                  type="button"
+                  onClick={() => onSelectOffice(office.id)}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition",
+                    active
+                      ? "border-l-4 border-[#0d9488] bg-[#e8f7f5] shadow-sm"
+                      : "border-l-4 border-transparent bg-white hover:bg-slate-50"
+                  )}
+                >
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0d9488] text-[11px] font-extrabold tracking-wide text-white">
+                    {officeInitials(office.name)}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block line-clamp-2 text-sm font-bold text-kiosk-navy">
+                      {office.name}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-slate-500">
+                      {count} {count === 1 ? "service" : "services"}
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
+          <header className="shrink-0 border-b border-slate-100 px-5 py-5 sm:px-6">
+            <div className="flex flex-wrap items-start gap-4">
+              <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#0d9488] text-lg font-black tracking-wide text-white sm:h-[4.5rem] sm:w-[4.5rem] sm:text-xl">
+                {initials}
+              </span>
+              <div className="min-w-0 flex-1">
+                {category ? (
+                  <span className="inline-flex rounded-full bg-[#dbeafe] px-2.5 py-1 text-[10px] font-bold tracking-[0.14em] text-[#1d4ed8] uppercase">
+                    {category.title.replace(/ services$/i, "")}
+                  </span>
+                ) : null}
+                <h2
+                  id="charter-office-title"
+                  className="mt-2 text-2xl font-extrabold tracking-tight text-kiosk-navy sm:text-[1.75rem]"
+                >
+                  {group.name}
+                </h2>
+                <p className="mt-1 max-w-2xl text-sm text-slate-500">{officeBlurb(group)}</p>
+              </div>
+              {edition.pdfUrl ? (
+                <a
+                  href={edition.pdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl border border-[#2563eb]/30 bg-white px-3.5 py-2.5 text-sm font-semibold text-[#2563eb] shadow-sm transition hover:bg-blue-50"
+                >
+                  <FileText className="h-4 w-4" />
+                  Download full PDF
+                </a>
+              ) : null}
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <div className="flex items-center gap-3 rounded-2xl bg-[#f3f7fb] px-4 py-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#0d9488] shadow-sm">
+                  <FileText className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="text-sm font-extrabold text-kiosk-navy">{serviceCount} services</p>
+                  <p className="text-xs text-slate-500">Documented services</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-2xl bg-[#f3f7fb] px-4 py-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#0d9488] shadow-sm">
+                  <UserPlus className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="line-clamp-1 text-sm font-extrabold text-kiosk-navy">{whoMayAvail}</p>
+                  <p className="text-xs text-slate-500">For whom</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-2xl bg-[#f3f7fb] px-4 py-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#0d9488] shadow-sm">
+                  <ListChecks className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="text-sm font-extrabold text-kiosk-navy">
+                    Complete {edition.year} Charter
+                  </p>
+                  <p className="text-xs text-slate-500">Source</p>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <div className="min-h-0 flex-1 overflow-y-auto bg-[#f7f9fc] p-4 sm:p-5">
+            <div className="mb-4 flex items-end justify-between gap-3">
+              <h3 className="text-lg font-extrabold text-kiosk-navy">Documented services</h3>
+              <p className="text-xs font-medium text-slate-500">
+                {services.length} {services.length === 1 ? "service" : "services"} shown
+              </p>
+            </div>
+
+            <div className="kiosk-stagger grid gap-3 sm:grid-cols-2">
+              {services.map((service, index) => (
+                <button
+                  key={service.id}
+                  type="button"
+                  onClick={() => onOpenService(service.id)}
+                  className={cn(
+                    "flex flex-col rounded-[22px] border bg-white p-4 text-left shadow-[0_8px_24px_-18px_rgba(15,35,70,0.35)] transition hover:-translate-y-0.5",
+                    expandedServiceId === service.id
+                      ? "border-[#0d9488] ring-2 ring-[#0d9488]/15"
+                      : "border-slate-200/70"
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ccfbf1] text-xs font-extrabold text-[#0f766e]">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[15px] leading-snug font-extrabold text-kiosk-navy">
+                        {service.name}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {service.typeOfTransaction ? (
+                          <span className="rounded-full bg-[#ccfbf1] px-2 py-0.5 text-[10px] font-bold text-[#0f766e]">
+                            {service.typeOfTransaction}
+                          </span>
+                        ) : null}
+                        {service.classification ? (
+                          <span className="rounded-full bg-[#ccfbf1] px-2 py-0.5 text-[10px] font-bold text-[#0f766e]">
+                            {service.classification}
+                          </span>
+                        ) : null}
+                        {service.pageNumber != null ? (
+                          <span className="rounded-full bg-[#ccfbf1] px-2 py-0.5 text-[10px] font-bold text-[#0f766e]">
+                            Charter p. {service.pageNumber}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <div className="rounded-xl bg-[#eef4fa] px-3 py-2.5">
+                      <p className="flex items-center gap-1 text-[9px] font-bold tracking-[0.12em] text-slate-500 uppercase">
+                        <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-[9px] font-black text-[#0d9488]">
+                          ₱
+                        </span>
+                        Published Fee
+                      </p>
+                      <p className="mt-1 text-sm font-bold text-kiosk-navy">{publishedFee(service)}</p>
+                    </div>
+                    <div className="rounded-xl bg-[#eef4fa] px-3 py-2.5">
+                      <p className="flex items-center gap-1 text-[9px] font-bold tracking-[0.12em] text-slate-500 uppercase">
+                        <Clock className="h-3.5 w-3.5 text-[#0d9488]" />
+                        Total Processing Time
+                      </p>
+                      <p className="mt-1 text-sm font-bold text-kiosk-navy">
+                        {totalProcessingTime(service)}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

@@ -56,7 +56,7 @@ export function FeedbackClient() {
           <div className="mt-1 flex gap-1">
             {[1, 2, 3, 4, 5].map((n) => (
               <button key={n} type="button" onClick={() => setRating(n)}>
-                <Star className={cn("h-8 w-8", n <= rating ? "fill-amber-400 text-amber-400" : "text-gray-300")} />
+                <Star className={cn("h-6 w-6 sm:h-8 sm:w-8", n <= rating ? "fill-amber-400 text-amber-400" : "text-gray-300")} />
               </button>
             ))}
           </div>

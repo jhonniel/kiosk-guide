@@ -258,15 +258,15 @@ export function SmartSearch() {
             expanded ? "gap-5 px-5" : "gap-3 px-4"
           )}
         >
-          <div className="flex min-w-0 shrink-0 items-center gap-3 pl-0.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#d5e0ee]">
-              <Search className="h-5 w-5 text-kiosk-navy" strokeWidth={2.25} />
+          <div className="flex min-w-0 shrink-0 items-center gap-2 pl-0.5 sm:gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#d5e0ee] sm:h-11 sm:w-11">
+              <Search className="h-4 w-4 text-kiosk-navy sm:h-5 sm:w-5" strokeWidth={2.25} />
             </div>
-            <div className="min-w-0 shrink-0">
-              <p className="text-[15px] leading-none font-extrabold tracking-[0.04em] text-kiosk-navy uppercase">
+            <div className="min-w-0">
+              <p className="text-[13px] leading-none font-extrabold tracking-[0.04em] text-kiosk-navy uppercase sm:text-[15px]">
                 {t(language, "smartSearch")}
               </p>
-              <p className="mt-1 text-[13px] leading-snug whitespace-nowrap text-[#6b7c93]">
+              <p className="mt-1 hidden text-[13px] leading-snug text-[#6b7c93] md:block md:whitespace-nowrap">
                 {t(language, "smartSearchHint")}
               </p>
             </div>

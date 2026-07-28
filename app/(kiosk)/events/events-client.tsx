@@ -368,8 +368,8 @@ export function EventsClient({ events }: { events: Event[] }) {
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col lg:flex-row lg:items-stretch">
-            <aside className="flex shrink-0 flex-col border-b border-slate-100 bg-slate-50/40 p-4 lg:w-[280px] lg:border-r lg:border-b-0 xl:w-[300px] sm:p-5">
-              <div className="rounded-2xl bg-white p-3.5 ring-1 ring-slate-200/80">
+            <aside className="flex shrink-0 flex-col border-b border-slate-100 bg-slate-50/40 p-3 lg:w-[240px] lg:border-r lg:border-b-0 xl:w-[280px] sm:p-4 lg:p-5">
+              <div className="rounded-2xl bg-white p-2.5 ring-1 ring-slate-200/80 sm:p-3.5">
                 <div className="mb-3 flex items-center justify-between">
                   <button
                     type="button"
@@ -419,7 +419,7 @@ export function EventsClient({ events }: { events: Event[] }) {
                           );
                         }}
                         className={cn(
-                          "relative flex h-9 flex-col items-center justify-center rounded-full text-xs font-semibold transition",
+                          "relative flex h-7 flex-col items-center justify-center rounded-full text-[11px] font-semibold transition sm:h-8 sm:text-xs lg:h-9",
                           !inMonth && "invisible",
                           inMonth && !active && "text-slate-700 hover:bg-sky-50",
                           dayCats.length > 0 && !active && "bg-sky-50/80",
@@ -546,7 +546,7 @@ export function EventsClient({ events }: { events: Event[] }) {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start gap-2">
                               <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", meta.dot)} />
-                              <h4 className="text-[15px] font-bold leading-snug text-kiosk-navy sm:text-base">
+                              <h4 className="line-clamp-2 text-[15px] font-bold leading-snug text-kiosk-navy sm:text-base">
                                 {title}
                               </h4>
                             </div>
@@ -661,7 +661,7 @@ function EventDetailModal({
       >
         <div
           className={cn(
-            "relative shrink-0 bg-gradient-to-br px-5 py-6 text-white sm:px-7 sm:py-8",
+            "relative shrink-0 bg-gradient-to-br px-4 py-4 text-white sm:px-5 sm:py-6 lg:px-7 lg:py-8",
             tone.header,
             !isClosing && "event-modal-header-in"
           )}
@@ -684,7 +684,7 @@ function EventDetailModal({
           </span>
           <h2
             id="event-detail-title"
-            className="mt-2 max-w-[90%] text-2xl font-extrabold leading-tight sm:text-3xl"
+            className="mt-2 max-w-[90%] line-clamp-3 text-xl font-extrabold leading-tight sm:text-2xl lg:text-3xl"
           >
             {title}
           </h2>
@@ -708,8 +708,8 @@ function EventDetailModal({
           </div>
         </div>
 
-        <div className={cn("overflow-y-auto p-5 sm:p-7", !isClosing && "event-modal-body-in")}>
-          <p className="text-base leading-7 text-slate-700">{overview}</p>
+        <div className={cn("overflow-y-auto p-4 sm:p-5 lg:p-7", !isClosing && "event-modal-body-in")}>
+          <p className="text-sm leading-7 text-slate-700 sm:text-base">{overview}</p>
 
           {highlights.length > 0 && (
             <section className="mt-6">

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Clock3, Heart, MapPinned, Share2, Ticket, X, Navigation2 } from "lucide-react";
+import { Clock3, Globe, Heart, History, MapPinned, Phone, Share2, Ticket, X, Navigation2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Attraction } from "@/features/map/types";
 import { categoryMeta } from "@/features/map/categories";
@@ -78,6 +78,15 @@ function AttractionBody({
           {pick(language, attraction.description)}
         </p>
 
+        {attraction.history && pick(language, attraction.history).trim() && (
+          <p className="text-xs leading-relaxed text-slate-500">
+            <span className="inline-flex items-center gap-1 font-semibold text-kiosk-navy">
+              <History className="h-3.5 w-3.5" /> History:{" "}
+            </span>
+            {pick(language, attraction.history)}
+          </p>
+        )}
+
         {attraction.photos.length > 1 && (
           <div className="flex gap-2 overflow-x-auto">
             {attraction.photos.slice(0, 4).map((src) => (
@@ -103,17 +112,33 @@ function AttractionBody({
               {pick(language, attraction.openingHours)}
             </span>
           </p>
-          <p className="flex items-start gap-2">
-            <MapPinned className="mt-0.5 h-4 w-4 shrink-0 text-kiosk-green" />
-            <span>
-              <span className="font-semibold text-kiosk-navy">{labels.distance}: </span>
-              {pick(language, attraction.distanceFromCapitol)}
-            </span>
-          </p>
-          <p className="text-xs text-slate-500">
-            <span className="font-semibold text-kiosk-navy">{labels.travelTime}: </span>
-            {pick(language, attraction.travelTime)}
-          </p>
+          {pick(language, attraction.distanceFromCapitol).trim() && (
+            <p className="flex items-start gap-2">
+              <MapPinned className="mt-0.5 h-4 w-4 shrink-0 text-kiosk-green" />
+              <span>
+                <span className="font-semibold text-kiosk-navy">{labels.distance}: </span>
+                {pick(language, attraction.distanceFromCapitol)}
+              </span>
+            </p>
+          )}
+          {pick(language, attraction.travelTime).trim() && (
+            <p className="text-xs text-slate-500">
+              <span className="font-semibold text-kiosk-navy">{labels.travelTime}: </span>
+              {pick(language, attraction.travelTime)}
+            </p>
+          )}
+          {attraction.phone?.trim() && (
+            <p className="flex items-start gap-2 text-xs">
+              <Phone className="mt-0.5 h-4 w-4 shrink-0 text-kiosk-green" />
+              <span>{attraction.phone}</span>
+            </p>
+          )}
+          {attraction.website?.trim() && (
+            <p className="flex items-start gap-2 text-xs">
+              <Globe className="mt-0.5 h-4 w-4 shrink-0 text-kiosk-green" />
+              <span className="break-all">{attraction.website}</span>
+            </p>
+          )}
         </div>
 
         <p className="text-xs leading-relaxed text-slate-500">

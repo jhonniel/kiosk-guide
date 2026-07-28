@@ -196,7 +196,7 @@ export function CamiChat() {
       {(open || closing) && (
         <div
           className={cn(
-            "pointer-events-auto flex h-[min(560px,calc(100vh-9.5rem))] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_-20px_rgba(15,23,42,0.55)] ring-1 ring-slate-200/80",
+            "pointer-events-auto flex h-[min(560px,calc(100vh-7rem))] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_-20px_rgba(15,23,42,0.55)] ring-1 ring-slate-200/80 sm:h-[min(560px,calc(100vh-9.5rem))]",
             closing ? "cami-popup-out" : "cami-popup-in"
           )}
           role="dialog"
@@ -205,10 +205,10 @@ export function CamiChat() {
           onPointerDown={touchActivity}
           onKeyDown={touchActivity}
         >
-          <div className="relative shrink-0 overflow-hidden bg-gradient-to-br from-sky-600 via-cyan-600 to-teal-600 px-4 py-3.5 text-white">
+          <div className="relative shrink-0 overflow-hidden bg-gradient-to-br from-sky-600 via-cyan-600 to-teal-600 px-3 py-3 text-white sm:px-4 sm:py-3.5">
             <div className="absolute -top-8 -right-6 h-24 w-24 rounded-full bg-white/10" />
-            <div className="relative flex items-start gap-3">
-              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-white shadow-md ring-2 ring-white">
+            <div className="relative flex items-start gap-2.5 sm:gap-3">
+              <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-white shadow-md ring-2 ring-white sm:h-14 sm:w-14">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={CAMI_ICON_STATIC}
@@ -223,14 +223,14 @@ export function CamiChat() {
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/80">
                   {pickLang(language, "Camiguin assistant", "Camiguin assistant", "Camiguin assistant")}
                 </p>
-                <h2 id="cami-chat-title" className="text-lg font-extrabold tracking-tight">
+                <h2 id="cami-chat-title" className="text-base font-extrabold tracking-tight sm:text-lg">
                   Cami
                 </h2>
               </div>
               <button
                 type="button"
                 onClick={closeChat}
-                className="absolute top-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-kiosk-navy shadow-md transition hover:scale-105 hover:bg-white"
+                className="absolute top-2.5 right-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-kiosk-navy shadow-md transition hover:scale-105 hover:bg-white sm:top-3 sm:right-3 sm:h-9 sm:w-9"
                 aria-label={pickLang(language, "Close Cami", "Isara si Cami", "Isira si Cami")}
               >
                 <X className="h-4 w-4" />
@@ -343,7 +343,7 @@ export function CamiChat() {
         type="button"
         onClick={() => (open ? closeChat() : openChat())}
         className={cn(
-          "pointer-events-auto group flex items-center gap-2.5 rounded-full bg-white py-2 pr-4 pl-2 text-kiosk-navy shadow-[0_14px_36px_-12px_rgba(8,145,178,0.55)] ring-1 ring-sky-200/80 transition-all duration-200 hover:scale-[1.03] hover:shadow-[0_18px_40px_-12px_rgba(8,145,178,0.7)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400",
+          "pointer-events-auto group flex items-center gap-2 rounded-full bg-white py-1.5 pr-3 pl-1.5 text-kiosk-navy shadow-[0_14px_36px_-12px_rgba(8,145,178,0.55)] ring-1 ring-sky-200/80 transition-all duration-200 hover:scale-[1.03] hover:shadow-[0_18px_40px_-12px_rgba(8,145,178,0.7)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 sm:gap-2.5 sm:py-2 sm:pr-4 sm:pl-2",
           open && "ring-2 ring-cyan-400"
         )}
         aria-expanded={open}
@@ -353,10 +353,10 @@ export function CamiChat() {
             : pickLang(language, "Open Cami chat", "Buksan ang chat ni Cami", "Ablihi ang chat ni Cami")
         }
       >
-        <span className="relative flex h-14 w-14 shrink-0 items-center justify-center">
+        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center sm:h-14 sm:w-14">
           {open ? (
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-kiosk-navy">
-              <X className="h-5 w-5" />
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-kiosk-navy sm:h-10 sm:w-10">
+              <X className="h-4 w-4 sm:h-5 sm:w-5" />
             </span>
           ) : (
             <Image
@@ -364,7 +364,7 @@ export function CamiChat() {
               alt="Cami"
               width={56}
               height={56}
-              className="h-14 w-14 object-contain object-center drop-shadow-sm"
+              className="h-11 w-11 object-contain object-center drop-shadow-sm sm:h-14 sm:w-14"
               priority
               unoptimized
             />

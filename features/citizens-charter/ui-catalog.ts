@@ -1,21 +1,26 @@
-import type { LucideIcon } from "lucide-react";
+import type { ComponentType, SVGProps } from "react";
 import {
-  Briefcase,
   Building2,
   Eye,
   HandHeart,
-  HeartPulse,
   Landmark,
   LayoutGrid,
-  Leaf,
-  PawPrint,
   Shield,
   Target,
-  Trees,
-  Wallet,
-  Wrench,
 } from "lucide-react";
+import {
+  AgricultureServicesIcon,
+  BusinessProcurementIcon,
+  EngineeringServicesIcon,
+  HealthServicesIcon,
+  SocialWelfareIcon,
+  TourismServicesIcon,
+  TreasuryPaymentsIcon,
+  VeterinaryServicesIcon,
+} from "@/components/kiosk/charter-category-icons";
 import type { CharterOfficeView, CharterServiceView } from "./types";
+
+export type CharterCategoryIcon = ComponentType<SVGProps<SVGSVGElement>>;
 
 export type CharterBrowseCategoryId =
   | "health"
@@ -32,7 +37,9 @@ export type CharterBrowseCategory = {
   title: string;
   description: string;
   match: RegExp;
-  icon: LucideIcon;
+  icon: CharterCategoryIcon;
+  /** Reference glyph asset (colored circle + white icon). */
+  iconSrc: string;
   accent: string;
   soft: string;
   titleColor: string;
@@ -44,7 +51,8 @@ export const CHARTER_BROWSE_CATEGORIES: CharterBrowseCategory[] = [
     title: "Health Services",
     description: "Hospital services, laboratory, medicine, certificates, and consultation.",
     match: /hospital|health|medical|clinic|pharmacy/i,
-    icon: HeartPulse,
+    icon: HealthServicesIcon,
+    iconSrc: "/images/citizens-charter/category-icons/health.svg",
     accent: "bg-[#e11d48]",
     soft: "bg-[#ffe4e6]",
     titleColor: "text-[#e11d48]",
@@ -54,7 +62,8 @@ export const CHARTER_BROWSE_CATEGORIES: CharterBrowseCategory[] = [
     title: "Social Welfare Services",
     description: "Assistance programs and services for individuals and families in need.",
     match: /social|welfare|youth|women|senior|employment|human|peso/i,
-    icon: HandHeart,
+    icon: SocialWelfareIcon,
+    iconSrc: "/images/citizens-charter/category-icons/social.svg",
     accent: "bg-[#7c3aed]",
     soft: "bg-[#ede9fe]",
     titleColor: "text-[#7c3aed]",
@@ -64,7 +73,8 @@ export const CHARTER_BROWSE_CATEGORIES: CharterBrowseCategory[] = [
     title: "Agriculture Services",
     description: "Support services for farmers, nursery, and agriculture facilities.",
     match: /agriculture|fisher|farm|environment|natural resources/i,
-    icon: Leaf,
+    icon: AgricultureServicesIcon,
+    iconSrc: "/images/citizens-charter/category-icons/agriculture.svg",
     accent: "bg-[#16a34a]",
     soft: "bg-[#dcfce7]",
     titleColor: "text-[#16a34a]",
@@ -74,7 +84,8 @@ export const CHARTER_BROWSE_CATEGORIES: CharterBrowseCategory[] = [
     title: "Engineering Services",
     description: "Infrastructure projects, road works, clearances, and structure repair.",
     match: /engineer|works|infrastructure|building|disaster|risk/i,
-    icon: Wrench,
+    icon: EngineeringServicesIcon,
+    iconSrc: "/images/citizens-charter/category-icons/engineering.svg",
     accent: "bg-[#2563eb]",
     soft: "bg-[#dbeafe]",
     titleColor: "text-[#2563eb]",
@@ -84,7 +95,8 @@ export const CHARTER_BROWSE_CATEGORIES: CharterBrowseCategory[] = [
     title: "Business & Procurement",
     description: "Procurement, bidding, contracts, and supplier services.",
     match: /bids|awards|bac|general services|procurement|business/i,
-    icon: Briefcase,
+    icon: BusinessProcurementIcon,
+    iconSrc: "/images/citizens-charter/category-icons/business.svg",
     accent: "bg-[#ea580c]",
     soft: "bg-[#ffedd5]",
     titleColor: "text-[#ea580c]",
@@ -94,7 +106,8 @@ export const CHARTER_BROWSE_CATEGORIES: CharterBrowseCategory[] = [
     title: "Tourism Services",
     description: "Tourism accreditation, facilities management, and visitor services.",
     match: /tourism|facilities management/i,
-    icon: Trees,
+    icon: TourismServicesIcon,
+    iconSrc: "/images/citizens-charter/category-icons/tourism.png",
     accent: "bg-[#0d9488]",
     soft: "bg-[#ccfbf1]",
     titleColor: "text-[#0d9488]",
@@ -104,7 +117,8 @@ export const CHARTER_BROWSE_CATEGORIES: CharterBrowseCategory[] = [
     title: "Veterinary Services",
     description: "Animal health, vaccination, breeding, surgery, and certificates.",
     match: /veterinary|animal/i,
-    icon: PawPrint,
+    icon: VeterinaryServicesIcon,
+    iconSrc: "/images/citizens-charter/category-icons/veterinary.svg",
     accent: "bg-[#92400e]",
     soft: "bg-[#fef3c7]",
     titleColor: "text-[#92400e]",
@@ -114,7 +128,8 @@ export const CHARTER_BROWSE_CATEGORIES: CharterBrowseCategory[] = [
     title: "Treasury / Payments",
     description: "Taxes, permits, fees, and other government payments.",
     match: /treasury|accounting|budget|finance|cashier|revenue|assessment/i,
-    icon: Wallet,
+    icon: TreasuryPaymentsIcon,
+    iconSrc: "/images/citizens-charter/category-icons/treasury.svg",
     accent: "bg-[#166534]",
     soft: "bg-[#dcfce7]",
     titleColor: "text-[#166534]",
@@ -200,7 +215,7 @@ export type CharterCoreTopicId = "mandate" | "vision" | "mission" | "pledge";
 export type CharterCoreTopic = {
   id: CharterCoreTopicId;
   title: string;
-  icon: LucideIcon;
+  icon: CharterCategoryIcon;
   accent: string;
   soft: string;
   ring: string;
@@ -249,7 +264,7 @@ export const CHARTER_CORE_TOPICS: CharterCoreTopic[] = [
 export const CHARTER_SCENIC_IMAGE = "/images/tourism/tourism-mt-hibok-hibok.png";
 export const CHARTER_COVER_IMAGE = "/images/citizens-charter/charter-cover-2026.jpg";
 
-export function officeThemeIcon(name: string): LucideIcon {
+export function officeThemeIcon(name: string): CharterCategoryIcon {
   const category = categoryForOffice(name);
   if (category) return category.icon;
   if (/governor|administrator|planning|sanggunian|records|legal|attorney/i.test(name)) {

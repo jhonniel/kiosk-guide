@@ -488,17 +488,19 @@ model MapMunicipality {
 }
 
 model MapCategory {
-  id          String          @id @default(cuid())
-  slug        String          @unique
-  nameEn      String
-  nameFil     String
-  nameBis     String?
-  color       String
-  icon        String?
-  sortOrder   Int             @default(0)
-  attractions MapAttraction[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id            String          @id @default(cuid())
+  slug          String          @unique
+  nameEn        String
+  nameFil       String
+  nameBis       String?
+  color         String
+  icon          String?
+  sortOrder     Int             @default(0)
+  showInFilter  Boolean         @default(true)
+  showInLegend  Boolean         @default(true)
+  attractions   MapAttraction[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 }
 
 model MapAttraction {
@@ -532,19 +534,29 @@ model MapAttraction {
   rating          Float            @default(4.5)
   website         String?
   phone           String?
-  travelTipsEn    String?
-  travelTipsFil   String?
-  travelTipsBis  String?
-  featured        Boolean          @default(false)
-  isActive        Boolean          @default(true)
-  sortOrder       Int              @default(0)
-  photos          MapPhoto[]
-  reviews         MapReview[]
-  favorites       MapFavorite[]
-  routeStarts     MapRoute[]       @relation("RouteFrom")
-  routeEnds       MapRoute[]       @relation("RouteTo")
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  travelTipsEn             String?
+  travelTipsFil            String?
+  travelTipsBis            String?
+  travelTimeEn             String?
+  travelTimeFil            String?
+  travelTimeBis            String?
+  distanceFromCapitolEn    String?
+  distanceFromCapitolFil   String?
+  distanceFromCapitolBis   String?
+  labelText                String?
+  labelDx                  Float?
+  labelDy                  Float?
+  labelSide                String?
+  featured                 Boolean          @default(false)
+  isActive                 Boolean          @default(true)
+  sortOrder                Int              @default(0)
+  photos                   MapPhoto[]
+  reviews                  MapReview[]
+  favorites                MapFavorite[]
+  routeStarts              MapRoute[]       @relation("RouteFrom")
+  routeEnds                MapRoute[]       @relation("RouteTo")
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
 
   @@index([categoryId])
   @@index([municipalityId])
@@ -630,32 +642,76 @@ model MapFavorite {
   @@index([sessionId])
 }
 
+model MapAnnotation {
+  id                   String   @id @default(cuid())
+  slug                 String   @unique
+  text                 String
+  kind                 String
+  mapX                 Float
+  mapY                 Float
+  fontSize             Float?
+  anchor               String?
+  infoEn               String?
+  infoFil              String?
+  infoBis              String?
+  skipIfAttractionSlug String?
+  isActive             Boolean  @default(true)
+  sortOrder            Int      @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@index([kind])
+}
+
 model MapRestaurant {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  nameEn      String
-  nameFil     String
-  nameBis     String?
-  description String?
-  mapX        Float
-  mapY        Float
-  rating      Float    @default(4)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  nameEn          String
+  nameFil         String
+  nameBis         String?
+  description     String?
+  descriptionEn   String?
+  descriptionFil  String?
+  descriptionBis  String?
+  coverImage      String?
+  phone           String?
+  website         String?
+  openingHoursEn  String?
+  openingHoursFil String?
+  openingHoursBis String?
+  addressEn       String?
+  mapX            Float
+  mapY            Float
+  rating          Float    @default(4)
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model MapHotel {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  nameEn      String
-  nameFil     String
-  nameBis     String?
-  description String?
-  mapX        Float
-  mapY        Float
-  rating      Float    @default(4)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  nameEn          String
+  nameFil         String
+  nameBis         String?
+  description     String?
+  descriptionEn   String?
+  descriptionFil  String?
+  descriptionBis  String?
+  coverImage      String?
+  phone           String?
+  website         String?
+  openingHoursEn  String?
+  openingHoursFil String?
+  openingHoursBis String?
+  addressEn       String?
+  mapX            Float
+  mapY            Float
+  rating          Float    @default(4)
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

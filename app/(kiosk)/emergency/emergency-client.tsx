@@ -212,12 +212,12 @@ export function EmergencyClient({ contacts }: { contacts: EmergencyContact[] }) 
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 sm:gap-6">
       {/* Quick Access — Province */}
       <section className="kiosk-page-transition">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-2.5 flex items-center gap-2 sm:mb-3">
           <Zap className="h-4 w-4 text-[#c1121f]" strokeWidth={2.5} fill="currentColor" />
-          <h2 className="text-sm font-extrabold tracking-[0.08em] text-kiosk-navy uppercase">
+          <h2 className="text-xs font-extrabold tracking-[0.08em] text-kiosk-navy uppercase sm:text-sm">
             {pickLang(
               language,
               "Quick Access — Province",
@@ -227,7 +227,7 @@ export function EmergencyClient({ contacts }: { contacts: EmergencyContact[] }) 
           </h2>
         </div>
 
-        <div className="kiosk-stagger grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <div className="kiosk-stagger grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 xl:grid-cols-4">
           {quickAccess.map((contact) => {
             const name = localized(contact, language, "name");
             const label = serviceLabel(name, "Province");
@@ -238,16 +238,16 @@ export function EmergencyClient({ contacts }: { contacts: EmergencyContact[] }) 
             return (
               <article
                 key={contact.id}
-                className="kiosk-hover-lift flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-[0_8px_28px_-18px_rgba(15,23,42,0.45)] ring-1 ring-slate-200/70"
+                className="kiosk-hover-lift flex flex-col gap-3 rounded-2xl bg-white p-3 shadow-[0_8px_28px_-18px_rgba(15,23,42,0.45)] ring-1 ring-slate-200/70 sm:gap-4 sm:p-4"
               >
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-2.5 sm:gap-3">
                   <span
                     className={cn(
-                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-transform duration-300",
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform duration-300 sm:h-12 sm:w-12",
                       tone.iconWrap
                     )}
                   >
-                    <Icon className={cn("h-[22px] w-[22px]", tone.icon)} strokeWidth={2.25} />
+                    <Icon className={cn("h-5 w-5 sm:h-[22px] sm:w-[22px]", tone.icon)} strokeWidth={2.25} />
                   </span>
                   <div className="min-w-0 pt-0.5">
                     <h3 className={cn("text-[13px] font-extrabold leading-snug tracking-wide uppercase", tone.title)}>
@@ -389,7 +389,7 @@ export function EmergencyClient({ contacts }: { contacts: EmergencyContact[] }) 
         >
           <Phone className="h-7 w-7 text-[#c1121f]" strokeWidth={2.5} />
           <div className="leading-none">
-            <p className="text-4xl font-black tracking-tight text-[#c1121f]">911</p>
+            <p className="text-3xl font-black tracking-tight text-[#c1121f] sm:text-4xl">911</p>
             <p className="mt-1 text-[10px] font-bold tracking-[0.14em] text-kiosk-navy uppercase">
               {pickLang(
                 language,

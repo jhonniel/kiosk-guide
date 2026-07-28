@@ -2,6 +2,8 @@
 
 import { db } from "@/lib/db";
 import { feedbackSchema } from "@/lib/validations";
+import { getDynamicQuickStartLinks } from "@/features/kiosk/get-dynamic-quick-start";
+import { normalizeVisitPage } from "@/features/kiosk/quick-start";
 
 export async function submitFeedback(data: {
   name?: string;
@@ -21,7 +23,7 @@ export async function submitFeedback(data: {
 
 export async function logVisitor(page: string, language?: string, sessionId?: string) {
   await db.visitorLog.create({
-    data: { page, language, sessionId },
+    data: { page: normalizeVisitPage(page), language, sessionId },
   });
 }
 
@@ -31,10 +33,7 @@ export async function getSettings() {
 }
 
 export async function getQuickLinks() {
-  return db.quickLink.findMany({
-    where: { isActive: true },
-    orderBy: { sortOrder: "asc" },
-  });
+  return getDynamicQuickStartLinks();
 }
 
 export async function getHomepageCards() {

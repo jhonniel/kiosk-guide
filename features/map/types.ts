@@ -23,6 +23,7 @@ export type Attraction = {
   id: string;
   name: LocalizedString;
   description: LocalizedString;
+  history?: LocalizedString;
   category: AttractionCategory;
   /** Percent position on illustrated map (0–100) */
   x: number;
@@ -36,6 +37,53 @@ export type Attraction = {
   travelTips: LocalizedString;
   travelTime: LocalizedString;
   distanceFromCapitol: LocalizedString;
+  phone?: string | null;
+  website?: string | null;
+  labelText?: string | null;
+  labelDx?: number | null;
+  labelDy?: number | null;
+  labelSide?: "bottom" | "top" | "left" | "right" | null;
+};
+
+export type MapPlacePin = {
+  id: string;
+  kind: "hotel" | "restaurant";
+  name: LocalizedString;
+  description: LocalizedString;
+  x: number;
+  y: number;
+  rating: number;
+  coverImage?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  openingHours?: LocalizedString;
+  address?: string | null;
+};
+
+export type MapEngineAnnotation = {
+  id: string;
+  slug: string;
+  text: string;
+  kind: string;
+  x: number;
+  y: number;
+  fontSize?: number | null;
+  anchor?: "start" | "middle" | "end" | null;
+  info?: LocalizedString | null;
+  skipIfAttractionSlug?: string | null;
+};
+
+export type MapEngineCategory = {
+  id: string;
+  slug: string;
+  nameEn: string;
+  nameFil: string;
+  nameBis: string | null;
+  color: string;
+  icon: string | null;
+  sortOrder: number;
+  showInFilter: boolean;
+  showInLegend: boolean;
 };
 
 export type MapRouteKind = "road" | "boat";

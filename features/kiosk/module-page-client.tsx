@@ -51,11 +51,15 @@ export function ModulePageClient({
   );
   const Icon = getIcon(icon);
 
+  const flush = hideHeader && hideBanner;
+
   return (
     <div
       className={cn(
-        "flex flex-1 flex-col p-8",
-        fit && "h-full min-h-0 basis-0 overflow-hidden pb-2"
+        "flex flex-1 flex-col",
+        flush ? "p-0" : "p-4 sm:p-6 lg:p-8",
+        fit && "h-full min-h-0 basis-0 overflow-hidden",
+        fit && !flush && "pb-2"
       )}
     >
       {!hideHeader && <PageHeader title={title} language={language} compact />}
@@ -63,31 +67,37 @@ export function ModulePageClient({
       {!hideBanner && (
         <section
           className={cn(
-            "relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-r from-kiosk-navy via-[#1f3a68] to-blue-600 px-6 py-7 text-white shadow-lg sm:px-8",
-            fit && "mb-4 py-5"
+            "relative mb-4 overflow-hidden rounded-2xl bg-gradient-to-r from-kiosk-navy via-[#1f3a68] to-blue-600 px-4 py-4 text-white shadow-lg sm:mb-6 sm:px-6 sm:py-6 lg:px-8 lg:py-7",
+            fit && "mb-3 py-3.5 sm:mb-4 sm:py-5"
           )}
         >
           <div className="pointer-events-none absolute -top-12 -right-12 h-48 w-48 rounded-full bg-white/10" />
           <div className="pointer-events-none absolute -right-20 bottom-[-70px] h-60 w-60 rounded-full bg-white/5" />
-          <div className="relative flex items-center gap-5">
-            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-white/15 ring-4 ring-white/10">
-              <Icon className="h-8 w-8" />
+          <div className="relative flex items-center gap-3 sm:gap-5">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15 ring-4 ring-white/10 sm:h-14 sm:w-14 lg:h-16 lg:w-16">
+              <Icon className="h-5 w-5 sm:h-7 sm:w-7 lg:h-8 lg:w-8" />
             </span>
             <div className="min-w-0 flex-1">
-              <h2 className="text-2xl font-extrabold tracking-wide uppercase sm:text-3xl">{title}</h2>
+              <h2 className="text-xl font-extrabold tracking-wide uppercase sm:text-2xl lg:text-3xl">
+                {title}
+              </h2>
               {description && (
-                <p className="mt-1 max-w-3xl text-sm text-blue-100 sm:text-base">{description}</p>
+                <p className="mt-1 line-clamp-2 max-w-3xl text-xs text-blue-100 sm:text-sm lg:text-base">
+                  {description}
+                </p>
               )}
               {bannerMeta && (
                 <div className="mt-1.5 text-xs font-medium text-blue-200 sm:text-sm">{bannerMeta}</div>
               )}
             </div>
-            {bannerAction && <div className="shrink-0">{bannerAction}</div>}
+            {bannerAction && <div className="hidden shrink-0 sm:block">{bannerAction}</div>}
           </div>
         </section>
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      <div className={cn("flex min-h-0 flex-1 flex-col", fit ? "overflow-hidden" : "overflow-y-auto")}>
+        {children}
+      </div>
     </div>
   );
 }

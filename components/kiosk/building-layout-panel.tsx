@@ -94,7 +94,7 @@ export function BuildingLayoutPanel({
         isDemoMode={isDemoMode}
         onFloorChange={onFloorChange}
         autoFollowFloor={autoFollowFloor}
-        height={480}
+        height={0}
       />
     </div>
   );

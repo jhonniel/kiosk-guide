@@ -4,6 +4,7 @@ import { KioskShell } from "@/components/kiosk/kiosk-shell";
 import { KioskOfflineGate } from "@/components/kiosk/kiosk-offline-gate";
 import { KioskIdleAttractLazy } from "@/components/kiosk/kiosk-idle-attract-lazy";
 import { Sidebar } from "@/components/kiosk/sidebar";
+import { QuickStartVisitProvider } from "@/components/kiosk/quick-start-visit-provider";
 import { useKiosk } from "@/hooks/use-kiosk";
 import { useKioskOfflineData } from "@/hooks/use-kiosk-offline-data";
 import { getBoolSetting, getNumberSetting, getSetting } from "@/features/settings/resolve-settings";
@@ -22,10 +23,17 @@ function KioskLayoutInner({ children }: KioskLayoutClientProps) {
   const countdownSeconds = getNumberSetting(settings, "promo_countdown_seconds", 10);
 
   return (
-    <>
+    <QuickStartVisitProvider
+      initialCounts={data.pageVisitCounts ?? data.serviceVisitCounts ?? {}}
+    >
       <KioskShell
         sidebar={
-          <Sidebar language={language} quickLinks={data.quickLinks} settings={data.settings} />
+          <Sidebar
+            language={language}
+            homepageCards={data.homepageCards}
+            services={data.services}
+            settings={data.settings}
+          />
         }
       >
         {children}
@@ -37,7 +45,7 @@ function KioskLayoutInner({ children }: KioskLayoutClientProps) {
         idleSeconds={idleSeconds > 0 ? idleSeconds : 60}
         countdownSeconds={countdownSeconds > 0 ? countdownSeconds : 10}
       />
-    </>
+    </QuickStartVisitProvider>
   );
 }
 

@@ -15,17 +15,17 @@ export function ContactClient({ settings }: Props) {
   return (
     <div className="kiosk-stagger grid gap-4 md:grid-cols-3">
       <ContentCard className="text-center">
-        <Phone className="mx-auto mb-3 h-8 w-8 text-kiosk-green" />
+        <Phone className="mx-auto mb-3 h-6 w-6 text-kiosk-green sm:h-8 sm:w-8" />
         <h3 className="mb-2 font-bold text-kiosk-navy">{uiText(language, "phoneLabel")}</h3>
         <p className="text-gray-600">{settings.contact_phone}</p>
       </ContentCard>
       <ContentCard className="text-center">
-        <Mail className="mx-auto mb-3 h-8 w-8 text-kiosk-green" />
+        <Mail className="mx-auto mb-3 h-6 w-6 text-kiosk-green sm:h-8 sm:w-8" />
         <h3 className="mb-2 font-bold text-kiosk-navy">{uiText(language, "emailLabel")}</h3>
         <p className="text-gray-600">{settings.contact_email}</p>
       </ContentCard>
       <ContentCard className="text-center">
-        <MapPin className="mx-auto mb-3 h-8 w-8 text-kiosk-green" />
+        <MapPin className="mx-auto mb-3 h-6 w-6 text-kiosk-green sm:h-8 sm:w-8" />
         <h3 className="mb-2 font-bold text-kiosk-navy">{uiText(language, "addressLabel")}</h3>
         <p className="text-gray-600">{settings.contact_address}</p>
       </ContentCard>

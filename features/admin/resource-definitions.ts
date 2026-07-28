@@ -215,7 +215,8 @@ export const RESOURCE_CONFIGS: Record<ResourceKey, ResourceConfig> = {
   },
   quickLinks: {
     name: "Quick Start Links",
-    description: "Sidebar quick-start shortcuts on the kiosk home screen.",
+    description:
+      "Legacy admin shortcuts (no longer shown on the kiosk). Quick Start is built automatically from real visit history across homepage modules and services.",
     tableColumns: [
       { key: "titleEn", label: "Title" },
       { key: "href", label: "Link" },

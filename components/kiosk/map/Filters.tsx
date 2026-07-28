@@ -1,22 +1,9 @@
 "use client";
 
 import { ATTRACTION_CATEGORIES } from "@/features/map/categories";
-import type { AttractionCategory } from "@/features/map/types";
+import type { AttractionCategory, MapEngineCategory } from "@/features/map/types";
 import type { Language } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
-
-/** Primary tourism filters — keep chrome tight. */
-const PRIMARY: AttractionCategory[] = [
-  "beach",
-  "falls",
-  "volcano",
-  "hot_spring",
-  "cold_spring",
-  "marine",
-  "port",
-  "church",
-  "landmark",
-];
 
 type Props = {
   language: Language;
@@ -25,10 +12,37 @@ type Props = {
   onToggle: (category: AttractionCategory) => void;
   onClear: () => void;
   allLabel: string;
+  /** DB categories when available; falls back to hardcoded PRIMARY list. */
+  categories?: MapEngineCategory[];
 };
 
-export function MapFilters({ language, active, available, onToggle, onClear, allLabel }: Props) {
-  const chips = ATTRACTION_CATEGORIES.filter((c) => PRIMARY.includes(c.id));
+export function MapFilters({
+  language,
+  active,
+  available,
+  onToggle,
+  onClear,
+  allLabel,
+  categories,
+}: Props) {
+  const chips =
+    categories && categories.length > 0
+      ? categories
+          .filter((c) => c.showInFilter)
+          .map((c) => ({
+            id: c.slug as AttractionCategory,
+            labelEn: c.nameEn,
+            labelFil: c.nameFil,
+            labelBis: c.nameBis || c.nameFil,
+            color: c.color,
+          }))
+      : ATTRACTION_CATEGORIES.filter((c) => c.filterable).map((c) => ({
+          id: c.id,
+          labelEn: c.labelEn,
+          labelFil: c.labelFil,
+          labelBis: c.labelBis,
+          color: c.color,
+        }));
 
   return (
     <div className="pointer-events-auto flex max-w-[min(100%,42rem)] gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

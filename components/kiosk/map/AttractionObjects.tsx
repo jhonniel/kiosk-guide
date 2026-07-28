@@ -24,16 +24,29 @@ type ObjectProps = {
 function MapSpotIcon({
   category,
   active,
+  hovered,
 }: {
   category: AttractionCategory;
   active: boolean;
+  hovered: boolean;
 }) {
-  const size = active ? 26 : 20;
+  const size = active ? 28 : hovered ? 24 : 20;
 
   if (category === "volcano") {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
-        <path d="M12 3 L22 21 H2 Z" fill="#65a30d" stroke="#fff" strokeWidth="1.5" />
+        <path
+          d="M12 3 L22 21 H2 Z"
+          fill={hovered || active ? "#84cc16" : "#65a30d"}
+          stroke="#fff"
+          strokeWidth="1.5"
+        />
+        {(hovered || active) && (
+          <g className="map-mountain-smoke" opacity={0.7}>
+            <ellipse cx="12" cy="2" rx="2.2" ry="1.4" fill="#e2e8f0" />
+            <ellipse cx="13.5" cy="0" rx="1.6" ry="1" fill="#f1f5f9" />
+          </g>
+        )}
       </svg>
     );
   }
@@ -50,7 +63,14 @@ function MapSpotIcon({
   // Default = tourism map "Tourist Attraction" orange circle
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
-      <circle cx="12" cy="12" r="10" fill="#f97316" stroke="#fff" strokeWidth="2" />
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+        fill={hovered || active ? "#fb923c" : "#f97316"}
+        stroke="#fff"
+        strokeWidth="2"
+      />
       <circle cx="12" cy="12" r="4.5" fill="#fff7ed" />
       <circle cx="12" cy="12" r="2.2" fill="#ea580c" />
     </svg>
@@ -99,10 +119,11 @@ export const AttractionMapObject = memo(function AttractionMapObject({
 }: ObjectProps) {
   const active = selected || hovered;
   const spot = MAP_SPOT_LABELS[attraction.id];
-  const displayLabel = spot?.text ?? label;
-  const side = spot?.side ?? "bottom";
-  const dx = spot?.dx ?? 0;
-  const dy = spot?.dy ?? 0;
+  const displayLabel = attraction.labelText?.trim() || spot?.text || label;
+  const side = attraction.labelSide || spot?.side || "bottom";
+  const dx = attraction.labelDx ?? spot?.dx ?? 0;
+  const dy = attraction.labelDy ?? spot?.dy ?? 0;
+  const isVolcano = attraction.category === "volcano";
 
   return (
     <button
@@ -111,7 +132,7 @@ export const AttractionMapObject = memo(function AttractionMapObject({
       aria-label={label}
       aria-pressed={selected}
       className={cn(
-        "absolute z-10 flex flex-col items-center",
+        "absolute z-[10] flex flex-col items-center",
         "touch-manipulation cursor-pointer outline-none"
       )}
       style={{
@@ -121,20 +142,45 @@ export const AttractionMapObject = memo(function AttractionMapObject({
       }}
       onMouseEnter={() => onHover(attraction.id)}
       onMouseLeave={() => onHover(null)}
+      onFocus={() => onHover(attraction.id)}
+      onBlur={() => onHover(null)}
       onClick={(e) => {
         e.stopPropagation();
         onSelect(attraction.id);
       }}
     >
       <motion.span
-        className={cn("relative drop-shadow-md", selected && "map-marker-pulse")}
-        animate={{ scale: selected ? 1.2 : hovered ? 1.1 : 1 }}
-        transition={{ type: "spring", stiffness: 420, damping: 22 }}
+        className={cn(
+          "relative drop-shadow-md",
+          selected && "map-marker-pulse",
+          hovered && !selected && "map-spot-hover-bounce"
+        )}
+        animate={{
+          scale: selected ? 1.28 : hovered ? 1.18 : 1,
+          y: hovered && !selected ? -2 : 0,
+        }}
+        transition={{ type: "spring", stiffness: 460, damping: 20 }}
         style={{
-          filter: active ? "drop-shadow(0 0 8px rgba(249,115,22,0.75))" : undefined,
+          filter: hovered
+            ? isVolcano
+              ? "drop-shadow(0 0 12px rgba(132,204,22,0.9))"
+              : "drop-shadow(0 0 10px rgba(249,115,22,0.85))"
+            : selected
+              ? "drop-shadow(0 0 8px rgba(249,115,22,0.75))"
+              : undefined,
         }}
       >
-        <MapSpotIcon category={attraction.category} active={active} />
+        <MapSpotIcon
+          category={attraction.category}
+          active={selected}
+          hovered={hovered}
+        />
+        {hovered && !selected && (
+          <span
+            className="map-ripple absolute inset-[-4px] rounded-full"
+            style={{ animationDuration: "1s" }}
+          />
+        )}
         {selected && <span className="map-ripple absolute inset-0 rounded-full" />}
       </motion.span>
       {labelVisible && <SpotLabel text={displayLabel} active={active} side={side} />}
@@ -171,7 +217,7 @@ export const AttractionHitRegions = memo(function AttractionHitRegions({
             key={a.id}
             cx={(a.x / 100) * W}
             cy={(a.y / 100) * H}
-            r={active ? 20 : 14}
+            r={active ? 24 : 16}
             fill="transparent"
             className="cursor-pointer"
             onMouseEnter={() => onHover(a.id)}

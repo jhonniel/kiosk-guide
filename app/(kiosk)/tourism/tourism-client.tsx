@@ -58,7 +58,7 @@ export function TourismClient({ items }: { items: Tourism[] }) {
 
   return (
     <div>
-      <div className="mb-5 flex flex-wrap gap-2">
+      <div className="mb-3 flex flex-wrap gap-2 sm:mb-5">
         <button
           type="button"
           onClick={() => {
@@ -66,7 +66,7 @@ export function TourismClient({ items }: { items: Tourism[] }) {
             setSelectedId(null);
           }}
           className={cn(
-            "rounded-full px-5 py-2.5 text-sm font-semibold transition-all",
+            "rounded-full px-4 py-2 text-xs font-semibold transition-all sm:px-5 sm:py-2.5 sm:text-sm",
             activeCategory === "all"
               ? "bg-kiosk-navy text-white shadow-md"
               : "bg-white text-kiosk-navy shadow-sm hover:shadow-md"
@@ -83,7 +83,7 @@ export function TourismClient({ items }: { items: Tourism[] }) {
               setSelectedId(null);
             }}
             className={cn(
-              "rounded-full px-5 py-2.5 text-sm font-semibold transition-all",
+              "rounded-full px-4 py-2 text-xs font-semibold transition-all sm:px-5 sm:py-2.5 sm:text-sm",
               activeCategory === key
                 ? "bg-kiosk-navy text-white shadow-md"
                 : "bg-white text-kiosk-navy shadow-sm hover:shadow-md"
@@ -94,7 +94,7 @@ export function TourismClient({ items }: { items: Tourism[] }) {
         ))}
       </div>
 
-      <div className="kiosk-stagger grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+      <div className="kiosk-stagger grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-5">
         {visible.map((item) => {
           const category = CATEGORY_STYLES[item.category ?? ""];
           const title = localized(item, language, "title");
@@ -108,7 +108,7 @@ export function TourismClient({ items }: { items: Tourism[] }) {
               className="group kiosk-hover-lift flex flex-col overflow-hidden rounded-2xl bg-white text-left shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-kiosk-green"
               aria-label={title}
             >
-              <div className="relative h-48 w-full shrink-0 bg-pink-50">
+              <div className="relative h-36 w-full shrink-0 bg-pink-50 sm:h-44 lg:h-48">
                 {item.imageUrl ? (
                   <Image
                     src={item.imageUrl}
@@ -120,7 +120,7 @@ export function TourismClient({ items }: { items: Tourism[] }) {
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center">
-                    <Palmtree className="h-12 w-12 text-pink-500" />
+                    <Palmtree className="h-10 w-10 text-pink-500 sm:h-12 sm:w-12" />
                   </div>
                 )}
                 {category && (
@@ -134,8 +134,8 @@ export function TourismClient({ items }: { items: Tourism[] }) {
                   </span>
                 )}
               </div>
-              <div className="flex flex-1 flex-col p-5">
-                <h3 className="mb-1.5 text-[17px] leading-snug font-bold text-kiosk-navy">
+              <div className="flex flex-1 flex-col p-3.5 sm:p-4 lg:p-5">
+                <h3 className="mb-1.5 line-clamp-2 text-[15px] leading-snug font-bold text-kiosk-navy sm:text-[17px]">
                   {title}
                 </h3>
                 {item.location && (
@@ -159,14 +159,14 @@ export function TourismClient({ items }: { items: Tourism[] }) {
             className="w-[min(760px,calc(100%-2rem))] max-w-none gap-0 overflow-visible border-0 bg-transparent p-0 shadow-none ring-0 sm:max-w-[760px]"
             showCloseButton={false}
           >
-            <div className="h-[min(78vh,560px)] [perspective:1600px]">
+            <div className="h-[min(78vh,560px)] max-h-[calc(100vh-6rem)] [perspective:1600px]">
               <div
                 className="relative h-full w-full transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] [transform-style:preserve-3d]"
                 style={{ transform: showPhoto ? "rotateY(180deg)" : "rotateY(0deg)" }}
               >
                 {/* Front: info only */}
                 <div className="absolute inset-0 flex flex-col overflow-hidden rounded-3xl bg-white shadow-2xl [backface-visibility:hidden]">
-                  <div className="relative flex flex-col items-center border-b border-gray-100 px-14 pt-7 pb-5 text-center">
+                  <div className="relative flex flex-col items-center border-b border-gray-100 px-6 pt-5 pb-4 text-center sm:px-10 sm:pt-6 sm:pb-5 lg:px-14 lg:pt-7">
                     {CATEGORY_STYLES[selected.category ?? ""] && (
                       <span
                         className={cn(
@@ -177,7 +177,7 @@ export function TourismClient({ items }: { items: Tourism[] }) {
                         {CATEGORY_STYLES[selected.category ?? ""].label}
                       </span>
                     )}
-                    <DialogTitle className="text-2xl font-extrabold text-kiosk-navy sm:text-3xl">
+                    <DialogTitle className="line-clamp-2 text-xl font-extrabold text-kiosk-navy sm:text-2xl lg:text-3xl">
                       {localized(selected, language, "title")}
                     </DialogTitle>
                     {selected.location && (
@@ -195,8 +195,8 @@ export function TourismClient({ items }: { items: Tourism[] }) {
                       ✕
                     </button>
                   </div>
-                  <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-7 py-6">
-                    <DialogDescription className="my-auto text-center text-[16px] leading-8 text-gray-600">
+                  <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-4 sm:px-7 sm:py-6">
+                    <DialogDescription className="my-auto text-center text-sm leading-7 text-gray-600 sm:text-[16px] sm:leading-8">
                       {localized(selected, language, "description")}
                     </DialogDescription>
                   </div>

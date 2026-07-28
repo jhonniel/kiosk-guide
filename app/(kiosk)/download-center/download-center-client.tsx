@@ -166,10 +166,10 @@ export function DownloadCenterClient({
               key={item.id}
               className="flex flex-col rounded-2xl border border-gray-100 bg-white shadow-sm transition-shadow hover:border-gray-200 hover:shadow-md"
             >
-              <div className="flex flex-1 gap-3.5 p-5">
+              <div className="flex flex-1 gap-3 p-3.5 sm:gap-3.5 sm:p-5">
                 <span
                   className={cn(
-                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11",
                     style.icon
                   )}
                 >
@@ -192,7 +192,7 @@ export function DownloadCenterClient({
                       </span>
                     )}
                   </div>
-                  <h3 className="text-[15px] leading-snug font-bold text-kiosk-navy">{title}</h3>
+                  <h3 className="line-clamp-2 text-[14px] leading-snug font-bold text-kiosk-navy sm:text-[15px]">{title}</h3>
                   {description ? (
                     <p className="line-clamp-2 text-xs leading-relaxed text-gray-500">
                       {description}
@@ -201,7 +201,7 @@ export function DownloadCenterClient({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 px-5 pb-5">
+              <div className="flex items-center gap-2 px-3.5 pb-3.5 sm:px-5 sm:pb-5">
                 {deliverySettings.qrEnabled && (
                   <button
                     type="button"
@@ -229,7 +229,7 @@ export function DownloadCenterClient({
       </div>
 
       {visible.length === 0 && (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-gray-200 bg-white p-6 text-center sm:p-12">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 text-gray-400">
             <FileText className="h-6 w-6" />
           </span>

@@ -97,7 +97,7 @@ export function BuildingDirectoryClient({
   const showLayout = navigationGraph.floorPlans.length > 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6 lg:space-y-8">
       <BuildingDirectoryGuide
         isDemoMode={isDemoMode}
         uiConfig={uiConfig}

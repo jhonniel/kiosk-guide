@@ -153,7 +153,7 @@ export function FaqClient({ faqs }: { faqs: Faq[] }) {
 
       <div className="kiosk-stagger space-y-7">
         {filtered.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-white/80 px-6 py-16 text-center">
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white/80 px-4 py-10 text-center sm:px-6 sm:py-16">
             <p className="text-sm font-medium text-slate-600">
               {pickLang(
                 language,

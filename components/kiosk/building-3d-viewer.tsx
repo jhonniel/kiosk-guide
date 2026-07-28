@@ -90,7 +90,7 @@ export function Building3DViewer({
   onCloseRoomInfo,
   onStartNavigation,
   className,
-  height = 480,
+  height = 0,
 }: Building3DViewerProps) {
   const { language } = useKiosk();
   const focusFloor = currentFloor;
@@ -247,7 +247,11 @@ export function Building3DViewer({
         </div>
       )}
 
-      <div style={{ height }} className="relative bg-[#f0f4f8]" data-kiosk-zoom-surface>
+      <div
+        style={height > 0 ? { height } : undefined}
+        className={cn("relative bg-[#f0f4f8]", height <= 0 && "h-[min(45vh,480px)]")}
+        data-kiosk-zoom-surface
+      >
         {selectedNode && !isNavigating && (
           <div
             ref={roomOverlayRef}

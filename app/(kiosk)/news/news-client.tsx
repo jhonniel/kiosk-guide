@@ -78,13 +78,13 @@ function FeaturedContent({
     <div className={cn("col-start-1 row-start-1 flex min-h-0 flex-col", className)}>
       <button
         type="button"
-        className="relative aspect-[16/9] w-full shrink-0 overflow-hidden text-left"
+        className="relative aspect-[16/10] w-full shrink-0 overflow-hidden text-left sm:aspect-[16/9]"
         onClick={() => onOpen(item)}
         aria-label={`${pickLang(language, "Open", "Buksan", "Ablihi")} ${title}`}
       >
         <Thumb item={item} sizesHint="(min-width: 1024px) 45vw, 100vw" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
-        <div className="absolute right-4 bottom-4 left-4">
+        <div className="absolute right-3 bottom-3 left-3 sm:right-4 sm:bottom-4 sm:left-4">
           <span
             className={cn(
               "inline-block rounded-md px-2.5 py-1 text-[10px] font-bold tracking-wider text-white",
@@ -93,14 +93,14 @@ function FeaturedContent({
           >
             {categoryLabel(item.category)}
           </span>
-          <h3 className="mt-2 text-xl leading-snug font-bold text-white sm:text-2xl">{title}</h3>
+          <h3 className="mt-2 line-clamp-2 text-lg leading-snug font-bold text-white sm:text-xl lg:text-2xl">{title}</h3>
           <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-white/90">
             <Calendar className="h-3.5 w-3.5" />
             {format(new Date(item.publishedAt), "MMMM d, yyyy")}
           </p>
         </div>
       </button>
-      <div className="flex min-h-0 flex-1 flex-col p-5">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3.5 sm:p-5">
         <p className="line-clamp-3 text-sm leading-relaxed text-gray-700">{content}</p>
         <button
           type="button"
@@ -243,7 +243,7 @@ export function NewsClient({ announcements }: { announcements: Announcement[] })
                   if (event.key === "Enter" || event.key === " ") openNews(item);
                 }}
               >
-                <div className="relative h-24 w-32 shrink-0 overflow-hidden rounded-xl">
+                <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-xl sm:h-20 sm:w-28 lg:h-24 lg:w-32">
                   <Thumb item={item} sizesHint="128px" />
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col justify-center py-1">
@@ -261,7 +261,7 @@ export function NewsClient({ announcements }: { announcements: Announcement[] })
                       {format(new Date(item.publishedAt), "MMMM d, yyyy")}
                     </span>
                   </div>
-                  <h3 className="mt-1.5 text-sm leading-snug font-bold text-kiosk-navy">{title}</h3>
+                  <h3 className="mt-1.5 line-clamp-2 text-sm leading-snug font-bold text-kiosk-navy">{title}</h3>
                   <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-600">{content}</p>
                 </div>
               </article>
@@ -314,7 +314,7 @@ function NewsDetailModal({
         )}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="relative aspect-[16/7] min-h-52 w-full shrink-0 overflow-hidden">
+        <div className="relative aspect-[16/7] min-h-36 w-full shrink-0 overflow-hidden sm:min-h-44 lg:min-h-52">
           <Thumb item={item} sizesHint="896px" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10" />
           <button
@@ -336,7 +336,7 @@ function NewsDetailModal({
             </span>
             <h2
               id="news-detail-title"
-              className="mt-2 max-w-3xl text-xl leading-tight font-bold text-white sm:text-3xl"
+              className="mt-2 max-w-3xl line-clamp-3 text-lg leading-tight font-bold text-white sm:text-xl lg:text-3xl"
             >
               {title}
             </h2>

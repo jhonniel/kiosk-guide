@@ -16,8 +16,8 @@ export function OfficeHoursClient({ settings }: Props) {
 
   return (
     <ContentCard className="max-w-lg text-center">
-      <Clock className="mx-auto mb-4 h-16 w-16 text-kiosk-green" />
-      <h3 className="mb-2 text-xl font-bold text-kiosk-navy">
+      <Clock className="mx-auto mb-3 h-12 w-12 text-kiosk-green sm:mb-4 sm:h-16 sm:w-16" />
+      <h3 className="mb-2 text-lg font-bold text-kiosk-navy sm:text-xl">
         {pickLang(
           language,
           "Regular Office Hours",
@@ -25,8 +25,8 @@ export function OfficeHoursClient({ settings }: Props) {
           "Regular nga Oras sa Opisina"
         )}
       </h3>
-      <p className="text-lg text-gray-700">{hours}</p>
-      <p className="mt-4 text-sm text-gray-500">
+      <p className="text-base text-gray-700 sm:text-lg">{hours}</p>
+      <p className="mt-3 text-xs text-gray-500 sm:mt-4 sm:text-sm">
         {pickLang(
           language,
           "Closed on weekends and national holidays.",

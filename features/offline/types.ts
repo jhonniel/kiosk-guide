@@ -17,13 +17,18 @@ import type {
 } from "@prisma/client";
 
 /** Bump when offline payload shape or required client cache invalidation changes. */
-export const KIOSK_OFFLINE_DATA_VERSION = 6;
+export const KIOSK_OFFLINE_DATA_VERSION = 8;
 
 export interface KioskOfflineData {
   version: number;
   exportedAt: string;
   settings: Record<string, string>;
+  /** Top 5 Quick Start destinations ranked by system-wide visits. */
   quickLinks: QuickLink[];
+  /** Global page visit counts used to rank Quick Start across the whole kiosk. */
+  pageVisitCounts: Record<string, number>;
+  /** @deprecated Use pageVisitCounts */
+  serviceVisitCounts?: Record<string, number>;
   homepageCards: HomepageCard[];
   services: Service[];
   directories: Directory[];

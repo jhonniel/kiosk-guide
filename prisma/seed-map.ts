@@ -14,6 +14,7 @@ import {
   TRACED_WHITE_ISLAND,
 } from "../data/map/traced-paths";
 import { ATTRACTION_GEO } from "../data/map/attraction-geo";
+import { MAP_ANNOTATIONS } from "@/data/map/map-spot-labels";
 
 /** Features derived from the master tourism map (traced vectors). */
 function masterTracedFeatures() {
@@ -122,6 +123,8 @@ export async function seedMapEngine(prisma: PrismaClient) {
         nameFil: cat.labelFil,
         nameBis: cat.labelBis,
         color: cat.color,
+        showInFilter: cat.filterable,
+        showInLegend: cat.legend,
         sortOrder: ATTRACTION_CATEGORIES.indexOf(cat),
       },
       create: {
@@ -130,6 +133,8 @@ export async function seedMapEngine(prisma: PrismaClient) {
         nameFil: cat.labelFil,
         nameBis: cat.labelBis,
         color: cat.color,
+        showInFilter: cat.filterable,
+        showInLegend: cat.legend,
         sortOrder: ATTRACTION_CATEGORIES.indexOf(cat),
       },
     });
@@ -228,10 +233,7 @@ export async function seedMapEngine(prisma: PrismaClient) {
         descriptionBis: a.description.bis,
         categoryId,
         municipalityId: municipalityId ?? null,
-        latitude,
-        longitude,
-        mapX,
-        mapY,
+        // Preserve admin-edited pin positions (mapX/mapY/lat/lng)
         svgPath: a.region ?? null,
         coverImage: cover,
         entranceFeeEn: a.entranceFee.en,
@@ -274,14 +276,43 @@ export async function seedMapEngine(prisma: PrismaClient) {
         travelTipsEn: a.travelTips.en,
         travelTipsFil: a.travelTips.fil,
         travelTipsBis: a.travelTips.bis,
+        travelTimeEn: a.travelTime.en,
+        travelTimeFil: a.travelTime.fil,
+        travelTimeBis: a.travelTime.bis,
+        distanceFromCapitolEn: a.distanceFromCapitol.en,
+        distanceFromCapitolFil: a.distanceFromCapitol.fil,
+        distanceFromCapitolBis: a.distanceFromCapitol.bis,
         featured: index < 6,
         isActive: true,
         sortOrder: index,
       },
     });
 
-    await prisma.mapPhoto.deleteMany({ where: { attractionId: attraction.id } });
-    if (gallery.length) {
+    // Fill travel/distance from catalog only when still empty (never overwrite admin edits)
+    if (!attraction.travelTimeEn || !attraction.distanceFromCapitolEn) {
+      await prisma.mapAttraction.update({
+        where: { id: attraction.id },
+        data: {
+          ...(attraction.travelTimeEn
+            ? {}
+            : {
+                travelTimeEn: a.travelTime.en,
+                travelTimeFil: a.travelTime.fil,
+                travelTimeBis: a.travelTime.bis,
+              }),
+          ...(attraction.distanceFromCapitolEn
+            ? {}
+            : {
+                distanceFromCapitolEn: a.distanceFromCapitol.en,
+                distanceFromCapitolFil: a.distanceFromCapitol.fil,
+                distanceFromCapitolBis: a.distanceFromCapitol.bis,
+              }),
+        },
+      });
+    }
+
+    const photoCount = await prisma.mapPhoto.count({ where: { attractionId: attraction.id } });
+    if (photoCount === 0 && gallery.length) {
       await prisma.mapPhoto.createMany({
         data: gallery.map((url, sortOrder) => ({
           attractionId: attraction.id,
@@ -294,6 +325,35 @@ export async function seedMapEngine(prisma: PrismaClient) {
 
   const attractions = await prisma.mapAttraction.findMany({ select: { id: true, slug: true } });
   const attractionBySlug = new Map(attractions.map((a) => [a.slug, a.id]));
+  const attractionSlugs = new Set(attractions.map((a) => a.slug));
+
+  for (const [index, annotation] of MAP_ANNOTATIONS.entries()) {
+    const skipIfAttractionSlug =
+      annotation.skipIfAttraction && attractionSlugs.has(annotation.id) ? annotation.id : null;
+
+    await prisma.mapAnnotation.upsert({
+      where: { slug: annotation.id },
+      update: {
+        text: annotation.text,
+        kind: annotation.kind,
+        fontSize: annotation.fontSize ?? null,
+        anchor: annotation.anchor ?? null,
+        skipIfAttractionSlug,
+        sortOrder: index,
+      },
+      create: {
+        slug: annotation.id,
+        text: annotation.text,
+        kind: annotation.kind,
+        mapX: annotation.x,
+        mapY: annotation.y,
+        fontSize: annotation.fontSize ?? null,
+        anchor: annotation.anchor ?? null,
+        skipIfAttractionSlug,
+        sortOrder: index,
+      },
+    });
+  }
 
   for (const route of CAMIGUIN_ROUTES) {
     const fromId = attractionBySlug.get(route.fromId);
@@ -309,10 +369,6 @@ export async function seedMapEngine(prisma: PrismaClient) {
         kind: route.kind,
         fromId,
         toId,
-        pointsJson: JSON.stringify(route.points),
-        travelTimeEn: route.travelTime.en,
-        travelTimeFil: route.travelTime.fil,
-        travelTimeBis: route.travelTime.bis,
         isActive: true,
       },
       create: {
@@ -337,11 +393,23 @@ export async function seedMapEngine(prisma: PrismaClient) {
     { slug: "paras-beach-resort-dining", nameEn: "Paras Beach Resort Dining", nameFil: "Paras Beach Resort Dining", nameBis: "Paras Beach Resort Dining", mapX: 42, mapY: 14, rating: 4.4 },
     { slug: "secret-cove", nameEn: "Secret Cove", nameFil: "Secret Cove", nameBis: "Secret Cove", mapX: 50, mapY: 16, rating: 4.3 },
   ];
-  for (const r of sampleRestaurants) {
+  for (const [index, r] of sampleRestaurants.entries()) {
     await prisma.mapRestaurant.upsert({
       where: { slug: r.slug },
-      update: { ...r, isActive: true },
-      create: { ...r, isActive: true },
+      update: {
+        nameEn: r.nameEn,
+        nameFil: r.nameFil,
+        nameBis: r.nameBis,
+        rating: r.rating,
+        isActive: true,
+        sortOrder: index,
+      },
+      create: {
+        ...r,
+        descriptionEn: r.nameEn,
+        isActive: true,
+        sortOrder: index,
+      },
     });
   }
 
@@ -349,11 +417,23 @@ export async function seedMapEngine(prisma: PrismaClient) {
     { slug: "paras-beach-resort", nameEn: "Paras Beach Resort", nameFil: "Paras Beach Resort", nameBis: "Paras Beach Resort", mapX: 41, mapY: 13, rating: 4.5 },
     { slug: "camiguin-highland-resort", nameEn: "Camiguin Highland Resort", nameFil: "Camiguin Highland Resort", nameBis: "Camiguin Highland Resort", mapX: 46, mapY: 28, rating: 4.2 },
   ];
-  for (const h of sampleHotels) {
+  for (const [index, h] of sampleHotels.entries()) {
     await prisma.mapHotel.upsert({
       where: { slug: h.slug },
-      update: { ...h, isActive: true },
-      create: { ...h, isActive: true },
+      update: {
+        nameEn: h.nameEn,
+        nameFil: h.nameFil,
+        nameBis: h.nameBis,
+        rating: h.rating,
+        isActive: true,
+        sortOrder: index,
+      },
+      create: {
+        ...h,
+        descriptionEn: h.nameEn,
+        isActive: true,
+        sortOrder: index,
+      },
     });
   }
 
@@ -363,6 +443,7 @@ export async function seedMapEngine(prisma: PrismaClient) {
     features: await prisma.mapFeature.count(),
     attractions: await prisma.mapAttraction.count(),
     routes: await prisma.mapRoute.count(),
+    annotations: await prisma.mapAnnotation.count(),
   };
   console.log("Map engine seed counts:", counts);
 }

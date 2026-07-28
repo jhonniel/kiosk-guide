@@ -30,11 +30,16 @@ function fallbackPayload(): MapEnginePayload {
       nameEn: m.nameEn,
       nameFil: m.nameFil,
       nameBis: m.nameBis,
+      description: null,
       svgPath: m.svgPath,
       labelX: m.labelX,
       labelY: m.labelY,
       fillColor: m.fillColor,
     })),
+    annotations: [],
+    categories: [],
+    hotels: [],
+    restaurants: [],
   };
 }
 

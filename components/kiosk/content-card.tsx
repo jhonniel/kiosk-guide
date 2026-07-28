@@ -7,7 +7,7 @@ interface ContentCardProps {
 
 export function ContentCard({ children, className }: ContentCardProps) {
   return (
-    <div className={cn("kiosk-hover-lift rounded-2xl bg-white p-6 shadow-md", className)}>
+    <div className={cn("kiosk-hover-lift rounded-2xl bg-white p-4 shadow-md sm:p-5 lg:p-6", className)}>
       {children}
     </div>
   );

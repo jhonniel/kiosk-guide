@@ -138,7 +138,7 @@ export function GovernmentDirectoryClient({ directories }: { directories: Direct
           event.currentTarget.scrollLeft += event.deltaY;
         }}
       >
-        <div className="kiosk-stagger grid h-full auto-cols-[minmax(16.5rem,calc((100%-1rem)/2))] grid-flow-col grid-rows-2 gap-4 sm:auto-cols-[minmax(17rem,calc((100%-2rem)/3))] xl:auto-cols-[minmax(17rem,calc((100%-3rem)/4))]">
+        <div className="kiosk-stagger grid h-full auto-cols-[minmax(14rem,calc((100%-1rem)/2))] grid-flow-col grid-rows-2 gap-3 sm:auto-cols-[minmax(15.5rem,calc((100%-2rem)/3))] sm:gap-4 xl:auto-cols-[minmax(16.5rem,calc((100%-3rem)/4))]">
           {directories.map((dir) => {
             const officeName = localized(dir, language, "name");
             const Icon = departmentIcon(officeName);
@@ -151,14 +151,14 @@ export function GovernmentDirectoryClient({ directories }: { directories: Direct
                 key={dir.id}
                 className="group flex h-full min-h-0 w-full snap-start flex-col overflow-hidden rounded-2xl bg-white shadow-[0_12px_36px_-24px_rgba(15,23,42,0.55)] ring-1 ring-slate-200/80 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-22px_rgba(15,23,42,0.5)]"
               >
-                <div className="flex shrink-0 items-start gap-3 border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-sky-50/40 px-4 py-3.5">
+                <div className="flex shrink-0 items-start gap-2.5 border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-sky-50/40 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3.5">
                   <span
                     className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1",
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 sm:h-10 sm:w-10",
                       departmentTone(officeName)
                     )}
                   >
-                    <Icon className="h-5 w-5" strokeWidth={2.1} />
+                    <Icon className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2.1} />
                   </span>
                   <div className="min-w-0">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
@@ -169,13 +169,13 @@ export function GovernmentDirectoryClient({ directories }: { directories: Direct
                         "Opisina / Departamento"
                       )}
                     </p>
-                    <h3 className="mt-1 text-[14px] font-extrabold leading-snug tracking-tight text-kiosk-navy sm:text-[15px]">
+                    <h3 className="mt-1 line-clamp-2 text-[13px] font-extrabold leading-snug tracking-tight text-kiosk-navy sm:text-[15px]">
                       {officeName}
                     </h3>
                   </div>
                 </div>
 
-                <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-4 py-3.5">
+                <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3.5">
                   <div className="shrink-0">
                     <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
                       {pickLang(

@@ -10,6 +10,10 @@ import { getResolvedSettings, getSetting } from "@/features/settings/resolve-set
 import type { NavigationGraph } from "@/features/building-directory/navigation/types";
 import { getPublishedCharterEdition } from "@/features/citizens-charter/queries";
 import {
+  getDynamicQuickStartLinks,
+  getSystemVisitCounts,
+} from "@/features/kiosk/get-dynamic-quick-start";
+import {
   KIOSK_OFFLINE_DATA_VERSION,
   type CitizensCharterOfflineBundle,
   type KioskOfflineData,
@@ -18,11 +22,31 @@ import {
 export { KIOSK_OFFLINE_DATA_VERSION };
 export type { CitizensCharterOfflineBundle };
 
+function toOfflineQuickLinks(
+  links: Awaited<ReturnType<typeof getDynamicQuickStartLinks>>
+): KioskOfflineData["quickLinks"] {
+  const now = new Date().toISOString();
+  return links.map((link, index) => ({
+    id: link.id,
+    slug: link.slug ?? `quick-start-${index + 1}`,
+    titleEn: link.titleEn,
+    titleFil: link.titleFil,
+    titleBis: link.titleBis ?? null,
+    icon: link.icon,
+    href: link.href,
+    isActive: true,
+    sortOrder: index + 1,
+    createdAt: now as unknown as Date,
+    updatedAt: now as unknown as Date,
+  }));
+}
+
 /** Light core payload used for kiosk boot (excludes heavy Citizens' Charter body). */
 export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
   const [
     settings,
-    quickLinks,
+    rankedQuickStart,
+    pageVisitCounts,
     homepageCards,
     services,
     directories,
@@ -37,7 +61,8 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
     navData,
   ] = await Promise.all([
     getResolvedSettings(),
-    db.quickLink.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
+    getDynamicQuickStartLinks(),
+    getSystemVisitCounts(),
     db.homepageCard.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
     db.service.findMany({ where: { isActive: true } }),
     db.directory.findMany({ where: { isActive: true } }),
@@ -55,6 +80,8 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
     getNavigationGraphForClient(),
   ]);
 
+  const quickLinks = toOfflineQuickLinks(rankedQuickStart);
+
   const baseGraph = navData.graph ?? DEMO_NAVIGATION_GRAPH;
   const kioskStartId = getSetting(settings, "building_kiosk_location_id", baseGraph.defaultStartLocationId);
   const navigationGraph: NavigationGraph = {
@@ -71,6 +98,8 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
     exportedAt: new Date().toISOString(),
     settings,
     quickLinks,
+    pageVisitCounts,
+    serviceVisitCounts: pageVisitCounts,
     homepageCards,
     services,
     directories,

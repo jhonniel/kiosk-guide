@@ -141,7 +141,7 @@ export function FloorPlanViewer({
 
       <div
         className="relative cursor-grab overflow-hidden bg-[#f4f7fb] active:cursor-grabbing"
-        style={{ height: browseMode ? 420 : 320 }}
+        style={{ height: browseMode ? "min(42vh, 420px)" : "min(32vh, 320px)" }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

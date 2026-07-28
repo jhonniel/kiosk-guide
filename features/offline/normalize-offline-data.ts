@@ -11,6 +11,8 @@ export function normalizeOfflineData(data: KioskOfflineData): KioskOfflineData {
       ...download,
       downloadCount: download.downloadCount ?? 0,
     })),
+    serviceVisitCounts: data.pageVisitCounts ?? data.serviceVisitCounts ?? {},
+    pageVisitCounts: data.pageVisitCounts ?? data.serviceVisitCounts ?? {},
     citizensCharter: data.citizensCharter ?? null,
     uiConfigBis,
   };

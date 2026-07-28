@@ -9,6 +9,14 @@ type Props = {
   title: string;
 };
 
+type LegendItem = {
+  id: string;
+  labelEn: string;
+  labelFil: string;
+  labelBis: string;
+  icon: ReactNode;
+};
+
 /** Tourism-map legend symbols (matches Camiguin tourist map artwork). */
 function LegendIcon({ kind }: { kind: string }): ReactNode {
   switch (kind) {
