@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { Building3DScene } from "@/components/kiosk/building-3d-scene";
 import { IsometricNavigationCamera } from "@/components/kiosk/building-isometric-camera";
 import { BuildingOrbitCameraFit } from "@/components/kiosk/building-orbit-camera-fit";
-import { getFloorExtents } from "@/features/building-directory/navigation/building-3d";
+import { getFloorExtents, graphHasFloorPlanImages } from "@/features/building-directory/navigation/building-3d";
 import {
   BuildingRoomInfoCard,
   getRoomAnchorPosition,
@@ -163,6 +163,7 @@ export function Building3DViewer({
   }, [highlightNode, onFloorChange, isNavigating, autoFollowFloor]);
 
   const floorLabel = graph.floorPlans.find((f) => f.floor === focusFloor)?.label ?? `Floor ${focusFloor}`;
+  const imageBased = graphHasFloorPlanImages(graph);
   const kioskLabel = pickLang(
     language,
     kioskLocation.labelEn,
@@ -224,32 +225,42 @@ export function Building3DViewer({
 
       {isDemoMode && (
         <div className="bg-amber-50 px-4 py-1.5 text-center text-xs text-amber-700">
-          {isNavigating
+          {imageBased
             ? pickLang(
                 language,
-                "Follow the blue path from your location to the destination",
-                "Sundin ang asul na linya papunta sa destinasyon",
-                "Sunda ang asul nga linya gikan sa imong lokasyon padulong sa destinasyon"
+                `Viewing ${floorLabel} — uploaded floor plan in 3D. Switch floors above.`,
+                `Tinitingnan ang ${floorLabel} — naka-upload na floor plan sa 3D. Palitan ang palapag sa itaas.`,
+                `Tan-awon ang ${floorLabel} — naka-upload nga floor plan sa 3D. Ilisan ang andana sa ibabaw.`
               )
-            : navigationMapMode
+            : isNavigating
               ? pickLang(
                   language,
-                  "Blue path preview from the kiosk to your selected location",
-                  "Preview ng asul na ruta mula sa kiosk",
-                  "Preview sa asul nga ruta gikan sa kiosk"
+                  "Follow the blue path from your location to the destination",
+                  "Sundin ang asul na linya papunta sa destinasyon",
+                  "Sunda ang asul nga linya gikan sa imong lokasyon padulong sa destinasyon"
                 )
-              : pickLang(
-                  language,
-                  `Viewing ${floorLabel} — tap a room for details`,
-                  `Tinitingnan ang ${floorLabel} — pindutin ang silid para sa detalye`,
-                  `Tan-awon ang ${floorLabel} — pindota ang kwarto para sa detalye`
-                )}
+              : navigationMapMode
+                ? pickLang(
+                    language,
+                    "Blue path preview from the kiosk to your selected location",
+                    "Preview ng asul na ruta mula sa kiosk",
+                    "Preview sa asul nga ruta gikan sa kiosk"
+                  )
+                : pickLang(
+                    language,
+                    `Viewing ${floorLabel} — tap a room for details`,
+                    `Tinitingnan ang ${floorLabel} — pindutin ang silid para sa detalye`,
+                    `Tan-awon ang ${floorLabel} — pindota ang kwarto para sa detalye`
+                  )}
         </div>
       )}
 
       <div
         style={height > 0 ? { height } : undefined}
-        className={cn("relative bg-[#f0f4f8]", height <= 0 && "h-[min(45vh,480px)]")}
+        className={cn(
+          "relative bg-[#f0f4f8]",
+          height <= 0 && (imageBased ? "h-[min(58vh,620px)]" : "h-[min(45vh,480px)]")
+        )}
         data-kiosk-zoom-surface
       >
         {selectedNode && !isNavigating && (
@@ -268,19 +279,26 @@ export function Building3DViewer({
         )}
 
         <Canvas
-          shadows={false}
-          dpr={1}
-          frameloop={isNavigating ? "always" : "demand"}
-          camera={navigationMapMode ? undefined : { position: [0, 40, 40], fov: 44, near: 0.1, far: 160 }}
+          shadows={imageBased ? "soft" : false}
+          dpr={[1, 1.5]}
+          frameloop={isNavigating || imageBased ? "always" : "demand"}
+          camera={
+            navigationMapMode
+              ? undefined
+              : imageBased
+                ? { position: [35, 50, 35], fov: 38, near: 0.1, far: 400 }
+                : { position: [0, 55, 55], fov: 42, near: 0.1, far: 160 }
+          }
           gl={{
-            antialias: false,
+            antialias: true,
             alpha: true,
             powerPreference: "high-performance",
             logarithmicDepthBuffer: false,
           }}
         >
-          <color attach="background" args={["#f0f4f8"]} />
-          {!navigationMapMode && <fog attach="fog" args={["#e8f0fa", 55, 130]} />}
+          <color attach="background" args={[imageBased ? "#f5f5f5" : "#f0f4f8"]} />
+          {!navigationMapMode && !imageBased && <fog attach="fog" args={["#e8f0fa", 55, 130]} />}
+          {!navigationMapMode && imageBased && <fog attach="fog" args={["#f5f5f5", 120, 280]} />}
           <Suspense fallback={<SceneLoader />}>
             {navigationMapMode && (
               <IsometricNavigationCamera graph={graph} viewFloor={focusFloor} />

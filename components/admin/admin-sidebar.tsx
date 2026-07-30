@@ -15,6 +15,7 @@ import {
   Phone,
   Palmtree,
   Map,
+  MapPinned,
   Zap,
   LayoutGrid,
   Settings,
@@ -32,6 +33,7 @@ const navItems = [
   { href: "/admin/citizens-charter", label: "Citizens' Charter", icon: ScrollText },
   { href: "/admin/directories", label: "Directories", icon: Building },
   { href: "/admin/building-locations", label: "Building Locations", icon: Building2 },
+  { href: "/admin/indoor-map", label: "Indoor Map", icon: MapPinned },
   { href: "/admin/downloads", label: "Downloads", icon: Download },
   { href: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { href: "/admin/faqs", label: "FAQs", icon: HelpCircle },
@@ -67,7 +69,10 @@ export function AdminSidebar({ user }: Props) {
                 href={item.href}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                  pathname === item.href ? "bg-white/20" : "hover:bg-white/10"
+                  pathname === item.href ||
+                    (item.href !== "/admin" && pathname.startsWith(item.href + "/"))
+                    ? "bg-white/20"
+                    : "hover:bg-white/10"
                 )}
               >
                 <item.icon className="h-4 w-4" />

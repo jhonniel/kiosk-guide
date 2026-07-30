@@ -3,11 +3,16 @@ import { getGuideContext } from "@/features/building-directory/guide-service";
 import { getNavigationGraphForClient } from "@/features/building-directory/navigation/navigation-service";
 import { DEMO_NAVIGATION_GRAPH } from "@/features/building-directory/navigation/demo-graph";
 import {
+  applyIndoorFloorPlansToGraph,
+  loadIndoorFloorPlansFor3D,
+} from "@/features/building-directory/indoor-floor-plans-3d";
+import {
   buildBuildingUiConfig,
   type BuildingUiConfig,
 } from "@/features/settings/building-config";
-import { getResolvedSettings, getSetting } from "@/features/settings/resolve-settings";
+import { getResolvedSettings, getSetting, getBoolSetting } from "@/features/settings/resolve-settings";
 import type { NavigationGraph } from "@/features/building-directory/navigation/types";
+import { loadPublishedIndoorMap } from "@/features/indoor-map/admin-data";
 import { getPublishedCharterEdition } from "@/features/citizens-charter/queries";
 import {
   getDynamicQuickStartLinks,
@@ -59,6 +64,7 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
     pages,
     guideContext,
     navData,
+    indoorMapPayload,
   ] = await Promise.all([
     getResolvedSettings(),
     getDynamicQuickStartLinks(),
@@ -78,20 +84,39 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
     db.page.findMany({ where: { isActive: true } }),
     getGuideContext(),
     getNavigationGraphForClient(),
+    loadPublishedIndoorMap().catch(() => ({ buildings: [] })),
   ]);
 
   const quickLinks = toOfflineQuickLinks(rankedQuickStart);
 
+  const indoorFloorPlans = await loadIndoorFloorPlansFor3D().catch(() => []);
+  const hasImagePlansExport = indoorFloorPlans.length > 0;
+  const indoorMap = indoorMapPayload;
+  const indoorMapV2 =
+    !hasImagePlansExport &&
+    getBoolSetting(settings, "indoor_map_v2") &&
+    Boolean(indoorMap?.buildings.some((b) => b.floors.length > 0));
+
   const baseGraph = navData.graph ?? DEMO_NAVIGATION_GRAPH;
   const kioskStartId = getSetting(settings, "building_kiosk_location_id", baseGraph.defaultStartLocationId);
+  const withIndoorPlans = applyIndoorFloorPlansToGraph(baseGraph, indoorFloorPlans, {
+    leafletActive: indoorMapV2,
+  });
   const navigationGraph: NavigationGraph = {
-    ...baseGraph,
+    ...withIndoorPlans,
     defaultStartLocationId: kioskStartId,
   };
 
   const uiConfigEn: BuildingUiConfig = buildBuildingUiConfig(settings, "en");
   const uiConfigFil: BuildingUiConfig = buildBuildingUiConfig(settings, "fil");
   const uiConfigBis: BuildingUiConfig = buildBuildingUiConfig(settings, "bis");
+
+  const guideContextFixed = hasImagePlansExport
+    ? {
+        ...guideContext,
+        buildingName: getSetting(settings, "building_name_en", "Proposed Camiguin Capitol"),
+      }
+    : guideContext;
 
   return {
     version: KIOSK_OFFLINE_DATA_VERSION,
@@ -112,8 +137,10 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
     pages,
     // Loaded on demand via /api/kiosk/citizens-charter — keeps boot payload small.
     citizensCharter: null,
-    guideContext,
+    guideContext: guideContextFixed,
     navigationGraph,
+    indoorMap: indoorMapV2 ? indoorMap : null,
+    indoorMapV2,
     uiConfigEn,
     uiConfigFil,
     uiConfigBis,

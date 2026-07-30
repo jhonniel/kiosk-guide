@@ -715,3 +715,149 @@ model MapHotel {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+// ---------- Indoor Navigation (Leaflet + plan-space GeoJSON / PostGIS) ----------
+
+model IndoorBuilding {
+  id        String        @id @default(cuid())
+  slug      String        @unique
+  nameEn    String
+  nameFil   String?
+  nameBis   String?
+  address   String?
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  floors    IndoorFloor[]
+}
+
+model IndoorFloor {
+  id              String             @id @default(cuid())
+  buildingId      String
+  building        IndoorBuilding     @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  levelIndex      Int
+  labelEn         String
+  labelFil        String?
+  labelBis        String?
+  widthPx         Float              @default(1000)
+  heightPx        Float              @default(700)
+  metersPerPixel  Float              @default(0.05)
+  opacity         Float              @default(1)
+  sortOrder       Int                @default(0)
+  isPublished     Boolean            @default(false)
+  publishedAt     DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  assets          IndoorFloorAsset[]
+  rooms           IndoorRoom[]
+  amenities       IndoorAmenity[]
+  navNodes        IndoorNavNode[]
+
+  @@unique([buildingId, levelIndex])
+  @@index([buildingId, sortOrder])
+}
+
+model IndoorFloorAsset {
+  id           String      @id @default(cuid())
+  floorId      String
+  floor        IndoorFloor @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  kind         String      @default("reference")
+  mimeType     String
+  url          String
+  originalName String
+  locked       Boolean     @default(false)
+  sortOrder    Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([floorId])
+}
+
+model IndoorRoom {
+  id            String          @id @default(cuid())
+  floorId       String
+  floor         IndoorFloor     @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  roomNumber    String?
+  nameEn        String
+  nameFil       String?
+  nameBis       String?
+  department    String?
+  descriptionEn String?
+  descriptionFil String?
+  descriptionBis String?
+  capacity      Int?
+  category      String          @default("office")
+  accessibility String          @default("standard")
+  hoursEn       String?
+  hoursFil      String?
+  hoursBis      String?
+  photoUrl      String?
+  qrPayload     String?
+  /// GeoJSON Polygon / MultiPolygon in plan pixel CRS
+  geometryJson  String
+  isActive      Boolean         @default(true)
+  sortOrder     Int             @default(0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  navNodes      IndoorNavNode[]
+
+  @@index([floorId])
+  @@index([nameEn])
+  @@index([roomNumber])
+}
+
+model IndoorAmenity {
+  id           String      @id @default(cuid())
+  floorId      String
+  floor        IndoorFloor @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  kind         String
+  label        String?
+  /// GeoJSON Point / LineString / Polygon in plan pixel CRS
+  geometryJson String
+  propsJson    String?
+  isActive     Boolean     @default(true)
+  sortOrder    Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([floorId, kind])
+}
+
+model IndoorNavNode {
+  id                    String          @id @default(cuid())
+  floorId               String
+  floor                 IndoorFloor     @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  type                  String
+  x                     Float
+  y                     Float
+  label                 String?
+  roomId                String?
+  room                  IndoorRoom?     @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  wheelchairAccessible  Boolean         @default(true)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  edgesFrom             IndoorNavEdge[] @relation("EdgeFrom")
+  edgesTo               IndoorNavEdge[] @relation("EdgeTo")
+
+  @@index([floorId])
+  @@index([roomId])
+}
+
+model IndoorNavEdge {
+  id                   String        @id @default(cuid())
+  fromNodeId           String
+  toNodeId             String
+  fromNode             IndoorNavNode @relation("EdgeFrom", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  toNode               IndoorNavNode @relation("EdgeTo", fields: [toNodeId], references: [id], onDelete: Cascade)
+  distanceMeters       Float
+  wheelchairAccessible Boolean       @default(true)
+  vertical             Boolean       @default(false)
+  verticalToFloorId    String?
+  instruction          String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  @@unique([fromNodeId, toNodeId])
+  @@index([fromNodeId])
+  @@index([toNodeId])
+}

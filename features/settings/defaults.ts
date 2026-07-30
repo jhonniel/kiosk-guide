@@ -64,6 +64,7 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   contact_email: "info@camiguin.gov.ph",
   contact_address: "Mambajao, Camiguin",
   building_floor_plan_uploaded: "false",
+  indoor_map_v2: "true",
   building_name_en: DEMO_BUILDING_NAME_EN,
   building_name_fil: DEMO_BUILDING_NAME_FIL,
   building_name_bis: DEMO_BUILDING_NAME_FIL,

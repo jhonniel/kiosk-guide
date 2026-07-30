@@ -1,8 +1,12 @@
 import type { OrthographicCamera } from "three";
-import type { NavigationGraph, NavigationRoute, NavNode } from "./types";
+import type { FloorPlanConfig, NavigationGraph, NavigationRoute, NavNode } from "./types";
 
 export const FLOOR_HEIGHT = 4.2;
+/** Default schematic scale (demo academic building ~620×360). */
 export const PLAN_SCALE = 0.1;
+/** Target world-space size for image-based floor plans (longest side). */
+export const IMAGE_PLAN_TARGET = 72;
+
 export const KIOSK_LOCATION = {
   floor: 1,
   x: 105,
@@ -47,18 +51,40 @@ export interface Vec3 {
   z: number;
 }
 
-export function getPlanCenter(graph: NavigationGraph) {
-  const plan = graph.floorPlans[0];
+export function getActivePlan(graph: NavigationGraph, viewFloor?: number): FloorPlanConfig | undefined {
+  if (viewFloor != null) {
+    return graph.floorPlans.find((f) => f.floor === viewFloor) ?? graph.floorPlans[0];
+  }
+  return graph.floorPlans[0];
+}
+
+export function getPlanScale(graph: NavigationGraph, viewFloor?: number): number {
+  const plan = getActivePlan(graph, viewFloor);
+  if (!plan) return PLAN_SCALE;
+  if (plan.imageUrl) {
+    const longest = Math.max(plan.width, plan.height);
+    if (longest <= 0) return PLAN_SCALE;
+    return IMAGE_PLAN_TARGET / longest;
+  }
+  return PLAN_SCALE;
+}
+
+export function graphHasFloorPlanImages(graph: NavigationGraph): boolean {
+  return graph.floorPlans.some((f) => Boolean(f.imageUrl));
+}
+
+export function getPlanCenter(graph: NavigationGraph, viewFloor?: number) {
+  const plan = getActivePlan(graph, viewFloor) ?? graph.floorPlans[0];
   return { cx: plan.width / 2, cy: plan.height / 2 };
 }
 
 export function getFloorExtents(graph: NavigationGraph, viewFloor?: number) {
-  const plan =
-    graph.floorPlans.find((f) => f.floor === viewFloor) ?? graph.floorPlans[0];
+  const plan = getActivePlan(graph, viewFloor);
   if (!plan) return { width: 40, depth: 24 };
+  const scale = getPlanScale(graph, viewFloor);
   return {
-    width: plan.width * PLAN_SCALE + 4,
-    depth: plan.height * PLAN_SCALE + 4,
+    width: plan.width * scale + 4,
+    depth: plan.height * scale + 4,
   };
 }
 
@@ -86,11 +112,12 @@ export function map2DTo3D(
   floor: number,
   graph: NavigationGraph
 ): Vec3 {
-  const { cx, cy } = getPlanCenter(graph);
+  const { cx, cy } = getPlanCenter(graph, floor);
+  const scale = getPlanScale(graph, floor);
   return {
-    x: (x - cx) * PLAN_SCALE,
+    x: (x - cx) * scale,
     y: (floor - 1) * FLOOR_HEIGHT,
-    z: (y - cy) * PLAN_SCALE,
+    z: (y - cy) * scale,
   };
 }
 
@@ -146,13 +173,15 @@ export function nodeColor(node: NavNode, highlighted: boolean): string {
 export function map2DToFloorPlan3D(
   x: number,
   y: number,
-  graph: NavigationGraph
+  graph: NavigationGraph,
+  viewFloor?: number
 ): Vec3 {
-  const { cx, cy } = getPlanCenter(graph);
+  const { cx, cy } = getPlanCenter(graph, viewFloor);
+  const scale = getPlanScale(graph, viewFloor);
   return {
-    x: (x - cx) * PLAN_SCALE,
+    x: (x - cx) * scale,
     y: 0,
-    z: (y - cy) * PLAN_SCALE,
+    z: (y - cy) * scale,
   };
 }
 
@@ -170,7 +199,7 @@ export function routeTo3DPoints(
     for (const p of segment.points) {
       points.push(
         floor
-          ? map2DToFloorPlan3D(p.x, p.y, graph)
+          ? map2DToFloorPlan3D(p.x, p.y, graph, floor)
           : map2DTo3D(p.x, p.y, segment.floor, graph)
       );
     }

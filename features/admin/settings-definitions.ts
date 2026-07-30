@@ -85,6 +85,13 @@ export const SETTING_GROUPS: SettingGroupDef[] = [
         type: "boolean",
         description: "When enabled, uses Building Locations from admin instead of demo data.",
       },
+      {
+        key: "indoor_map_v2",
+        label: "Use Leaflet indoor map (v2)",
+        type: "boolean",
+        description:
+          "Leaflet 2D indoor map (admin digitizing / A*). Building Directory prefers Three.js 3D when uploaded floor-plan images exist.",
+      },
       { key: "building_name_en", label: "Building name (EN)", type: "text" },
       { key: "building_name_fil", label: "Building name (FIL)", type: "text" },
       { key: "building_name_bis", label: "Building name (BIS)", type: "text" },

@@ -416,7 +416,7 @@ export function CamiguinTourismMap({ data }: Props) {
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col gap-2 p-3">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1 space-y-2">
+            <div className="pointer-events-auto min-w-0 flex-1 space-y-2">
               <MapSearch
                 query={search.query}
                 onQueryChange={search.setQuery}
@@ -453,7 +453,7 @@ export function CamiguinTourismMap({ data }: Props) {
                 categories={categories}
               />
             </div>
-            <div className="flex flex-col items-end gap-2">
+            <div className="pointer-events-auto flex flex-col items-end gap-2">
               <Compass />
               <InnerControls
                 onReset={() => {

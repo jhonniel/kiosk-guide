@@ -1,6 +1,7 @@
 import type { BuildingUiConfig } from "@/features/settings/building-config";
 import type { GuideContext } from "@/features/building-directory/types";
 import type { NavigationGraph } from "@/features/building-directory/navigation/types";
+import type { PublishedIndoorPayload } from "@/features/indoor-map/types";
 import type { CharterEditionView } from "@/features/citizens-charter/types";
 import type {
   Announcement,
@@ -17,7 +18,7 @@ import type {
 } from "@prisma/client";
 
 /** Bump when offline payload shape or required client cache invalidation changes. */
-export const KIOSK_OFFLINE_DATA_VERSION = 8;
+export const KIOSK_OFFLINE_DATA_VERSION = 16;
 
 export interface KioskOfflineData {
   version: number;
@@ -42,6 +43,8 @@ export interface KioskOfflineData {
   citizensCharter: CharterEditionView | null;
   guideContext: GuideContext;
   navigationGraph: NavigationGraph;
+  indoorMap: PublishedIndoorPayload | null;
+  indoorMapV2: boolean;
   uiConfigEn: BuildingUiConfig;
   uiConfigFil: BuildingUiConfig;
   uiConfigBis: BuildingUiConfig;

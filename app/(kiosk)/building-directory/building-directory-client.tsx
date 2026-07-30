@@ -8,12 +8,14 @@ import { ContentCard } from "@/components/kiosk/content-card";
 import { BuildingDirectoryGuide } from "@/components/kiosk/building-directory-guide";
 import { BuildingLayoutPanel } from "@/components/kiosk/building-layout-panel";
 import { BuildingNavigationPanel } from "@/components/kiosk/building-navigation-panel";
+import { IndoorKioskMap } from "@/components/indoor-map/indoor-kiosk-map";
 import { useBuildingNavigation } from "@/hooks/use-building-navigation";
 import { pickBuildingUiConfig } from "@/features/building-directory/page-data";
 import { getNodeByLocationId } from "@/features/building-directory/navigation/demo-graph";
 import type { BuildingUiConfig } from "@/features/settings/building-config";
 import type { BuildingLocationData } from "@/features/building-directory/types";
 import type { NavigationGraph } from "@/features/building-directory/navigation/types";
+import type { PublishedIndoorPayload } from "@/features/indoor-map/types";
 import type { Directory } from "@prisma/client";
 
 interface BuildingDirectoryClientProps {
@@ -26,6 +28,8 @@ interface BuildingDirectoryClientProps {
   uiConfigEn: BuildingUiConfig;
   uiConfigFil: BuildingUiConfig;
   uiConfigBis: BuildingUiConfig;
+  indoorMap?: PublishedIndoorPayload | null;
+  indoorMapV2?: boolean;
   initialQuery?: string;
 }
 
@@ -45,6 +49,8 @@ export function BuildingDirectoryClient({
   uiConfigEn,
   uiConfigFil,
   uiConfigBis,
+  indoorMap = null,
+  indoorMapV2 = false,
   initialQuery,
 }: BuildingDirectoryClientProps) {
   const { language } = useKiosk();
@@ -53,6 +59,12 @@ export function BuildingDirectoryClient({
   const [pickedLocationId, setPickedLocationId] = useState<string | null>(null);
   const [navTarget, setNavTarget] = useState<NavTarget | null>(null);
   const navStartedRef = useRef<string | null>(null);
+
+  const useLeafletIndoor =
+    indoorMapV2 &&
+    indoorMap &&
+    indoorMap.buildings.some((b) => b.floors.length > 0) &&
+    !navigationGraph.floorPlans.some((f) => Boolean(f.imageUrl));
 
   const pickedNode = useMemo(() => {
     if (!pickedLocationId) return null;
@@ -94,18 +106,24 @@ export function BuildingDirectoryClient({
 
   const isNavigating = status === "navigating" || status === "paused";
   const hasArrived = status === "arrived";
-  const showLayout = navigationGraph.floorPlans.length > 0;
+  const showLayout = !useLeafletIndoor && navigationGraph.floorPlans.length > 0;
 
   return (
     <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-      <BuildingDirectoryGuide
-        isDemoMode={isDemoMode}
-        uiConfig={uiConfig}
-        initialQuery={initialQuery}
-        onLocationHighlight={setHighlightLocationId}
-        onStartNavigation={handleStartNavigation}
-        navigationActive={!!navTarget}
-      />
+      {!useLeafletIndoor && (
+        <BuildingDirectoryGuide
+          isDemoMode={isDemoMode}
+          uiConfig={uiConfig}
+          initialQuery={initialQuery}
+          onLocationHighlight={setHighlightLocationId}
+          onStartNavigation={handleStartNavigation}
+          navigationActive={!!navTarget}
+        />
+      )}
+
+      {useLeafletIndoor && indoorMap ? (
+        <IndoorKioskMap payload={indoorMap} buildingName={buildingName} />
+      ) : null}
 
       {showLayout && (
         <BuildingLayoutPanel

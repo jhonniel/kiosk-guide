@@ -38,6 +38,8 @@ export interface FloorPlanConfig {
   width: number;
   height: number;
   hallways: Array<{ x: number; y: number; width: number; height: number }>;
+  /** Uploaded floor-plan image (PNG/JPG) shown as a textured slab in the 3D viewer. */
+  imageUrl?: string;
 }
 
 export interface NavigationSegment {

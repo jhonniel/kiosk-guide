@@ -34,13 +34,14 @@ export function KioskShell({ sidebar, children }: KioskShellProps) {
           {showScenicBackdrop ? (
             <KioskScenicBackdrop imageUrl={CHARTER_SCENIC_IMAGE} />
           ) : null}
-          {/* Above main scroll (z-30), below modals (z-50) */}
+          {/* Keep below modal overlays (z-50+). Scroll content must not create a stacking
+              context that traps fixed dialogs under this widget. */}
           <div className="pointer-events-none absolute top-3 right-4 z-40 hidden md:block sm:top-4 sm:right-6 lg:right-8">
             <DateTimeWidget />
           </div>
           <div
             className={cn(
-              "kiosk-main-scroll relative z-30 flex min-h-0 flex-1 flex-col overscroll-y-contain",
+              "kiosk-main-scroll relative flex min-h-0 flex-1 flex-col overscroll-y-contain",
               isHome ? "overflow-hidden" : "overflow-x-hidden overflow-y-auto"
             )}
           >

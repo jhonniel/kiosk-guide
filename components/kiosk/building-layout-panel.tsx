@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { Building2 } from "lucide-react";
 import { Building3DViewerLazy } from "@/components/kiosk/building-3d-viewer-lazy";
+import { graphHasFloorPlanImages } from "@/features/building-directory/navigation/building-3d";
 import type { NavigationGraph, NavigationRoute, NavNode } from "@/features/building-directory/navigation/types";
 import type { BuildingLocationData } from "@/features/building-directory/types";
 import type { BuildingUiConfig } from "@/features/settings/building-config";
 import { useKiosk } from "@/hooks/use-kiosk";
+import { pickLang } from "@/lib/i18n/translations";
 import { uiText } from "@/lib/i18n/kiosk-ui";
 import type { RefObject } from "react";
 
@@ -56,6 +58,7 @@ export function BuildingLayoutPanel({
 
   const currentFloor = controlledFloor ?? localFloor;
   const onFloorChange = controlledOnFloorChange ?? setLocalFloor;
+  const imageBased = graphHasFloorPlanImages(navigationGraph);
 
   return (
     <div>
@@ -66,13 +69,22 @@ export function BuildingLayoutPanel({
           </div>
           <div>
             <h2 className="text-sm font-bold tracking-wider text-kiosk-navy">
-              {uiText(language, "buildingLayoutTitle")}
+              {imageBased
+                ? pickLang(language, "3D BUILDING NAVIGATION", "3D NAVIGATION NG GUSALI", "3D NAVIGATION SA BUILDING")
+                : uiText(language, "buildingLayoutTitle")}
             </h2>
             <p className="text-xs text-gray-500">{buildingName}</p>
           </div>
         </div>
         <p className="hidden text-[10px] text-gray-500 sm:block">
-          {uiText(language, "tapRoomHint")}
+          {imageBased
+            ? pickLang(
+                language,
+                "Drag to orbit · Switch floors · Your uploaded floor plans in 3D",
+                "I-drag para i-orbit · Palitan ang palapag · Floor plan mo sa 3D",
+                "I-drag aron i-orbit · Ilisan ang andana · Imong floor plan sa 3D"
+              )
+            : uiText(language, "tapRoomHint")}
         </p>
       </div>
 

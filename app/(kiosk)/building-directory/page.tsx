@@ -31,6 +31,8 @@ export default function BuildingDirectoryPage() {
           uiConfigEn={pageData.uiConfigEn}
           uiConfigFil={pageData.uiConfigFil}
           uiConfigBis={pageData.uiConfigBis}
+          indoorMap={pageData.indoorMap}
+          indoorMapV2={pageData.indoorMapV2}
         />
       </Suspense>
     </ModulePageClient>

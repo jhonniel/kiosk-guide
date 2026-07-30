@@ -1274,3 +1274,15 @@ html.kiosk-zoom-locked [data-kiosk-zoom-surface] {
     scroll-behavior: auto;
   }
 }
+
+/* Indoor map route pulse */
+.indoor-route-line {
+  animation: indoor-route-dash 1.2s linear infinite;
+  stroke-dasharray: 12 10;
+}
+
+@keyframes indoor-route-dash {
+  to {
+    stroke-dashoffset: -22;
+  }
+}

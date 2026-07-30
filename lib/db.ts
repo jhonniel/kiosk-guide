@@ -12,8 +12,10 @@ function getPrismaClient(): PrismaClient {
   const existing = globalForPrisma.prisma;
 
   if (existing) {
+    // Recreate when the cached client is missing models from newer schema generations.
     const hasDownloadToken = "downloadToken" in existing;
-    if (hasDownloadToken) {
+    const hasIndoorBuilding = "indoorBuilding" in existing;
+    if (hasDownloadToken && hasIndoorBuilding) {
       return existing;
     }
     void (existing as PrismaClient).$disconnect();

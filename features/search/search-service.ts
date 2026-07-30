@@ -235,6 +235,36 @@ export async function searchAll(query: string, lang: Language): Promise<SearchRe
     });
   }
 
+  try {
+    const indoorRooms = await db.indoorRoom.findMany({
+      where: {
+        isActive: true,
+        floor: { isPublished: true },
+        OR: [
+          { nameEn: { contains: q, mode: "insensitive" } },
+          { nameFil: { contains: q, mode: "insensitive" } },
+          { roomNumber: { contains: q, mode: "insensitive" } },
+          { department: { contains: q, mode: "insensitive" } },
+          { category: { contains: q, mode: "insensitive" } },
+        ],
+      },
+      include: { floor: { select: { labelEn: true } } },
+      take: 10,
+    });
+    for (const room of indoorRooms) {
+      results.push({
+        id: `indoor-room-${room.id}`,
+        type: "indoor-room",
+        title: room.nameEn,
+        description: room.descriptionEn || room.department || room.category,
+        href: `/building-directory?q=${encodeURIComponent(room.nameEn)}`,
+        meta: room.floor.labelEn,
+      });
+    }
+  } catch {
+    // Indoor tables may be unavailable during migrate
+  }
+
   return dedupeSearchResults(results).slice(0, SEARCH_RESULT_LIMIT);
 }
 

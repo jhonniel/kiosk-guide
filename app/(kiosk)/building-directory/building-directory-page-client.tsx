@@ -5,6 +5,7 @@ import { BuildingDirectoryClient } from "./building-directory-client";
 import type { BuildingUiConfig } from "@/features/settings/building-config";
 import type { BuildingLocationData } from "@/features/building-directory/types";
 import type { NavigationGraph } from "@/features/building-directory/navigation/types";
+import type { PublishedIndoorPayload } from "@/features/indoor-map/types";
 import type { Directory } from "@prisma/client";
 
 interface Props {
@@ -17,6 +18,8 @@ interface Props {
   uiConfigEn: BuildingUiConfig;
   uiConfigFil: BuildingUiConfig;
   uiConfigBis: BuildingUiConfig;
+  indoorMap?: PublishedIndoorPayload | null;
+  indoorMapV2?: boolean;
 }
 
 export function BuildingDirectoryPageClient(props: Props) {

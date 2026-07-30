@@ -20,6 +20,8 @@ export function getBuildingDirectoryFromOffline(data: KioskOfflineData): Buildin
     uiConfigEn: normalized.uiConfigEn,
     uiConfigFil: normalized.uiConfigFil,
     uiConfigBis: normalized.uiConfigBis,
+    indoorMap: normalized.indoorMap ?? null,
+    indoorMapV2: normalized.indoorMapV2 ?? false,
     directories: buildingDirectories,
   };
 }

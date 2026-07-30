@@ -23,7 +23,7 @@ export function getRoomAnchorPosition(
   graph: NavigationGraph,
   navigationMapMode: boolean
 ): [number, number, number] {
-  const pos = map2DToFloorPlan3D(node.x, node.y, graph);
+  const pos = map2DToFloorPlan3D(node.x, node.y, graph, node.floor);
   const { h } = nodeSize(node);
   const anchorY = navigationMapMode
     ? FLOOR_LAYERS.roomFloorY + ISO_WALL_H + 0.22
@@ -115,7 +115,7 @@ export function BuildingRoomSelectionPulse({
   graph,
   navigationMapMode = false,
 }: BuildingRoomSelectionPulseProps) {
-  const pos = map2DToFloorPlan3D(node.x, node.y, graph);
+  const pos = map2DToFloorPlan3D(node.x, node.y, graph, node.floor);
   const { w, d } = nodeSize(node);
   const ringY = FLOOR_LAYERS.roomFloorY + 0.05;
   const rx = w * 0.48;
