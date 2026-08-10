@@ -47,21 +47,21 @@ export function ServiceCard({ title, description, icon, iconUrl, color, href, cl
     >
       {iconUrl ? (
         <div
-          className="aspect-square w-[min(52%,4.75rem)] shrink-0 overflow-hidden rounded-full transition-transform duration-300 group-hover:scale-110 sm:w-[min(55%,6rem)] lg:w-[min(58%,7.25rem)]"
+          className="aspect-square w-[min(56%,5.5rem)] shrink-0 overflow-hidden rounded-full transition-transform duration-300 group-hover:scale-110 sm:w-[min(58%,6.75rem)] lg:w-[min(60%,8.5rem)]"
           style={{ boxShadow: `0 8px 20px -6px ${palette.icon}66` }}
         >
           <Image
             src={iconUrl}
             alt=""
-            width={116}
-            height={116}
+            width={136}
+            height={136}
             className="h-full w-full scale-[1.22] object-cover"
             unoptimized
           />
         </div>
       ) : (
         <div
-          className="flex aspect-square w-[min(52%,4.75rem)] shrink-0 items-center justify-center rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 sm:w-[min(55%,6rem)] lg:w-[min(58%,7.25rem)]"
+          className="flex aspect-square w-[min(56%,5.5rem)] shrink-0 items-center justify-center rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 sm:w-[min(58%,6.75rem)] lg:w-[min(60%,8.5rem)]"
           style={{
             background: `linear-gradient(135deg, ${palette.icon} 0%, ${palette.text} 100%)`,
             boxShadow: `0 8px 20px -6px ${palette.icon}66`,
@@ -72,12 +72,12 @@ export function ServiceCard({ title, description, icon, iconUrl, color, href, cl
       )}
 
       <h3
-        className="min-w-0 shrink-0 px-0.5 text-[0.7rem] leading-tight font-extrabold tracking-wide uppercase sm:text-xs lg:text-[1rem]"
+        className="min-w-0 shrink-0 px-0.5 text-xs leading-tight font-extrabold tracking-wide uppercase sm:text-sm lg:text-[1.05rem]"
         style={{ color: palette.text }}
       >
         {title}
       </h3>
-      <p className="line-clamp-2 min-w-0 px-0.5 text-[0.7rem] leading-snug text-gray-600 sm:text-xs lg:text-[0.875rem]">
+      <p className="line-clamp-2 min-w-0 px-0.5 text-[0.75rem] leading-snug text-gray-600 sm:text-xs lg:text-[0.95rem]">
         {description}
       </p>
     </Link>

@@ -1,8 +1,10 @@
 import { ensureCharterDraft } from "@/features/citizens-charter/actions";
 import { getDraftCharterEdition } from "@/features/citizens-charter/queries";
 import { CitizensCharterAdminClient } from "./citizens-charter-admin-client";
+import { requireAdminPage } from "@/lib/admin-page-auth";
 
 export default async function AdminCitizensCharterPage() {
+  await requireAdminPage("manage_citizens_charter");
   let draft = await getDraftCharterEdition();
   if (!draft) {
     draft = await ensureCharterDraft();

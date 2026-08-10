@@ -31,7 +31,7 @@ export class Building3DErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex h-[min(45vh,480px)] flex-col items-center justify-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 text-center sm:px-6">
+        <div className="flex h-full min-h-[280px] flex-col items-center justify-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 text-center sm:px-6">
           <p className="text-sm font-semibold text-amber-900">3D building layout failed to load</p>
           <p className="max-w-sm text-xs text-amber-800">
             This is often caused by a stale dev cache. Restart with{" "}

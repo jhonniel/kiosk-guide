@@ -53,14 +53,37 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.role = user.role;
         token.permissions = user.permissions;
+        return token;
       }
+
+      // Refresh role/permissions so access changes apply without waiting for re-login
+      if (token.sub) {
+        try {
+          const dbUser = await db.user.findUnique({
+            where: { id: token.sub },
+            include: {
+              role: { include: { permissions: { include: { permission: true } } } },
+            },
+          });
+          if (!dbUser || !dbUser.isActive) {
+            token.role = undefined;
+            token.permissions = [];
+            return token;
+          }
+          token.role = dbUser.role.name;
+          token.permissions = dbUser.role.permissions.map((rp) => rp.permission.name);
+        } catch {
+          // Keep existing token claims if DB is briefly unavailable
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub!;
-        session.user.role = token.role as string;
-        session.user.permissions = token.permissions as string[];
+        session.user.role = (token.role as string) ?? "";
+        session.user.permissions = (token.permissions as string[]) ?? [];
       }
       return session;
     },

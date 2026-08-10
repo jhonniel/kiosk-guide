@@ -95,9 +95,9 @@ export function BuildingDirectoryGuide({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       {isDemoMode && (
-        <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
           <div>
             <p className="text-xs font-semibold text-amber-800">{uiText(language, "demoMode")}</p>
@@ -106,8 +106,8 @@ export function BuildingDirectoryGuide({
         </div>
       )}
 
-      <div className="rounded-xl bg-kiosk-search p-4 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="rounded-xl bg-kiosk-search p-3 shadow-sm sm:p-3.5">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
           <div className="flex shrink-0 items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-kiosk-navy">
               <Bot className="h-4 w-4 text-white" />
@@ -117,7 +117,7 @@ export function BuildingDirectoryGuide({
                 <Sparkles className="h-3.5 w-3.5 text-kiosk-green" />
                 {uiConfig.guideTitle}
               </p>
-              <p className="hidden text-[11px] leading-tight text-gray-600 sm:block">
+              <p className="hidden text-[11px] leading-tight text-gray-600 lg:block">
                 {uiConfig.guideSubtitle}
               </p>
             </div>
@@ -142,7 +142,7 @@ export function BuildingDirectoryGuide({
           </form>
         </div>
 
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
+        <div className="mt-2 flex flex-wrap gap-1.5">
           {quickQuestions.map((q) => (
             <button
               key={q}

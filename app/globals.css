@@ -185,6 +185,27 @@
   height: 0;
 }
 
+/*
+ * Viewport-fit UI scale for large kiosk / TV panels.
+ * The stage is laid out at a compensated size, then scaled up so fonts,
+ * cards, and touch targets grow together (not just rem-based text).
+ */
+.kiosk-ui-scale-viewport {
+  --kiosk-ui-scale: 1;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.kiosk-ui-scale-stage {
+  width: calc(100vw / var(--kiosk-ui-scale));
+  height: calc(100vh / var(--kiosk-ui-scale));
+  height: calc(100dvh / var(--kiosk-ui-scale));
+  transform: scale(var(--kiosk-ui-scale));
+  transform-origin: top left;
+}
+
 html.kiosk-large-text {
   font-size: 118%;
 }

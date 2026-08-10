@@ -19,6 +19,8 @@ export default function BuildingDirectoryPage() {
       descriptionEn={pageData.uiConfigEn.pageDescription}
       descriptionFil={pageData.uiConfigFil.pageDescription}
       descriptionBis={pageData.uiConfigBis.pageDescription}
+      fit
+      hideBanner
     >
       <Suspense fallback={null}>
         <BuildingDirectoryPageClient

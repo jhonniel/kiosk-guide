@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requirePermission } from "@/lib/admin-auth";
 import { euclideanMeters, postgisSyncSql } from "./geo";
 import { findIndoorRouteAStar } from "./astar";
 import type { IndoorRouteResult } from "./types";
@@ -40,7 +40,7 @@ export async function createIndoorBuilding(data: {
   slug?: string;
 }): Promise<ActionResult & { id?: string }> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_indoor_map");
     const nameEn = data.nameEn?.trim();
     if (!nameEn) return { success: false, error: "Building name is required." };
     let slug = slugify(data.slug || nameEn) || `building-${Date.now()}`;
@@ -71,7 +71,7 @@ export async function createIndoorFloor(data: {
   metersPerPixel?: number;
 }): Promise<ActionResult & { id?: string }> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_indoor_map");
     const labelEn = data.labelEn?.trim();
     if (!labelEn) return { success: false, error: "Floor label is required." };
     if (!data.buildingId) return { success: false, error: "Building is required." };
@@ -106,7 +106,7 @@ export async function updateIndoorFloorSettings(
   }
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_indoor_map");
     await db.indoorFloor.update({
       where: { id: floorId },
       data: {
@@ -135,7 +135,7 @@ export async function attachFloorPlanAsset(data: {
   heightPx: number;
 }): Promise<ActionResult & { assetId?: string }> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_indoor_map");
     await db.indoorFloorAsset.deleteMany({ where: { floorId: data.floorId, kind: "reference" } });
     const asset = await db.indoorFloorAsset.create({
       data: {
@@ -160,7 +160,7 @@ export async function attachFloorPlanAsset(data: {
 
 export async function setFloorAssetLocked(assetId: string, locked: boolean): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_indoor_map");
     await db.indoorFloorAsset.update({ where: { id: assetId }, data: { locked } });
     revalidateIndoor();
     return { success: true };
@@ -193,7 +193,7 @@ export async function upsertIndoorRoom(data: {
   sortOrder?: number;
 }): Promise<ActionResult & { id?: string }> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_indoor_map");
     const nameEn = data.nameEn?.trim();
     if (!nameEn) return { success: false, error: "Room name is required." };
     if (!data.geometryJson) return { success: false, error: "Room geometry is required." };
@@ -235,7 +235,7 @@ export async function upsertIndoorRoom(data: {
 
 export async function deleteIndoorRoom(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_indoor_map");
     await db.indoorRoom.delete({ where: { id } });
     revalidateIndoor();
     return { success: true };
@@ -253,7 +253,7 @@ export async function upsertIndoorAmenity(data: {
   propsJson?: string;
 }): Promise<ActionResult & { id?: string }> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_indoor_map");
     if (!data.kind) return { success: false, error: "Amenity kind is required." };
     const payload = {
       floorId: data.floorId,
@@ -275,7 +275,7 @@ export async function upsertIndoorAmenity(data: {
 
 export async function deleteIndoorAmenity(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_indoor_map");
     await db.indoorAmenity.delete({ where: { id } });
     revalidateIndoor();
     return { success: true };
@@ -295,7 +295,7 @@ export async function upsertIndoorNavNode(data: {
   wheelchairAccessible?: boolean;
 }): Promise<ActionResult & { id?: string }> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_indoor_map");
     const payload = {
       floorId: data.floorId,
       type: data.type || "intersection",
@@ -317,7 +317,7 @@ export async function upsertIndoorNavNode(data: {
 
 export async function deleteIndoorNavNode(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_indoor_map");
     await db.indoorNavEdge.deleteMany({
       where: { OR: [{ fromNodeId: id }, { toNodeId: id }] },
     });
@@ -338,7 +338,7 @@ export async function connectIndoorNavNodes(data: {
   instruction?: string;
 }): Promise<ActionResult & { id?: string }> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_indoor_map");
     if (data.fromNodeId === data.toNodeId) {
       return { success: false, error: "Cannot connect a node to itself." };
     }
@@ -390,7 +390,7 @@ export async function connectIndoorNavNodes(data: {
 
 export async function deleteIndoorNavEdge(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_indoor_map");
     await db.indoorNavEdge.delete({ where: { id } });
     revalidateIndoor();
     return { success: true };
@@ -401,7 +401,7 @@ export async function deleteIndoorNavEdge(id: string): Promise<ActionResult> {
 
 export async function publishIndoorFloor(floorId: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_indoor_map");
     await db.indoorFloor.update({
       where: { id: floorId },
       data: { isPublished: true, publishedAt: new Date() },
@@ -415,7 +415,7 @@ export async function publishIndoorFloor(floorId: string): Promise<ActionResult>
 
 export async function unpublishIndoorFloor(floorId: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_indoor_map");
     await db.indoorFloor.update({
       where: { id: floorId },
       data: { isPublished: false },
@@ -429,7 +429,7 @@ export async function unpublishIndoorFloor(floorId: string): Promise<ActionResul
 
 export async function deleteIndoorFloor(floorId: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_indoor_map");
     await db.indoorFloor.delete({ where: { id: floorId } });
     revalidateIndoor();
     return { success: true };

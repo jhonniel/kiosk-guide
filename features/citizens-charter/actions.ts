@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requirePermission } from "@/lib/admin-auth";
 import { cloneEditionTree } from "./import-static";
 import { getCharterEditionById, getDraftCharterEdition } from "./queries";
 
@@ -14,7 +14,7 @@ function revalidateCharter() {
 }
 
 async function requireDraftEdition(editionId?: string) {
-  await requireAdmin();
+  await requirePermission("manage_citizens_charter");
   if (editionId) {
     const edition = await db.charterEdition.findUnique({ where: { id: editionId } });
     if (!edition) throw new Error("Edition not found");
@@ -72,7 +72,7 @@ export async function updateCharterEditionSettings(input: {
 }
 
 export async function ensureCharterDraft() {
-  await requireAdmin();
+  await requirePermission("manage_citizens_charter");
   const existing = await getDraftCharterEdition();
   if (existing) return existing;
 
@@ -88,7 +88,7 @@ export async function ensureCharterDraft() {
 }
 
 export async function publishCharterDraft(editionId: string) {
-  await requireAdmin();
+  await requirePermission("manage_citizens_charter");
   const draft = await db.charterEdition.findUnique({ where: { id: editionId } });
   if (!draft || draft.status !== "DRAFT") throw new Error("Draft edition not found");
 
@@ -156,7 +156,7 @@ export async function upsertCharterOffice(input: {
 }
 
 export async function deleteCharterOffice(id: string) {
-  await requireAdmin();
+  await requirePermission("manage_citizens_charter");
   const office = await db.charterOffice.findUnique({
     where: { id },
     include: { edition: true },
@@ -175,7 +175,7 @@ export async function upsertCharterCategory(input: {
   isActive?: boolean;
   sortOrder?: number;
 }) {
-  await requireAdmin();
+  await requirePermission("manage_citizens_charter");
   const office = await db.charterOffice.findUnique({
     where: { id: input.officeId },
     include: { edition: true },
@@ -214,7 +214,7 @@ export async function upsertCharterCategory(input: {
 }
 
 export async function deleteCharterCategory(id: string) {
-  await requireAdmin();
+  await requirePermission("manage_citizens_charter");
   const category = await db.charterCategory.findUnique({
     where: { id },
     include: { office: { include: { edition: true } } },
@@ -255,7 +255,7 @@ export async function upsertCharterService(input: {
   isActive?: boolean;
   sortOrder?: number;
 }) {
-  await requireAdmin();
+  await requirePermission("manage_citizens_charter");
   const category = await db.charterCategory.findUnique({
     where: { id: input.categoryId },
     include: { office: { include: { edition: true } } },
@@ -307,7 +307,7 @@ export async function upsertCharterService(input: {
 }
 
 export async function deleteCharterService(id: string) {
-  await requireAdmin();
+  await requirePermission("manage_citizens_charter");
   const service = await db.charterService.findUnique({
     where: { id },
     include: { category: { include: { office: { include: { edition: true } } } } },
@@ -322,7 +322,7 @@ export async function deleteCharterService(id: string) {
 }
 
 export async function duplicateCharterService(id: string) {
-  await requireAdmin();
+  await requirePermission("manage_citizens_charter");
   const service = await db.charterService.findUnique({
     where: { id },
     include: {
@@ -415,7 +415,7 @@ export async function replaceCharterRequirements(
     isActive?: boolean;
   }>
 ) {
-  await requireAdmin();
+  await requirePermission("manage_citizens_charter");
   const service = await db.charterService.findUnique({
     where: { id: serviceId },
     include: { category: { include: { office: { include: { edition: true } } } } },
@@ -456,7 +456,7 @@ export async function replaceCharterSteps(
     isActive?: boolean;
   }>
 ) {
-  await requireAdmin();
+  await requirePermission("manage_citizens_charter");
   const service = await db.charterService.findUnique({
     where: { id: serviceId },
     include: { category: { include: { office: { include: { edition: true } } } } },
@@ -499,7 +499,7 @@ export async function replaceCharterMedicines(
     isActive?: boolean;
   }>
 ) {
-  await requireAdmin();
+  await requirePermission("manage_citizens_charter");
   const service = await db.charterService.findUnique({
     where: { id: serviceId },
     include: { category: { include: { office: { include: { edition: true } } } } },
@@ -544,7 +544,7 @@ export async function reorderCharterOffices(editionId: string, orderedIds: strin
 }
 
 export async function reorderCharterCategories(officeId: string, orderedIds: string[]) {
-  await requireAdmin();
+  await requirePermission("manage_citizens_charter");
   const office = await db.charterOffice.findUnique({
     where: { id: officeId },
     include: { edition: true },
@@ -561,7 +561,7 @@ export async function reorderCharterCategories(officeId: string, orderedIds: str
 }
 
 export async function reorderCharterServices(categoryId: string, orderedIds: string[]) {
-  await requireAdmin();
+  await requirePermission("manage_citizens_charter");
   const category = await db.charterCategory.findUnique({
     where: { id: categoryId },
     include: { office: { include: { edition: true } } },

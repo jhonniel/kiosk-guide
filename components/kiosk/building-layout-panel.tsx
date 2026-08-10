@@ -61,11 +61,11 @@ export function BuildingLayoutPanel({
   const imageBased = graphHasFloorPlanImages(navigationGraph);
 
   return (
-    <div>
-      <div className="mb-4 flex items-center justify-between gap-3">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="mb-2 flex shrink-0 items-center justify-between gap-3 sm:mb-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50">
-            <Building2 className="h-5 w-5 text-kiosk-green" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-50 sm:h-10 sm:w-10">
+            <Building2 className="h-4 w-4 text-kiosk-green sm:h-5 sm:w-5" />
           </div>
           <div>
             <h2 className="text-sm font-bold tracking-wider text-kiosk-navy">
@@ -106,7 +106,8 @@ export function BuildingLayoutPanel({
         isDemoMode={isDemoMode}
         onFloorChange={onFloorChange}
         autoFollowFloor={autoFollowFloor}
-        height={0}
+        fill
+        className="min-h-0 flex-1"
       />
     </div>
   );

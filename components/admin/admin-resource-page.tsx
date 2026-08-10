@@ -5,10 +5,18 @@ import {
   RESOURCE_CONFIGS,
   type ResourceKey,
 } from "@/features/admin/resource-definitions";
+import { RESOURCE_PERMISSION } from "@/features/admin/permissions";
+import { hasPermission } from "@/lib/admin-auth";
 import { fetchAdminResource } from "@/features/admin/fetch-resource";
 
 export async function AdminResourcePage({ resource }: { resource: ResourceKey }) {
-  if (!(await auth())) redirect("/admin/login");
+  const session = await auth();
+  if (!session) redirect("/admin/login");
+
+  const permission = RESOURCE_PERMISSION[resource];
+  if (permission && !hasPermission(session, permission)) {
+    redirect("/admin");
+  }
 
   const config = RESOURCE_CONFIGS[resource];
   const items = await fetchAdminResource(resource);

@@ -1,10 +1,9 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { AdminTable } from "@/components/admin/admin-table";
+import { requireAdminPage } from "@/lib/admin-page-auth";
 
 export default async function AdminFeedbackPage() {
-  if (!(await auth())) redirect("/admin/login");
+  await requireAdminPage("manage_feedback");
   const items = await db.feedback.findMany({ orderBy: { createdAt: "desc" } });
   return (
     <AdminTable

@@ -2,12 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requirePermission } from "@/lib/admin-auth";
 import { SETTING_GROUPS } from "@/features/admin/settings-definitions";
 import {
   RESOURCE_CONFIGS,
   type ResourceKey,
 } from "@/features/admin/resource-definitions";
+import { RESOURCE_PERMISSION } from "@/features/admin/permissions";
+
+async function requireResourcePermission(resource: ResourceKey) {
+  const permission = RESOURCE_PERMISSION[resource];
+  if (!permission) throw new Error("Forbidden");
+  await requirePermission(permission);
+}
 
 type ActionResult = { success: true } | { success: false; error: string };
 
@@ -44,7 +51,7 @@ export async function updateSettings(
   values: Record<string, string>
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_settings");
 
     const allowedKeys = new Set(
       SETTING_GROUPS.flatMap((g) => g.fields.map((f) => f.key))
@@ -100,7 +107,7 @@ export async function createResource(
   data: Record<string, unknown>
 ): Promise<ActionResult & { id?: string }> {
   try {
-    await requireAdmin();
+    await requireResourcePermission(resource);
     const payload = coerceRecord(data, resource);
 
     let created: { id: string };
@@ -163,7 +170,7 @@ export async function updateResource(
   data: Record<string, unknown>
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireResourcePermission(resource);
     const payload = coerceRecord(data, resource);
 
     switch (resource) {
@@ -213,7 +220,7 @@ export async function updateResource(
 
 export async function deleteResource(resource: ResourceKey, id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireResourcePermission(resource);
 
     switch (resource) {
       case "services":

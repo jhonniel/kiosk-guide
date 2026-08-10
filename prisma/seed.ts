@@ -65,24 +65,29 @@ async function main() {
   });
 
   const permissions = [
-    { name: "manage_services", module: "services" },
-    { name: "manage_directories", module: "directories" },
-    { name: "manage_downloads", module: "downloads" },
-    { name: "manage_announcements", module: "announcements" },
-    { name: "manage_faqs", module: "faqs" },
-    { name: "manage_events", module: "events" },
-    { name: "manage_emergency", module: "emergency" },
-    { name: "manage_tourism", module: "tourism" },
-    { name: "manage_users", module: "users" },
-    { name: "manage_settings", module: "settings" },
-    { name: "manage_building", module: "building" },
-    { name: "manage_citizens_charter", module: "citizens-charter" },
+    { name: "manage_services", module: "services", description: "Create and edit government services" },
+    { name: "manage_citizens_charter", module: "citizens-charter", description: "Manage Citizens' Charter" },
+    { name: "manage_directories", module: "directories", description: "Manage office directories" },
+    { name: "manage_building", module: "building", description: "Manage building locations" },
+    { name: "manage_indoor_map", module: "indoor-map", description: "Edit indoor floor plans" },
+    { name: "manage_downloads", module: "downloads", description: "Manage downloads" },
+    { name: "manage_announcements", module: "announcements", description: "Manage announcements" },
+    { name: "manage_faqs", module: "faqs", description: "Manage FAQs" },
+    { name: "manage_events", module: "events", description: "Manage events" },
+    { name: "manage_emergency", module: "emergency", description: "Manage emergency contacts" },
+    { name: "manage_tourism", module: "tourism", description: "Manage tourism info" },
+    { name: "manage_map", module: "map", description: "Edit Camiguin map" },
+    { name: "manage_quick_links", module: "quick-links", description: "Manage Quick Start links" },
+    { name: "manage_homepage_cards", module: "homepage-cards", description: "Manage homepage cards" },
+    { name: "manage_feedback", module: "feedback", description: "View feedback" },
+    { name: "manage_settings", module: "settings", description: "Manage settings" },
+    { name: "manage_users", module: "users", description: "Manage admin users" },
   ];
 
   for (const perm of permissions) {
     await prisma.permission.upsert({
       where: { name: perm.name },
-      update: {},
+      update: { module: perm.module, description: perm.description },
       create: perm,
     });
   }

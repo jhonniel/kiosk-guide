@@ -4,7 +4,7 @@
  * and get misreported as "please sign in".
  */
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requirePermission } from "@/lib/admin-auth";
 import { mapPercentToLatLng } from "@/data/map/geometry";
 import { ATTRACTION_GEO } from "@/data/map/attraction-geo";
 import { MAP_ANNOTATIONS } from "@/data/map/map-spot-labels";
@@ -308,7 +308,7 @@ export async function loadMapAdminData(): Promise<{
   restaurants: MapPlaceAdminRow[];
   municipalities: MapMunicipalityAdminRow[];
 }> {
-  await requireAdmin();
+  await requirePermission("manage_map");
   await ensureMapCatalogSynced();
 
   const [rows, categories, annotations, routes, hotels, restaurants, municipalities] =

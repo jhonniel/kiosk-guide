@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requirePermission } from "@/lib/admin-auth";
 import { mapPercentToLatLng } from "@/data/map/geometry";
 import { ATTRACTION_GEO } from "@/data/map/attraction-geo";
 import { CAMIGUIN_ATTRACTIONS } from "@/features/map/attractions";
@@ -99,7 +99,7 @@ export async function createMapAttraction(
   data: MapAttractionWriteInput
 ): Promise<ActionResult & { id?: string }> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     const nameEn = data.nameEn?.trim();
     if (!nameEn) return { success: false, error: "Name (EN) is required." };
     if (!data.categoryId) return { success: false, error: "Category is required." };
@@ -148,7 +148,7 @@ export async function updateMapAttraction(
   data: MapAttractionWriteInput
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     const existing = await db.mapAttraction.findUnique({ where: { id } });
     if (!existing) return { success: false, error: "Attraction not found." };
 
@@ -199,7 +199,7 @@ export async function updateMapAttractionPosition(
   mapY: number
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     const x = clampPercent(mapX);
     const y = clampPercent(mapY);
     const { latitude, longitude } = mapPercentToLatLng(x, y);
@@ -219,7 +219,7 @@ export async function updateMapAttractionPosition(
 
 export async function deleteMapAttraction(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     await db.mapAttraction.delete({ where: { id } });
     revalidateMapAdmin();
     return { success: true };
@@ -235,7 +235,7 @@ export async function resetMapAttractionPosition(
   id: string
 ): Promise<ActionResult & { mapX?: number; mapY?: number }> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     const row = await db.mapAttraction.findUnique({ where: { id } });
     if (!row) return { success: false, error: "Attraction not found." };
 
@@ -272,7 +272,7 @@ export async function addMapAttractionPhoto(
   caption?: string | null
 ): Promise<ActionResult & { id?: string }> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     const maxSort = await db.mapPhoto.aggregate({
       where: { attractionId },
       _max: { sortOrder: true },
@@ -297,7 +297,7 @@ export async function addMapAttractionPhoto(
 
 export async function deleteMapAttractionPhoto(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     await db.mapPhoto.delete({ where: { id } });
     revalidateMapAdmin();
     return { success: true };
@@ -315,7 +315,7 @@ export async function createMapAnnotation(
   data: MapAnnotationWriteInput
 ): Promise<ActionResult & { id?: string }> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     const text = data.text?.trim();
     if (!text) return { success: false, error: "Label text is required." };
     let slug = slugify(data.slug?.trim() || text);
@@ -359,7 +359,7 @@ export async function updateMapAnnotation(
   data: MapAnnotationWriteInput
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     const existing = await db.mapAnnotation.findUnique({ where: { id } });
     if (!existing) return { success: false, error: "Label not found." };
     const text = data.text?.trim();
@@ -408,7 +408,7 @@ export async function updateMapAnnotationPosition(
   mapY: number
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     await db.mapAnnotation.update({
       where: { id },
       data: { mapX: clampPercent(mapX), mapY: clampPercent(mapY) },
@@ -425,7 +425,7 @@ export async function updateMapAnnotationPosition(
 
 export async function deleteMapAnnotation(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     await db.mapAnnotation.delete({ where: { id } });
     revalidateMapAdmin();
     return { success: true };
@@ -443,7 +443,7 @@ export async function createMapRoute(
   data: MapRouteWriteInput
 ): Promise<ActionResult & { id?: string }> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     const nameEn = data.nameEn?.trim();
     if (!nameEn) return { success: false, error: "Route name is required." };
     if (!data.fromId || !data.toId) {
@@ -507,7 +507,7 @@ export async function updateMapRoute(
   data: MapRouteWriteInput
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     const existing = await db.mapRoute.findUnique({ where: { id } });
     if (!existing) return { success: false, error: "Route not found." };
 
@@ -568,7 +568,7 @@ export async function updateMapRoute(
 
 export async function deleteMapRoute(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     await db.mapRoute.delete({ where: { id } });
     revalidateMapAdmin();
     return { success: true };
@@ -609,7 +609,7 @@ export async function createMapHotel(
   data: MapPlaceWriteInput
 ): Promise<ActionResult & { id?: string }> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     const nameEn = data.nameEn?.trim();
     if (!nameEn) return { success: false, error: "Name (EN) is required." };
     let slug = slugify(data.slug?.trim() || nameEn);
@@ -644,7 +644,7 @@ export async function updateMapHotel(
   data: MapPlaceWriteInput
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     const existing = await db.mapHotel.findUnique({ where: { id } });
     if (!existing) return { success: false, error: "Hotel not found." };
     const nameEn = data.nameEn?.trim();
@@ -683,7 +683,7 @@ export async function updateMapHotelPosition(
   mapY: number
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     await db.mapHotel.update({
       where: { id },
       data: { mapX: clampPercent(mapX), mapY: clampPercent(mapY) },
@@ -700,7 +700,7 @@ export async function updateMapHotelPosition(
 
 export async function deleteMapHotel(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     await db.mapHotel.delete({ where: { id } });
     revalidateMapAdmin();
     return { success: true };
@@ -716,7 +716,7 @@ export async function createMapRestaurant(
   data: MapPlaceWriteInput
 ): Promise<ActionResult & { id?: string }> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     const nameEn = data.nameEn?.trim();
     if (!nameEn) return { success: false, error: "Name (EN) is required." };
     let slug = slugify(data.slug?.trim() || nameEn);
@@ -751,7 +751,7 @@ export async function updateMapRestaurant(
   data: MapPlaceWriteInput
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     const existing = await db.mapRestaurant.findUnique({ where: { id } });
     if (!existing) return { success: false, error: "Restaurant not found." };
     const nameEn = data.nameEn?.trim();
@@ -790,7 +790,7 @@ export async function updateMapRestaurantPosition(
   mapY: number
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     await db.mapRestaurant.update({
       where: { id },
       data: { mapX: clampPercent(mapX), mapY: clampPercent(mapY) },
@@ -807,7 +807,7 @@ export async function updateMapRestaurantPosition(
 
 export async function deleteMapRestaurant(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     await db.mapRestaurant.delete({ where: { id } });
     revalidateMapAdmin();
     return { success: true };
@@ -825,7 +825,7 @@ export async function createMapCategory(
   data: MapCategoryWriteInput
 ): Promise<ActionResult & { id?: string }> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     const nameEn = data.nameEn?.trim();
     if (!nameEn) return { success: false, error: "Name (EN) is required." };
     let slug = slugify(data.slug?.trim() || nameEn);
@@ -864,7 +864,7 @@ export async function updateMapCategory(
   data: MapCategoryWriteInput
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     const existing = await db.mapCategory.findUnique({ where: { id } });
     if (!existing) return { success: false, error: "Category not found." };
     const nameEn = data.nameEn?.trim();
@@ -907,7 +907,7 @@ export async function updateMapCategory(
 
 export async function deleteMapCategory(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     const count = await db.mapAttraction.count({ where: { categoryId: id } });
     if (count > 0) {
       return {
@@ -933,7 +933,7 @@ export async function updateMapMunicipality(
   data: MapMunicipalityWriteInput
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     const existing = await db.mapMunicipality.findUnique({ where: { id } });
     if (!existing) return { success: false, error: "Municipality not found." };
     const nameEn = data.nameEn?.trim();
@@ -964,7 +964,7 @@ export async function updateMapMunicipality(
 
 export async function deleteMapMunicipality(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     const existing = await db.mapMunicipality.findUnique({ where: { id } });
     if (!existing) return { success: false, error: "Municipality not found." };
 
@@ -990,7 +990,7 @@ export async function updateMapMunicipalityLabelPosition(
   labelY: number
 ): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requirePermission("manage_map");
     await db.mapMunicipality.update({
       where: { id },
       data: { labelX: clampPercent(labelX), labelY: clampPercent(labelY) },

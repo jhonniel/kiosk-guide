@@ -109,68 +109,76 @@ export function BuildingDirectoryClient({
   const showLayout = !useLeafletIndoor && navigationGraph.floorPlans.length > 0;
 
   return (
-    <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+    <div className="flex h-full min-h-0 flex-col gap-3 sm:gap-4">
       {!useLeafletIndoor && (
-        <BuildingDirectoryGuide
-          isDemoMode={isDemoMode}
-          uiConfig={uiConfig}
-          initialQuery={initialQuery}
-          onLocationHighlight={setHighlightLocationId}
-          onStartNavigation={handleStartNavigation}
-          navigationActive={!!navTarget}
-        />
+        <div className="shrink-0">
+          <BuildingDirectoryGuide
+            isDemoMode={isDemoMode}
+            uiConfig={uiConfig}
+            initialQuery={initialQuery}
+            onLocationHighlight={setHighlightLocationId}
+            onStartNavigation={handleStartNavigation}
+            navigationActive={!!navTarget}
+          />
+        </div>
       )}
 
       {useLeafletIndoor && indoorMap ? (
-        <IndoorKioskMap payload={indoorMap} buildingName={buildingName} />
+        <div className="min-h-0 flex-1">
+          <IndoorKioskMap payload={indoorMap} buildingName={buildingName} />
+        </div>
       ) : null}
 
       {showLayout && (
-        <BuildingLayoutPanel
-          buildingName={buildingName}
-          isDemoMode={isDemoMode}
-          navigationGraph={navigationGraph}
-          locations={locations}
-          kioskLocation={uiConfig.kioskLocation}
-          highlightLocationId={highlightLocationId}
-          pickedNode={pickedNode}
-          onLocationClick={handleLocationClick}
-          onCloseLocationInfo={() => {
-            setPickedLocationId(null);
-            if (!navTarget) setHighlightLocationId(null);
-          }}
-          onStartNavigation={(locationId, name) =>
-            handleStartNavigation(locationId, name, false)
-          }
-          route={route}
-          progress={progress}
-          progressRef={progressRef}
-          isNavigating={isNavigating}
-          hasArrived={hasArrived}
-          currentFloor={currentFloor}
-          onFloorChange={setCurrentFloor}
-          autoFollowFloor={isNavigating}
-        />
+        <div className="min-h-0 flex-1">
+          <BuildingLayoutPanel
+            buildingName={buildingName}
+            isDemoMode={isDemoMode}
+            navigationGraph={navigationGraph}
+            locations={locations}
+            kioskLocation={uiConfig.kioskLocation}
+            highlightLocationId={highlightLocationId}
+            pickedNode={pickedNode}
+            onLocationClick={handleLocationClick}
+            onCloseLocationInfo={() => {
+              setPickedLocationId(null);
+              if (!navTarget) setHighlightLocationId(null);
+            }}
+            onStartNavigation={(locationId, name) =>
+              handleStartNavigation(locationId, name, false)
+            }
+            route={route}
+            progress={progress}
+            progressRef={progressRef}
+            isNavigating={isNavigating}
+            hasArrived={hasArrived}
+            currentFloor={currentFloor}
+            onFloorChange={setCurrentFloor}
+            autoFollowFloor={isNavigating}
+          />
+        </div>
       )}
 
       {navTarget && (
-        <BuildingNavigationPanel
-          nav={nav}
-          destinationName={navTarget.name}
-          lang={language}
-          onClose={handleCloseNavigation}
-        />
+        <div className="shrink-0">
+          <BuildingNavigationPanel
+            nav={nav}
+            destinationName={navTarget.name}
+            lang={language}
+            onClose={handleCloseNavigation}
+          />
+        </div>
       )}
 
       {showOfficialDirectory && (
-        <div>
-          <div className="mb-4 flex items-center gap-3">
+        <div className="min-h-0 shrink-0 overflow-y-auto border-t border-gray-200 pt-3">
+          <div className="mb-3 flex items-center gap-3">
             <h2 className="text-sm font-bold tracking-wider text-kiosk-navy">
               {pickLang(language, "OFFICIAL DIRECTORY", "OPISYAL NA DIREKTORYO", "OPISYAL NGA DIREKTORYO")}
             </h2>
             <div className="h-0.5 w-8 bg-kiosk-green" />
           </div>
-          <div className="kiosk-stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="kiosk-stagger grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {directories.map((dir) => (
               <ContentCard key={dir.id}>
                 <h3 className="mb-2 font-bold text-kiosk-navy">{localized(dir, language, "name")}</h3>

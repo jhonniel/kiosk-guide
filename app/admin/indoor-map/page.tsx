@@ -1,11 +1,9 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
 import { loadIndoorAdminHome } from "@/features/indoor-map/admin-data";
 import { IndoorMapAdminHome } from "./indoor-map-home-client";
+import { requireAdminPage } from "@/lib/admin-page-auth";
 
 export default async function IndoorMapAdminPage() {
-  const session = await auth();
-  if (!session?.user) redirect("/admin/login");
+  await requireAdminPage("manage_indoor_map");
 
   let data: Awaited<ReturnType<typeof loadIndoorAdminHome>>;
   try {

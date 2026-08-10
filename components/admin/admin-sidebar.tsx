@@ -23,37 +23,89 @@ import {
   MessageSquare,
   LogOut,
   ScrollText,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { ADMIN_ROLE_NAME, type AdminPermissionName } from "@/features/admin/permissions";
 
-const navItems = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/services", label: "Services", icon: Briefcase },
-  { href: "/admin/citizens-charter", label: "Citizens' Charter", icon: ScrollText },
-  { href: "/admin/directories", label: "Directories", icon: Building },
-  { href: "/admin/building-locations", label: "Building Locations", icon: Building2 },
-  { href: "/admin/indoor-map", label: "Indoor Map", icon: MapPinned },
-  { href: "/admin/downloads", label: "Downloads", icon: Download },
-  { href: "/admin/announcements", label: "Announcements", icon: Megaphone },
-  { href: "/admin/faqs", label: "FAQs", icon: HelpCircle },
-  { href: "/admin/events", label: "Events", icon: Calendar },
-  { href: "/admin/emergency", label: "Emergency", icon: Phone },
-  { href: "/admin/tourism", label: "Tourism", icon: Palmtree },
-  { href: "/admin/map", label: "Camiguin Map", icon: Map },
-  { href: "/admin/quick-links", label: "Quick Start", icon: Zap },
-  { href: "/admin/homepage-cards", label: "Homepage Cards", icon: LayoutGrid },
-  { href: "/admin/feedback", label: "Feedback", icon: MessageSquare },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
-  { href: "/admin/users", label: "Users", icon: Users },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  permission: AdminPermissionName | null;
+};
+
+const navItems: NavItem[] = [
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, permission: null },
+  { href: "/admin/services", label: "Services", icon: Briefcase, permission: "manage_services" },
+  {
+    href: "/admin/citizens-charter",
+    label: "Citizens' Charter",
+    icon: ScrollText,
+    permission: "manage_citizens_charter",
+  },
+  {
+    href: "/admin/directories",
+    label: "Directories",
+    icon: Building,
+    permission: "manage_directories",
+  },
+  {
+    href: "/admin/building-locations",
+    label: "Building Locations",
+    icon: Building2,
+    permission: "manage_building",
+  },
+  {
+    href: "/admin/indoor-map",
+    label: "Indoor Map",
+    icon: MapPinned,
+    permission: "manage_indoor_map",
+  },
+  { href: "/admin/downloads", label: "Downloads", icon: Download, permission: "manage_downloads" },
+  {
+    href: "/admin/announcements",
+    label: "Announcements",
+    icon: Megaphone,
+    permission: "manage_announcements",
+  },
+  { href: "/admin/faqs", label: "FAQs", icon: HelpCircle, permission: "manage_faqs" },
+  { href: "/admin/events", label: "Events", icon: Calendar, permission: "manage_events" },
+  { href: "/admin/emergency", label: "Emergency", icon: Phone, permission: "manage_emergency" },
+  { href: "/admin/tourism", label: "Tourism", icon: Palmtree, permission: "manage_tourism" },
+  { href: "/admin/map", label: "Camiguin Map", icon: Map, permission: "manage_map" },
+  { href: "/admin/quick-links", label: "Quick Start", icon: Zap, permission: "manage_quick_links" },
+  {
+    href: "/admin/homepage-cards",
+    label: "Homepage Cards",
+    icon: LayoutGrid,
+    permission: "manage_homepage_cards",
+  },
+  { href: "/admin/feedback", label: "Feedback", icon: MessageSquare, permission: "manage_feedback" },
+  { href: "/admin/settings", label: "Settings", icon: Settings, permission: "manage_settings" },
+  { href: "/admin/users", label: "Users", icon: Users, permission: "manage_users" },
 ];
 
 interface Props {
-  user: { name?: string | null; email?: string | null; role?: string };
+  user: {
+    name?: string | null;
+    email?: string | null;
+    role?: string;
+    permissions?: string[];
+  };
 }
 
 export function AdminSidebar({ user }: Props) {
   const pathname = usePathname();
+  const isFullAdmin = user.role === ADMIN_ROLE_NAME;
+  const granted = new Set(user.permissions ?? []);
+
+  const visibleItems = navItems.filter((item) => {
+    if (!item.permission) return true;
+    if (isFullAdmin) return true;
+    return granted.has(item.permission);
+  });
 
   return (
     <aside className="flex w-64 shrink-0 flex-col bg-kiosk-navy text-white">
@@ -63,7 +115,7 @@ export function AdminSidebar({ user }: Props) {
       </div>
       <nav className="flex-1 overflow-y-auto p-4">
         <ul className="space-y-1">
-          {navItems.map((item) => (
+          {visibleItems.map((item) => (
             <li key={item.href}>
               <Link
                 href={item.href}
@@ -83,6 +135,7 @@ export function AdminSidebar({ user }: Props) {
         </ul>
       </nav>
       <div className="border-t border-white/10 p-4">
+        <p className="mb-0.5 truncate text-xs font-medium text-white/90">{user.name}</p>
         <p className="mb-2 truncate text-xs text-white/60">{user.email}</p>
         <Button
           variant="ghost"

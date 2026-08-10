@@ -248,7 +248,7 @@ export function SmartSearch() {
         ref={containerRef}
         className={cn(
           "relative w-full transition-[max-width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-          expanded ? "max-w-full" : "max-w-[42rem]"
+          expanded ? "max-w-full" : "max-w-[48rem] xl:max-w-[54rem]"
         )}
       >
         <div
@@ -263,10 +263,10 @@ export function SmartSearch() {
               <Search className="h-4 w-4 text-kiosk-navy sm:h-5 sm:w-5" strokeWidth={2.25} />
             </div>
             <div className="min-w-0">
-              <p className="text-[13px] leading-none font-extrabold tracking-[0.04em] text-kiosk-navy uppercase sm:text-[15px]">
+              <p className="text-sm leading-none font-extrabold tracking-[0.04em] text-kiosk-navy uppercase sm:text-[0.95rem]">
                 {t(language, "smartSearch")}
               </p>
-              <p className="mt-1 hidden text-[13px] leading-snug text-[#6b7c93] md:block md:whitespace-nowrap">
+              <p className="mt-1 hidden text-sm leading-snug text-[#6b7c93] md:block md:whitespace-nowrap">
                 {t(language, "smartSearchHint")}
               </p>
             </div>
@@ -280,12 +280,12 @@ export function SmartSearch() {
               setIsOpen(true);
             }}
           >
-            <div className="relative h-12 rounded-full bg-white shadow-[inset_0_1px_2px_rgba(15,35,70,0.04)]">
+            <div className="relative h-12 rounded-full bg-white shadow-[inset_0_1px_2px_rgba(15,35,70,0.04)] lg:h-14">
               {showHint && (
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "pointer-events-none absolute inset-y-0 left-0 right-12 z-0 flex items-center truncate text-[13px] text-[#9baabf] transition-[padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                    "pointer-events-none absolute inset-y-0 left-0 right-12 z-0 flex items-center truncate text-sm text-[#9baabf] transition-[padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
                     expanded ? "pl-6" : "pl-4"
                   )}
                 >
@@ -309,7 +309,7 @@ export function SmartSearch() {
                 spellCheck={false}
                 enterKeyHint="search"
                 className={cn(
-                  "relative z-10 h-full w-full rounded-full border-0 bg-transparent text-[13px] text-kiosk-navy outline-none focus:ring-2 focus:ring-kiosk-navy/15",
+                  "relative z-10 h-full w-full rounded-full border-0 bg-transparent text-sm text-kiosk-navy outline-none focus:ring-2 focus:ring-kiosk-navy/15",
                   "appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden",
                   "transition-[padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
                   expanded ? "pr-16 pl-6" : "pr-14 pl-4"

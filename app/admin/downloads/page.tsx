@@ -1,10 +1,9 @@
-import { auth } from "@/lib/auth";
 import type { ReactNode } from "react";
-import { redirect } from "next/navigation";
 import { BarChart3, Mail, QrCode, ScanLine } from "lucide-react";
 import { db } from "@/lib/db";
 import { AdminCrudManager } from "@/components/admin/admin-crud-page";
 import { RESOURCE_CONFIGS } from "@/features/admin/resource-definitions";
+import { requireAdminPage } from "@/lib/admin-page-auth";
 
 const activityLabels = {
   QR_GENERATED: "QR code generated",
@@ -13,7 +12,7 @@ const activityLabels = {
 } as const;
 
 export default async function AdminDownloadsPage() {
-  if (!(await auth())) redirect("/admin/login");
+  await requireAdminPage("manage_downloads");
 
   const [downloads, activityCounts, recentActivity] = await Promise.all([
     db.download.findMany({

@@ -11,7 +11,7 @@ const DynamicBuilding3DViewer = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-[480px] animate-pulse items-center justify-center rounded-2xl border border-gray-200 bg-gradient-to-b from-[#e8f0fa] to-[#f4f7fb] text-sm text-gray-500">
+      <div className="flex h-full min-h-[320px] animate-pulse items-center justify-center rounded-2xl border border-gray-200 bg-gradient-to-b from-[#e8f0fa] to-[#f4f7fb] text-sm text-gray-500">
         Loading 3D building…
       </div>
     ),

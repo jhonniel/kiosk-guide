@@ -2,7 +2,7 @@
  * Server-side indoor map data loader (NOT a Server Action).
  */
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requirePermission } from "@/lib/admin-auth";
 import type {
   IndoorAmenityRow,
   IndoorBuildingSummary,
@@ -148,7 +148,7 @@ export async function loadIndoorAdminHome(): Promise<{
   buildings: IndoorBuildingSummary[];
   floors: IndoorFloorSummary[];
 }> {
-  await requireAdmin();
+  await requirePermission("manage_indoor_map");
   const buildings = await db.indoorBuilding.findMany({
     include: { _count: { select: { floors: true } } },
     orderBy: { nameEn: "asc" },
@@ -167,7 +167,7 @@ export async function loadIndoorAdminHome(): Promise<{
 }
 
 export async function loadIndoorFloorDetail(floorId: string): Promise<IndoorFloorDetail | null> {
-  await requireAdmin();
+  await requirePermission("manage_indoor_map");
   const floor = await db.indoorFloor.findUnique({
     where: { id: floorId },
     include: {

@@ -149,8 +149,8 @@ export function IndoorKioskMap({ payload, buildingName }: Props) {
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/40 bg-slate-900/90 shadow-xl backdrop-blur">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/40 bg-slate-900/90 shadow-xl backdrop-blur">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
         <div>
           <p className="text-xs uppercase tracking-wider text-teal-200/80">Indoor map</p>
           <h2 className="text-lg font-semibold text-white">{buildingName || building.nameEn}</h2>
@@ -172,8 +172,8 @@ export function IndoorKioskMap({ payload, buildingName }: Props) {
         </div>
       </div>
 
-      <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="relative min-h-[420px] lg:min-h-[560px]">
+      <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="relative min-h-[280px] h-full">
           <LeafletPlanMap
             widthPx={floor.widthPx}
             heightPx={floor.heightPx}
@@ -197,7 +197,7 @@ export function IndoorKioskMap({ payload, buildingName }: Props) {
             edges={[]}
             route={routePoints}
             onRoomClick={(id) => setSelectedRoomId(id)}
-            className="h-full min-h-[420px] lg:min-h-[560px]"
+            className="h-full min-h-[280px]"
           />
         </div>
 

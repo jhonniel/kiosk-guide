@@ -1,13 +1,9 @@
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
 import { loadMapAdminData } from "@/features/map/admin-data";
 import { MapAdminClient } from "./map-admin-client";
+import { requireAdminPage } from "@/lib/admin-page-auth";
 
 export default async function AdminMapPage() {
-  const session = await auth();
-  if (!session?.user) {
-    redirect("/admin/login");
-  }
+  await requireAdminPage("manage_map");
 
   let data: Awaited<ReturnType<typeof loadMapAdminData>>;
   try {

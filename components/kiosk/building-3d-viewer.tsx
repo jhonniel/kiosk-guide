@@ -44,6 +44,8 @@ interface Building3DViewerProps {
   onStartNavigation?: (locationId: string, name: string) => void;
   className?: string;
   height?: number;
+  /** Fill the parent container height instead of using a fixed viewport cap. */
+  fill?: boolean;
 }
 
 function SceneLoader() {
@@ -91,6 +93,7 @@ export function Building3DViewer({
   onStartNavigation,
   className,
   height = 0,
+  fill = false,
 }: Building3DViewerProps) {
   const { language } = useKiosk();
   const focusFloor = currentFloor;
@@ -188,8 +191,14 @@ export function Building3DViewer({
   }
 
   return (
-    <div className={cn("overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-md", className)}>
-      <div className="flex items-center justify-between border-b bg-kiosk-bg px-4 py-2">
+    <div
+      className={cn(
+        "flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-md",
+        fill && "h-full min-h-0",
+        className
+      )}
+    >
+      <div className="flex shrink-0 items-center justify-between border-b bg-kiosk-bg px-4 py-2">
         <div className="flex gap-1">
           {graph.floorPlans.map((f) => (
             <button
@@ -224,7 +233,7 @@ export function Building3DViewer({
       </div>
 
       {isDemoMode && (
-        <div className="bg-amber-50 px-4 py-1.5 text-center text-xs text-amber-700">
+        <div className="shrink-0 bg-amber-50 px-4 py-1.5 text-center text-xs text-amber-700">
           {imageBased
             ? pickLang(
                 language,
@@ -256,10 +265,12 @@ export function Building3DViewer({
       )}
 
       <div
-        style={height > 0 ? { height } : undefined}
+        style={!fill && height > 0 ? { height } : undefined}
         className={cn(
-          "relative bg-[#f0f4f8]",
-          height <= 0 && (imageBased ? "h-[min(58vh,620px)]" : "h-[min(45vh,480px)]")
+          "relative min-h-0 bg-[#f0f4f8]",
+          fill
+            ? "flex-1"
+            : height <= 0 && (imageBased ? "h-[min(70vh,900px)]" : "h-[min(55vh,720px)]")
         )}
         data-kiosk-zoom-surface
       >
@@ -286,8 +297,8 @@ export function Building3DViewer({
             navigationMapMode
               ? undefined
               : imageBased
-                ? { position: [35, 50, 35], fov: 38, near: 0.1, far: 400 }
-                : { position: [0, 55, 55], fov: 42, near: 0.1, far: 160 }
+                ? { position: [28, 40, 28], fov: 42, near: 0.1, far: 400 }
+                : { position: [0, 48, 48], fov: 46, near: 0.1, far: 160 }
           }
           gl={{
             antialias: true,
@@ -330,10 +341,10 @@ export function Building3DViewer({
                   enablePan
                   enableZoom
                   zoomSpeed={0.85}
-                  minDistance={floorSpan * 0.35}
-                  maxDistance={floorSpan * 1.35}
-                  minPolarAngle={0.35}
-                  maxPolarAngle={Math.PI / 2.15}
+                  minDistance={floorSpan * 0.28}
+                  maxDistance={floorSpan * 1.55}
+                  minPolarAngle={0.3}
+                  maxPolarAngle={Math.PI / 2.1}
                   enableDamping={false}
                 />
                 <BuildingOrbitCameraFit graph={graph} viewFloor={focusFloor} />
