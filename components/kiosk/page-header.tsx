@@ -56,7 +56,7 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "sticky top-0 z-30 -mx-4 mb-4 border-b px-4 py-3 sm:-mx-6 sm:mb-5 sm:px-6 sm:py-3.5 lg:-mx-8 lg:mb-6 lg:px-8 lg:py-4",
+        "relative z-30 mb-3 border-b py-3",
         kioskDateTimeReserveClass,
         transparent
           ? "border-transparent bg-transparent"
@@ -67,17 +67,19 @@ export function PageHeader({
         {showBack && (
           <Link
             href="/"
-            className="mb-2 inline-flex items-center gap-2 text-sm font-medium text-kiosk-navy/70 transition-colors hover:text-kiosk-navy sm:mb-3"
+            className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-kiosk-navy/70 transition-colors hover:text-kiosk-navy"
           >
             <ArrowLeft className="h-4 w-4" />
             {t(language, "backToHome")}
           </Link>
         )}
-        <h1 className="text-xl font-bold tracking-tight text-kiosk-navy sm:text-2xl lg:text-3xl">
+        <h1 className="truncate text-3xl font-bold tracking-tight text-kiosk-navy">
           {title}
         </h1>
         {description && (
-          <p className="mt-1 line-clamp-2 text-sm text-gray-600 sm:text-base">{description}</p>
+          <p className="mt-0.5 line-clamp-2 text-base text-gray-600">
+            {description}
+          </p>
         )}
       </div>
     </div>

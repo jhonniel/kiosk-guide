@@ -3,35 +3,96 @@
 import { useEffect, useState, type CSSProperties } from "react";
 
 /**
- * Design reference for kiosk chrome. Larger viewports scale the whole UI up
- * so touch targets and type don't look "zoomed out" on big panels / TVs.
+ * Fit the kiosk to the live window/screen.
+ * Stage = full viewport (always fills the display).
+ * Optional rem bump on large screens when auto-zoom is on.
+ * No CSS transform scale — that blocked true screen adapt and broke taps.
  */
-const REF_WIDTH = 1280;
-const REF_HEIGHT = 800;
-const MIN_SCALE = 1;
-const MAX_SCALE = 1.65;
+const LARGE_MIN_WIDTH = 1600;
+const LARGE_MIN_HEIGHT = 900;
+const BASE_FONT_PX = 16;
+const LARGE_FONT_PX = 18;
 
-function computeKioskUiScale(width: number, height: number) {
-  const next = Math.min(width / REF_WIDTH, height / REF_HEIGHT);
-  return Math.round(Math.min(Math.max(next, MIN_SCALE), MAX_SCALE) * 1000) / 1000;
+function readViewport() {
+  const vv = window.visualViewport;
+  return {
+    w: Math.max(1, Math.round(vv?.width ?? window.innerWidth)),
+    h: Math.max(1, Math.round(vv?.height ?? window.innerHeight)),
+  };
 }
 
-/** Returns CSS vars for the kiosk scale stage (see `.kiosk-ui-scale-*` in globals.css). */
-export function useKioskUiScale(): CSSProperties {
-  const [scale, setScale] = useState(() =>
-    typeof window === "undefined" ? 1 : computeKioskUiScale(window.innerWidth, window.innerHeight)
-  );
+function readScreen() {
+  return {
+    w: Math.max(0, Math.round(window.screen?.availWidth || window.screen?.width || 0)),
+    h: Math.max(0, Math.round(window.screen?.availHeight || window.screen?.height || 0)),
+  };
+}
 
-  useEffect(() => {
-    const update = () => {
-      setScale(computeKioskUiScale(window.innerWidth, window.innerHeight));
-    };
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
+function computeFit(autoZoomEnabled: boolean) {
+  const viewport = readViewport();
+  const screen = readScreen();
+
+  const isLarge =
+    autoZoomEnabled &&
+    (Math.max(screen.w, viewport.w) >= LARGE_MIN_WIDTH) &&
+    (Math.max(screen.h, viewport.h) >= LARGE_MIN_HEIGHT);
 
   return {
-    ["--kiosk-ui-scale" as string]: String(scale),
+    width: viewport.w,
+    height: viewport.h,
+    fontSizePx: isLarge ? LARGE_FONT_PX : BASE_FONT_PX,
+  };
+}
+
+/** Measure the window and size the kiosk shell to fill it. */
+export function useKioskUiScale(enabled = true): {
+  viewportStyle: CSSProperties;
+  stageStyle: CSSProperties;
+  scale: number;
+} {
+  const [, setState] = useState({ width: 1920, height: 1080, fontSizePx: BASE_FONT_PX });
+
+  useEffect(() => {
+    const root = document.documentElement;
+
+    const update = () => {
+      const next = computeFit(enabled);
+      setState(next);
+      root.style.setProperty("--kiosk-ui-scale", "1");
+      root.style.fontSize = `${next.fontSizePx}px`;
+    };
+
+    update();
+    window.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("scroll", update);
+    window.addEventListener("orientationchange", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("scroll", update);
+      window.removeEventListener("orientationchange", update);
+      root.style.setProperty("--kiosk-ui-scale", "1");
+      root.style.fontSize = "";
+    };
+  }, [enabled]);
+
+  return {
+    scale: 1,
+    viewportStyle: {
+      width: "100vw",
+      height: "100dvh",
+      maxWidth: "100vw",
+      maxHeight: "100dvh",
+      overflow: "hidden",
+      position: "relative" as const,
+      background: "var(--kiosk-bg, #f7f9fc)",
+    },
+    stageStyle: {
+      width: "100%",
+      height: "100%",
+      transform: "none",
+      ["--kiosk-ui-scale" as string]: "1",
+    },
   };
 }

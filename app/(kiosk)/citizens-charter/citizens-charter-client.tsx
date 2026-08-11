@@ -366,7 +366,7 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
         className={cn(
           "relative z-10 flex min-h-0 flex-1 flex-col",
           view === "overview"
-            ? "overflow-y-auto px-4 pb-3 sm:overflow-hidden sm:px-6 sm:pb-4 lg:px-8 lg:pb-5"
+            ? "min-h-0 overflow-y-auto overscroll-contain px-4 pb-3 sm:px-6 sm:pb-4 lg:px-8 lg:pb-5"
             : "overflow-y-auto px-4 pb-2 sm:px-6 lg:overflow-hidden lg:px-8"
         )}
       >
@@ -493,8 +493,8 @@ function OverviewView({
   }
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col bg-transparent">
-      <header className={cn("relative z-10 shrink-0 pt-3 pb-2 sm:pt-4 sm:pb-3", kioskDateTimeReserveClass)}>
+    <div className="relative flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain bg-transparent">
+      <header className={cn("relative z-10 shrink-0 px-1 pt-3 pb-2 sm:pt-4 sm:pb-3", kioskDateTimeReserveClass)}>
         <Link
           href="/"
           className="mb-2 inline-flex items-center gap-2 rounded-full border-0 bg-white/70 px-3 py-1.5 text-[13px] font-medium text-kiosk-navy/75 shadow-none backdrop-blur-sm transition hover:bg-white/90 hover:text-kiosk-navy sm:mb-3"
@@ -504,38 +504,38 @@ function OverviewView({
         </Link>
 
         <div className="min-w-0 max-w-xl">
-          <h1 className="text-[1.5rem] leading-none font-black tracking-tight text-kiosk-navy uppercase sm:text-[1.85rem] lg:text-[2.15rem] xl:text-[2.35rem]">
+          <h1 className="text-[1.35rem] leading-none font-black tracking-tight text-kiosk-navy uppercase sm:text-[1.65rem] lg:text-[1.9rem]">
             Citizens&apos; Charter
           </h1>
-          <p className="mt-1 text-[10px] font-bold tracking-[0.34em] text-[#0f766e] uppercase sm:mt-1.5 sm:text-[11px]">
+          <p className="mt-1 text-[10px] font-bold tracking-[0.34em] text-[#0f766e] uppercase sm:text-[11px]">
             Overview
           </p>
-          <p className="mt-1.5 max-w-lg text-[12px] leading-relaxed text-slate-500 sm:mt-2 sm:text-[13px]">
+          <p className="mt-1.5 max-w-lg text-[12px] leading-relaxed text-slate-500 sm:text-[13px]">
             Your guide to government services in Camiguin. Explore services, requirements,
             processing time, and fees all in one place.
           </p>
         </div>
       </header>
 
-      {/* Fluid layout: scales icons/type so nothing clips on shorter screens */}
-      <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col gap-3 pb-1 sm:gap-4 lg:flex-row lg:items-stretch lg:gap-5">
-        <article className="flex w-full shrink-0 flex-col rounded-[20px] border-0 bg-white p-3 shadow-[0_12px_40px_-24px_rgba(15,35,70,0.35)] ring-0 sm:p-3.5 lg:w-[min(32vw,360px)] lg:max-w-[360px]">
-          <div className="relative min-h-[10rem] flex-1 overflow-hidden rounded-[16px] bg-slate-100 sm:min-h-[12rem] lg:min-h-[14rem]">
+      {/* Compact fit layout — avoids bottom cards being clipped after UI scale */}
+      <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col gap-2.5 px-1 pb-3 sm:gap-3 lg:flex-row lg:items-stretch lg:gap-4">
+        <article className="flex w-full shrink-0 flex-col rounded-[20px] border-0 bg-white p-3 shadow-[0_12px_40px_-24px_rgba(15,35,70,0.35)] ring-0 sm:p-3.5 lg:w-[min(30vw,320px)] lg:max-w-[320px]">
+          <div className="relative min-h-[9rem] flex-1 overflow-hidden rounded-[16px] bg-[#0b3d6e] sm:min-h-[11rem] lg:min-h-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={CHARTER_COVER_IMAGE}
               alt="Citizens' Charter 2026 cover"
-              className="absolute inset-0 h-[118%] w-full object-cover object-top"
+              className="absolute inset-0 h-full w-full object-cover object-top"
             />
           </div>
           <div className="mt-2.5 shrink-0 text-center sm:mt-3">
-            <h2 className="text-[15px] font-extrabold text-kiosk-navy sm:text-[17px]">{editionLabel}</h2>
-            <p className="mt-0.5 text-[12px] text-slate-500 sm:text-[13px]">Complete Citizens&apos; Charter</p>
+            <h2 className="text-[15px] font-extrabold text-kiosk-navy sm:text-[16px]">{editionLabel}</h2>
+            <p className="mt-0.5 text-[12px] text-slate-500">Complete Citizens&apos; Charter</p>
             {edition.pdfUrl ? (
               <button
                 type="button"
                 onClick={openEmailDialog}
-                className="mt-2.5 flex h-9 w-full items-center justify-center gap-2 rounded-full bg-[#e8eef6] text-[12px] font-semibold text-kiosk-navy transition hover:bg-[#dce5f1] sm:mt-3 sm:h-10 sm:text-[13px]"
+                className="mt-2.5 flex h-9 w-full items-center justify-center gap-2 rounded-full bg-[#e8eef6] text-[12px] font-semibold text-kiosk-navy transition hover:bg-[#dce5f1] sm:h-10 sm:text-[13px]"
               >
                 <FileText className="h-4 w-4 text-slate-500" />
                 <span>PDF Document</span>
@@ -546,55 +546,55 @@ function OverviewView({
           </div>
         </article>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 sm:gap-4">
-          <div className="grid min-h-0 flex-1 grid-rows-2 gap-3 sm:gap-4">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2.5 sm:gap-3">
+          <div className="flex min-h-0 flex-1 flex-col gap-2.5 sm:gap-3">
             <button
               type="button"
               onClick={onBrowse}
-              className="flex h-full min-h-0 items-center gap-3 rounded-[20px] border-0 bg-white px-4 py-3 text-left shadow-[0_12px_40px_-24px_rgba(15,35,70,0.32)] ring-0 transition hover:-translate-y-0.5 active:scale-[0.995] sm:gap-4 sm:rounded-[22px] sm:px-5 sm:py-4 lg:gap-6 lg:px-6 lg:py-5"
+              className="flex min-h-0 flex-1 items-center gap-3 rounded-[20px] border-0 bg-white px-4 py-3 text-left shadow-[0_12px_40px_-24px_rgba(15,35,70,0.32)] ring-0 transition hover:-translate-y-0.5 active:scale-[0.995] sm:gap-4 sm:px-5 sm:py-3.5 lg:gap-5 lg:px-5"
             >
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#0d9488] text-white sm:h-20 sm:w-20 lg:h-24 lg:w-24 xl:h-28 xl:w-28">
-                <Landmark className="h-7 w-7 sm:h-10 sm:w-10 lg:h-12 lg:w-12 xl:h-14 xl:w-14" strokeWidth={2} />
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0d9488] text-white sm:h-16 sm:w-16 lg:h-20 lg:w-20">
+                <Landmark className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10" strokeWidth={2} />
               </span>
               <div className="min-w-0 flex-1">
-                <h2 className="text-base leading-tight font-extrabold text-kiosk-navy sm:text-xl lg:text-[1.65rem] xl:text-[1.85rem]">
+                <h2 className="text-base leading-tight font-extrabold text-kiosk-navy sm:text-lg lg:text-xl xl:text-[1.45rem]">
                   Browse By Department / Category
                 </h2>
-                <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-slate-500 sm:mt-1.5 sm:text-base lg:mt-2 lg:text-lg">
+                <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-slate-500 sm:text-sm lg:text-base">
                   Browse official services, published fees, processing time, and source pages.
                 </p>
               </div>
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eef2f7]/90 text-slate-500 sm:h-11 sm:w-11 lg:h-12 lg:w-12">
-                <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eef2f7]/90 text-slate-500 sm:h-10 sm:w-10">
+                <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </span>
             </button>
 
-            <div className="flex h-full min-h-0 items-center gap-3 rounded-[20px] border-0 bg-white px-4 py-3 shadow-[0_12px_40px_-24px_rgba(15,35,70,0.28)] outline outline-2 outline-dashed outline-[#14b8a6]/55 ring-0 sm:gap-4 sm:rounded-[22px] sm:px-5 sm:py-4 lg:gap-6 lg:px-6 lg:py-5">
-              <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4 lg:gap-6">
-                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#7c3aed] text-white sm:h-20 sm:w-20 lg:h-24 lg:w-24 xl:h-28 xl:w-28">
-                  <QrCode className="h-7 w-7 sm:h-10 sm:w-10 lg:h-12 lg:w-12 xl:h-14 xl:w-14" strokeWidth={2} />
+            <div className="flex min-h-0 flex-1 items-center gap-3 rounded-[20px] border-0 bg-white px-4 py-3 shadow-[0_12px_40px_-24px_rgba(15,35,70,0.28)] outline outline-2 outline-dashed outline-[#14b8a6]/55 ring-0 sm:gap-4 sm:px-5 sm:py-3.5 lg:gap-5 lg:px-5">
+              <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4 lg:gap-5">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#7c3aed] text-white sm:h-16 sm:w-16 lg:h-20 lg:w-20">
+                  <QrCode className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10" strokeWidth={2} />
                 </span>
                 <div className="min-w-0">
-                  <h2 className="text-base leading-tight font-extrabold text-kiosk-navy sm:text-xl lg:text-[1.65rem] xl:text-[1.85rem]">
+                  <h2 className="text-base leading-tight font-extrabold text-kiosk-navy sm:text-lg lg:text-xl xl:text-[1.45rem]">
                     Scan QR to Open the Document
                   </h2>
-                  <p className="mt-1 line-clamp-2 max-w-xl text-[13px] leading-snug text-slate-500 sm:mt-1.5 sm:text-base lg:mt-2 lg:text-lg">
+                  <p className="mt-1 line-clamp-2 max-w-xl text-[13px] leading-snug text-slate-500 sm:text-sm lg:text-base">
                     Scan the QR code to view or download the complete {edition.year} Citizens&apos;
                     Charter.
                   </p>
                 </div>
               </div>
-              <div className="flex w-[5.5rem] shrink-0 flex-col items-center gap-1.5 sm:w-[7.5rem] sm:gap-2 lg:w-[148px] lg:gap-2.5">
-                <div className="rounded-lg bg-white p-1 sm:rounded-xl sm:p-1.5 lg:p-2">
+              <div className="flex w-[5rem] shrink-0 flex-col items-center gap-1.5 sm:w-[6.5rem] sm:gap-2 lg:w-[7.25rem]">
+                <div className="rounded-lg bg-white p-1 sm:rounded-xl sm:p-1.5">
                   {qrDataUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={qrDataUrl}
                       alt="Citizens' Charter PDF QR code"
-                      className="h-16 w-16 sm:h-24 sm:w-24 lg:h-[7.75rem] lg:w-[7.75rem]"
+                      className="h-14 w-14 sm:h-20 sm:w-20 lg:h-[5.75rem] lg:w-[5.75rem]"
                     />
                   ) : (
-                    <div className="flex h-16 w-16 items-center justify-center rounded-md bg-slate-100 text-xs text-slate-400 sm:h-24 sm:w-24 lg:h-[7.75rem] lg:w-[7.75rem]">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-md bg-slate-100 text-xs text-slate-400 sm:h-20 sm:w-20 lg:h-[5.75rem] lg:w-[5.75rem]">
                       QR
                     </div>
                   )}
@@ -603,7 +603,7 @@ function OverviewView({
                   <button
                     type="button"
                     onClick={() => setQrOpen(true)}
-                    className="inline-flex w-full items-center justify-center rounded-md bg-[#0d9488] px-2 py-1.5 text-[10px] font-bold tracking-wide text-white uppercase transition hover:bg-[#0f766e] sm:px-3 sm:py-2 sm:text-xs lg:py-2.5 lg:text-sm"
+                    className="inline-flex w-full items-center justify-center rounded-md bg-[#0d9488] px-2 py-1.5 text-[10px] font-bold tracking-wide text-white uppercase transition hover:bg-[#0f766e] sm:px-3 sm:py-2 sm:text-xs"
                   >
                     Scan Here
                   </button>
@@ -612,12 +612,12 @@ function OverviewView({
             </div>
           </div>
 
-          <div className="grid shrink-0 gap-3 sm:gap-3.5 lg:grid-cols-[minmax(0,1.3fr)_minmax(200px,0.85fr)] lg:items-end">
-            <div className="min-w-0">
-              <p className="mb-1.5 text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase sm:mb-2 sm:text-[11px]">
+          <div className="flex shrink-0 flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-stretch">
+            <div className="min-w-0 shrink-0">
+              <p className="mb-1.5 text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase sm:text-[11px]">
                 Core Charter Topics
               </p>
-              <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
+              <div className="flex flex-wrap gap-2 sm:gap-2.5">
                 {CHARTER_CORE_TOPICS.map((topic) => {
                   const Icon = topic.icon;
                   const selected = topic.id === activeTopicId;
@@ -630,7 +630,7 @@ function OverviewView({
                         setTopicOpen(true);
                       }}
                       className={cn(
-                        "flex aspect-square max-h-[7.5rem] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-[14px] border-0 bg-white px-1 text-center shadow-[0_10px_28px_-18px_rgba(15,35,70,0.28)] ring-0 transition sm:gap-2 sm:rounded-[16px] sm:px-1.5 lg:max-h-none",
+                        "flex h-[5.75rem] w-[5.75rem] flex-col items-center justify-center gap-1 overflow-hidden rounded-[14px] border-0 bg-white px-1 text-center shadow-[0_10px_28px_-18px_rgba(15,35,70,0.28)] ring-0 transition sm:h-[6.5rem] sm:w-[6.5rem] sm:gap-1.5 sm:rounded-[16px]",
                         selected
                           ? "outline outline-2 outline-[#f59e0b] outline-offset-0"
                           : "hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-16px_rgba(15,35,70,0.32)]"
@@ -638,14 +638,14 @@ function OverviewView({
                     >
                       <span
                         className={cn(
-                          "flex h-9 w-9 items-center justify-center rounded-full sm:h-12 sm:w-12 lg:h-14 lg:w-14 xl:h-16 xl:w-16",
+                          "flex h-8 w-8 items-center justify-center rounded-full sm:h-10 sm:w-10 lg:h-11 lg:w-11",
                           topic.soft,
                           topic.accent
                         )}
                       >
-                        <Icon className="h-4 w-4 sm:h-6 sm:w-6 lg:h-7 lg:w-7 xl:h-8 xl:w-8" strokeWidth={2.25} />
+                        <Icon className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2.25} />
                       </span>
-                      <span className="px-0.5 text-[9px] leading-tight font-extrabold tracking-wide text-kiosk-navy uppercase sm:text-[11px] lg:text-xs">
+                      <span className="px-0.5 text-[9px] leading-tight font-extrabold tracking-wide text-kiosk-navy uppercase sm:text-[10px] lg:text-[11px]">
                         {topic.title}
                       </span>
                     </button>
@@ -654,15 +654,15 @@ function OverviewView({
               </div>
             </div>
 
-            <aside className="flex items-start gap-3 rounded-[16px] border-0 bg-[#eef5ff] px-3.5 py-3.5 shadow-none ring-0 sm:gap-4 sm:px-4 sm:py-4">
-              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2563eb] text-white sm:h-12 sm:w-12">
-                <Info className="h-4 w-4 sm:h-6 sm:w-6" strokeWidth={2.5} />
+            <aside className="flex min-w-0 flex-1 items-start gap-3 rounded-[16px] border-0 bg-[#eef5ff] px-3.5 py-3 shadow-none ring-0 sm:gap-3.5 sm:px-4 sm:py-3.5">
+              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2563eb] text-white sm:h-10 sm:w-10">
+                <Info className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2.5} />
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-extrabold text-kiosk-navy sm:text-base lg:text-lg">
+                <p className="text-sm font-extrabold text-kiosk-navy sm:text-base">
                   For Reference and Information Only
                 </p>
-                <p className="mt-1 text-[12px] leading-snug text-slate-500 sm:mt-1.5 sm:text-sm lg:text-[15px]">
+                <p className="mt-1 text-[12px] leading-snug text-slate-500 sm:text-sm">
                   The Citizens&apos; Charter provides detailed information on our services, policies,
                   and commitments to the public.
                 </p>
@@ -1359,13 +1359,61 @@ function publishedFee(service: CharterServiceView) {
   return "See steps";
 }
 
+/** Parse a charter step time string into minutes (best-effort). */
+function parseDurationToMinutes(raw: string): number | null {
+  const text = raw.toLowerCase().trim();
+  if (!text || /^(none|n\/a|-|—)+$/i.test(text)) return null;
+
+  let total = 0;
+  let found = false;
+
+  for (const match of text.matchAll(/(\d+(?:\.\d+)?)\s*(?:working\s*)?days?/gi)) {
+    total += Number.parseFloat(match[1]) * 8 * 60; // working day ≈ 8 hours
+    found = true;
+  }
+  for (const match of text.matchAll(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)/gi)) {
+    total += Number.parseFloat(match[1]) * 60;
+    found = true;
+  }
+  for (const match of text.matchAll(/(\d+(?:\.\d+)?)\s*(?:minutes?|mins?|min\.?)/gi)) {
+    total += Number.parseFloat(match[1]);
+    found = true;
+  }
+
+  return found && Number.isFinite(total) ? total : null;
+}
+
+function formatTotalMinutes(totalMinutes: number): string {
+  if (!Number.isFinite(totalMinutes) || totalMinutes <= 0) return "See charter";
+
+  const workingDayMinutes = 8 * 60;
+  const days = Math.floor(totalMinutes / workingDayMinutes);
+  let rem = Math.round(totalMinutes - days * workingDayMinutes);
+  const hours = Math.floor(rem / 60);
+  const minutes = rem % 60;
+
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days} ${days === 1 ? "day" : "days"}`);
+  if (hours > 0) parts.push(`${hours} ${hours === 1 ? "hour" : "hours"}`);
+  if (minutes > 0) parts.push(`${minutes} ${minutes === 1 ? "minute" : "minutes"}`);
+  return parts.join(" ") || "See charter";
+}
+
 function totalProcessingTime(service: CharterServiceView) {
+  const parsed = service.steps
+    .map((step) => parseDurationToMinutes(step.time))
+    .filter((value): value is number => value != null && value > 0);
+
+  if (parsed.length) {
+    return formatTotalMinutes(parsed.reduce((sum, value) => sum + value, 0));
+  }
+
   const times = service.steps
     .map((step) => step.time.trim())
     .filter((time) => time && !/^none$|^n\/a$|^-$|^—$/i.test(time));
   if (!times.length) return "See charter";
   if (times.length === 1) return times[0];
-  return times[0];
+  return "See steps";
 }
 
 function officeBlurb(office: CharterOfficeView) {
@@ -1430,6 +1478,8 @@ function OfficeModal({
   const initials = officeInitials(group.name);
   const whoMayAvail =
     services.find((service) => service.whoMayAvail)?.whoMayAvail || "Clients and citizens";
+  const [pdfOpen, setPdfOpen] = useState(false);
+  const pdfSrc = edition.pdfUrl ? absolutePdfUrl(edition.pdfUrl) : "";
 
   return (
     <div
@@ -1525,15 +1575,14 @@ function OfficeModal({
                 <p className="mt-1 max-w-2xl text-sm text-slate-500">{officeBlurb(group)}</p>
               </div>
               {edition.pdfUrl ? (
-                <a
-                  href={edition.pdfUrl}
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  type="button"
+                  onClick={() => setPdfOpen(true)}
                   className="inline-flex items-center gap-2 rounded-xl border border-[#2563eb]/30 bg-white px-3.5 py-2.5 text-sm font-semibold text-[#2563eb] shadow-sm transition hover:bg-blue-50"
                 >
                   <FileText className="h-4 w-4" />
-                  Download full PDF
-                </a>
+                  Open full PDF
+                </button>
               ) : null}
             </div>
 
@@ -1654,6 +1703,48 @@ function OfficeModal({
           onClose={onCloseService}
         />
       )}
+
+      {pdfOpen && pdfSrc ? (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-kiosk-navy/80 p-3 backdrop-blur-sm sm:p-5"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Citizens' Charter PDF"
+          onClick={() => setPdfOpen(false)}
+        >
+          <div
+            className="flex h-[min(94vh,960px)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-extrabold text-kiosk-navy">
+                  {edition.title || "Citizens' Charter"}
+                </p>
+                <p className="truncate text-xs text-slate-500">
+                  {edition.year}
+                  {edition.editionLabel ? ` · ${edition.editionLabel}` : ""} · Full PDF
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPdfOpen(false)}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200"
+                aria-label="Close PDF"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </header>
+            <div className="min-h-0 flex-1 bg-slate-100">
+              <iframe
+                title="Citizens' Charter PDF"
+                src={`${pdfSrc}#toolbar=1&navpanes=0`}
+                className="h-full w-full border-0"
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

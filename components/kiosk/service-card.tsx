@@ -40,28 +40,28 @@ export function ServiceCard({ title, description, icon, iconUrl, color, href, cl
         onOpen();
       }}
       className={cn(
-        "group flex h-full min-h-0 flex-col items-center justify-center gap-1.5 overflow-hidden rounded-3xl bg-white px-2 py-2 text-center shadow-md sm:gap-2 sm:px-3 sm:py-3",
-        "transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:scale-[0.98]",
+        "group flex h-full min-h-0 min-w-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-3xl bg-white px-2 py-1.5 text-center shadow-md",
+        "transition-shadow duration-200 hover:shadow-xl active:brightness-95",
         className
       )}
     >
       {iconUrl ? (
         <div
-          className="aspect-square w-[min(56%,5.5rem)] shrink-0 overflow-hidden rounded-full transition-transform duration-300 group-hover:scale-110 sm:w-[min(58%,6.75rem)] lg:w-[min(60%,8.5rem)]"
+          className="aspect-square w-[clamp(3.25rem,52%,6.25rem)] shrink-0 overflow-hidden rounded-full transition-transform duration-200 group-hover:scale-105"
           style={{ boxShadow: `0 8px 20px -6px ${palette.icon}66` }}
         >
           <Image
             src={iconUrl}
             alt=""
-            width={136}
-            height={136}
+            width={160}
+            height={160}
             className="h-full w-full scale-[1.22] object-cover"
             unoptimized
           />
         </div>
       ) : (
         <div
-          className="flex aspect-square w-[min(56%,5.5rem)] shrink-0 items-center justify-center rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 sm:w-[min(58%,6.75rem)] lg:w-[min(60%,8.5rem)]"
+          className="flex aspect-square w-[clamp(3.25rem,52%,6.25rem)] shrink-0 items-center justify-center rounded-full shadow-lg transition-transform duration-200 group-hover:scale-105"
           style={{
             background: `linear-gradient(135deg, ${palette.icon} 0%, ${palette.text} 100%)`,
             boxShadow: `0 8px 20px -6px ${palette.icon}66`,
@@ -72,12 +72,12 @@ export function ServiceCard({ title, description, icon, iconUrl, color, href, cl
       )}
 
       <h3
-        className="min-w-0 shrink-0 px-0.5 text-xs leading-tight font-extrabold tracking-wide uppercase sm:text-sm lg:text-[1.05rem]"
+        className="min-w-0 max-w-full shrink-0 truncate px-0.5 text-[clamp(0.65rem,4.5cqw,0.95rem)] leading-tight font-extrabold tracking-wide uppercase"
         style={{ color: palette.text }}
       >
         {title}
       </h3>
-      <p className="line-clamp-2 min-w-0 px-0.5 text-[0.75rem] leading-snug text-gray-600 sm:text-xs lg:text-[0.95rem]">
+      <p className="line-clamp-2 min-w-0 max-w-full px-0.5 text-[clamp(0.6rem,3.8cqw,0.85rem)] leading-snug text-gray-600">
         {description}
       </p>
     </Link>

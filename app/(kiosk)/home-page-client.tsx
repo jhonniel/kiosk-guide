@@ -14,21 +14,27 @@ export default function HomePage() {
   const cards = data.homepageCards;
 
   return (
-    <div className="relative flex min-h-0 flex-1 basis-0 flex-col overflow-hidden">
-      <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-3 sm:overflow-hidden sm:px-6 sm:pb-4 lg:px-8 lg:pb-5">
-        <PageHeader
-          title={t(language, "kioskTitle")}
-          language={language}
-          description={t(language, "kioskSubtitle")}
-          showBack={false}
-          transparent
-        />
+    <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      {/*
+        No viewport breakpoints here — the shell uses a fixed design canvas,
+        so sm/lg media queries would still jump when the browser zooms.
+      */}
+      <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col px-7 pb-4">
+        <div className="shrink-0">
+          <PageHeader
+            title={t(language, "kioskTitle")}
+            language={language}
+            description={t(language, "kioskSubtitle")}
+            showBack={false}
+            transparent
+          />
+        </div>
 
-        <div className="mb-3 sm:mb-5">
+        <div className="mb-3 shrink-0">
           <SmartSearch />
         </div>
 
-        <div className="kiosk-stagger mb-3 grid min-h-0 flex-1 auto-rows-fr grid-cols-2 gap-2 sm:mb-4 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5">
+        <div className="kiosk-home-cards">
           {cards.map((card) => (
             <ServiceCard
               key={card.id}
@@ -42,7 +48,9 @@ export default function HomePage() {
           ))}
         </div>
 
-        <QuickAccess language={language} />
+        <div className="mt-3 shrink-0">
+          <QuickAccess language={language} />
+        </div>
       </div>
     </div>
   );

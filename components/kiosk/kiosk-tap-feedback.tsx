@@ -1,54 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
+import { useEffect } from "react";
 
-type TapRipple = {
-  id: number;
-  x: number;
-  y: number;
-};
-
-const MAX_RIPPLES = 8;
 const RIPPLE_MS = 520;
+const RIPPLE_SIZE = 40;
 
+/**
+ * Draw ripples on document.body at raw clientX/Y.
+ * Must NOT live inside `.kiosk-ui-scale-stage` (transform breaks fixed coords).
+ */
 export function KioskTapFeedback() {
-  const [ripples, setRipples] = useState<TapRipple[]>([]);
-
   useEffect(() => {
-    let nextId = 1;
-
     const onPointerDown = (event: PointerEvent) => {
-      // Only show feedback for primary touch / mouse / pen presses.
       if (event.pointerType === "mouse" && event.button !== 0) return;
 
-      const id = nextId++;
-      const ripple: TapRipple = { id, x: event.clientX, y: event.clientY };
+      const el = document.createElement("span");
+      el.className = "kiosk-tap-ripple";
+      el.setAttribute("aria-hidden", "true");
+      el.style.cssText = [
+        "position:fixed",
+        `left:${event.clientX}px`,
+        `top:${event.clientY}px`,
+        `width:${RIPPLE_SIZE}px`,
+        `height:${RIPPLE_SIZE}px`,
+        `margin-left:-${RIPPLE_SIZE / 2}px`,
+        `margin-top:-${RIPPLE_SIZE / 2}px`,
+        "border-radius:9999px",
+        "pointer-events:none",
+        "z-index:2147483646",
+        "background:rgba(255,255,255,0.35)",
+        "box-shadow:0 0 0 2px rgba(255,255,255,0.5)",
+      ].join(";");
 
-      setRipples((prev) => [...prev.slice(-(MAX_RIPPLES - 1)), ripple]);
-      window.setTimeout(() => {
-        setRipples((prev) => prev.filter((item) => item.id !== id));
-      }, RIPPLE_MS);
+      document.body.appendChild(el);
+      window.setTimeout(() => el.remove(), RIPPLE_MS);
     };
 
     window.addEventListener("pointerdown", onPointerDown, { passive: true });
     return () => window.removeEventListener("pointerdown", onPointerDown);
   }, []);
 
-  if (!ripples.length) return null;
-
-  return (
-    <div className="pointer-events-none fixed inset-0 z-[200]" aria-hidden="true">
-      {ripples.map((ripple) => (
-        <span
-          key={ripple.id}
-          className={cn(
-            "kiosk-tap-ripple absolute block size-10 rounded-full",
-            "bg-white/35 ring-2 ring-white/50"
-          )}
-          style={{ left: ripple.x, top: ripple.y }}
-        />
-      ))}
-    </div>
-  );
+  return null;
 }

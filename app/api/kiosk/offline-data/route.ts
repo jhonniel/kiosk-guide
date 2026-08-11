@@ -7,7 +7,8 @@ export async function GET() {
   const data = await exportKioskOfflineData();
   return NextResponse.json(data, {
     headers: {
-      "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+      // Settings (e.g. auto-zoom) must reach kiosks immediately after admin save.
+      "Cache-Control": "no-store, max-age=0",
     },
   });
 }

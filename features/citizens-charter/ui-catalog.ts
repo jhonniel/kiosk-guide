@@ -262,7 +262,8 @@ export const CHARTER_CORE_TOPICS: CharterCoreTopic[] = [
 ];
 
 export const CHARTER_SCENIC_IMAGE = "/images/tourism/tourism-mt-hibok-hibok.png";
-export const CHARTER_COVER_IMAGE = "/images/citizens-charter/charter-cover-2026.jpg";
+/** Cover art with the embedded seal cropped out (see scripts/crop-charter-cover.ts). */
+export const CHARTER_COVER_IMAGE = "/images/citizens-charter/charter-cover-2026-nologo.png?v=4";
 
 export function officeThemeIcon(name: string): CharterCategoryIcon {
   const category = categoryForOffice(name);

@@ -185,29 +185,32 @@
   height: 0;
 }
 
+html.kiosk-large-text {
+  font-size: 118%;
+}
+
 /*
- * Viewport-fit UI scale for large kiosk / TV panels.
- * The stage is laid out at a compensated size, then scaled up so fonts,
- * cards, and touch targets grow together (not just rem-based text).
+ * Home keeps a 5-column card grid on typical kiosk widths.
+ * Shell fills the live viewport (no fixed canvas / transform scale).
  */
 .kiosk-ui-scale-viewport {
   --kiosk-ui-scale: 1;
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
 }
 
-.kiosk-ui-scale-stage {
-  width: calc(100vw / var(--kiosk-ui-scale));
-  height: calc(100vh / var(--kiosk-ui-scale));
-  height: calc(100dvh / var(--kiosk-ui-scale));
-  transform: scale(var(--kiosk-ui-scale));
-  transform-origin: top left;
+.kiosk-home-cards {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 0.75rem;
+  min-height: 0;
+  flex: 1 1 0%;
 }
 
-html.kiosk-large-text {
-  font-size: 118%;
+@container (max-width: 900px) {
+  .kiosk-home-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
 }
 
 /* Kiosk lockdown: no text selection / copy / image drag */
@@ -614,23 +617,24 @@ a:active,
   }
 }
 
-/* Global kiosk touch feedback */
+/* Global kiosk touch feedback — scale/opacity only (position via left/top + margin) */
 @keyframes kiosk-tap-ripple {
   0% {
     opacity: 0.85;
-    transform: translate(-50%, -50%) scale(0.35);
+    transform: scale(0.35);
   }
   70% {
     opacity: 0.35;
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(2.4);
+    transform: scale(2.4);
   }
 }
 
 .kiosk-tap-ripple {
   animation: kiosk-tap-ripple 520ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform-origin: center center;
   will-change: transform, opacity;
 }
 

@@ -134,10 +134,9 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
 
       const [bundled, remote] = await Promise.all([bundledPromise, remotePromise]);
 
-      // Prefer live API, then newest local snapshot (bundle over stale IndexedDB).
-      const chosen = navigator.onLine
-        ? remote ?? pickFreshest([bundled, cached])
-        : pickFreshest([cached, bundled, remote]);
+      // Always pick the newest snapshot by exportedAt. Never let a stale HTTP-cached
+      // API payload overwrite a fresher bundled/IndexedDB copy (breaks admin settings).
+      const chosen = pickFreshest([remote, bundled, cached]);
 
       if (chosen) {
         await applyData(chosen, true);

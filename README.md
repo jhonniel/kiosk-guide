@@ -74,6 +74,36 @@ npm run db:seed
 
 Use `db:deploy` (`prisma migrate deploy`) on the server — not `db:migrate`.
 
+### Server compile (when `npm run build` fails)
+
+`npm run build` runs `offline:generate` first, which **needs a live PostgreSQL** (`DATABASE_URL`).
+If the DB is not ready during compile (common on CI / first deploy), use:
+
+```bash
+# 1) Compile the Next.js app only (no DB required)
+npm ci
+npm run build:server
+
+# 2) After Postgres + .env are ready
+npm run db:deploy
+npm run db:seed
+npm run offline:generate
+npm run start
+```
+
+Or one-shot start after compile (generates offline data, then serves):
+
+```bash
+npm run build:server
+npm run start:server
+```
+
+Skip offline generation during a normal build when needed:
+
+```bash
+SKIP_OFFLINE_GENERATE=1 npm run build
+```
+
 If you previously tried SQLite migrations against Postgres, reset the database once, then redeploy:
 
 ```bash

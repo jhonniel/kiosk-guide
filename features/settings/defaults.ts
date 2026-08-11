@@ -153,6 +153,7 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   promo_video_url: "/videos/promo/islebethere.webm",
   promo_idle_seconds: "60",
   promo_countdown_seconds: "10",
+  kiosk_auto_zoom_enabled: "true",
 };
 
 export function parseJsonArraySetting(value: string | undefined, fallback: string[]): string[] {

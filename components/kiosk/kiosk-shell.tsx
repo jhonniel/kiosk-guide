@@ -14,32 +14,33 @@ import { cn } from "@/lib/utils";
 interface KioskShellProps {
   sidebar: React.ReactNode;
   children: React.ReactNode;
+  /** When false, skip large-screen text bump and click-to-fullscreen. */
+  autoZoomEnabled?: boolean;
 }
 
-export function KioskShell({ sidebar, children }: KioskShellProps) {
+export function KioskShell({ sidebar, children, autoZoomEnabled = true }: KioskShellProps) {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const showScenicBackdrop = isHome || pathname.startsWith("/citizens-charter");
-  const scaleStyle = useKioskUiScale();
+  const { viewportStyle, stageStyle } = useKioskUiScale(autoZoomEnabled);
 
   return (
-    <div className="kiosk-ui-scale-viewport bg-kiosk-bg" style={scaleStyle}>
+    <div className="kiosk-ui-scale-viewport" style={viewportStyle}>
       <div
-        className="kiosk-lock-select kiosk-ui-scale-stage flex flex-col overflow-hidden bg-kiosk-bg"
+        className="kiosk-ui-scale-stage kiosk-lock-select flex h-full w-full flex-col overflow-hidden bg-kiosk-bg"
+        style={stageStyle}
         onContextMenu={(event) => event.preventDefault()}
         onDragStart={(event) => event.preventDefault()}
       >
-        <KioskFullscreenGuard />
+        <KioskFullscreenGuard enabled={autoZoomEnabled} />
         <OfflineBanner />
         <div className="flex min-h-0 flex-1">
           {sidebar}
-          <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-kiosk-bg">
+          <main className="kiosk-main-frame relative flex min-w-0 flex-1 flex-col overflow-hidden bg-kiosk-bg [container-type:size]">
             {showScenicBackdrop ? (
               <KioskScenicBackdrop imageUrl={CHARTER_SCENIC_IMAGE} />
             ) : null}
-            {/* Keep below modal overlays (z-50+). Scroll content must not create a stacking
-                context that traps fixed dialogs under this widget. */}
-            <div className="pointer-events-none absolute top-3 right-4 z-40 hidden md:block sm:top-4 sm:right-6 lg:right-8">
+            <div className="pointer-events-none absolute top-4 right-8 z-40">
               <DateTimeWidget />
             </div>
             <div
@@ -53,8 +54,8 @@ export function KioskShell({ sidebar, children }: KioskShellProps) {
           </main>
         </div>
         <BottomNav />
-        <KioskTapFeedback />
       </div>
+      <KioskTapFeedback />
     </div>
   );
 }

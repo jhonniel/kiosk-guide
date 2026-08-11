@@ -292,6 +292,20 @@ export const SETTING_GROUPS: SettingGroupDef[] = [
     ],
   },
   {
+    id: "display",
+    label: "Kiosk Display",
+    description: "How the public kiosk UI scales on large screens and panels.",
+    fields: [
+      {
+        key: "kiosk_auto_zoom_enabled",
+        label: "Auto zoom for large screens",
+        type: "boolean",
+        description:
+          "When on, slightly enlarges text on large screens and allows tap-to-enter fullscreen. The kiosk always fills the current window/screen size. Turn off for default text size and no fullscreen-on-tap.",
+      },
+    ],
+  },
+  {
     id: "attract",
     label: "Idle Promo Video",
     description:

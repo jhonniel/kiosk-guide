@@ -46,13 +46,39 @@ function enterFullscreenNow() {
 /**
  * Any kiosk tap/click enters fullscreen.
  * After the user exits (Esc / gesture), the next tap re-enters.
+ * Disabled when admin turns off auto zoom (click-to-fullscreen feels like zoom).
  */
-export function KioskFullscreenGuard() {
+function exitFullscreenNow() {
+  const doc = document as Document & {
+    webkitExitFullscreen?: () => void;
+    msExitFullscreen?: () => void;
+  };
+  try {
+    if (typeof doc.exitFullscreen === "function") {
+      void doc.exitFullscreen().catch(() => undefined);
+      return;
+    }
+    doc.webkitExitFullscreen?.();
+    doc.msExitFullscreen?.();
+  } catch {
+    // ignore
+  }
+}
+
+export function KioskFullscreenGuard({ enabled = true }: { enabled?: boolean }) {
   const enteringRef = useRef(false);
   const cooldownUntilRef = useRef(0);
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
 
   useEffect(() => {
+    if (!enabled) {
+      if (getFullscreenElement()) exitFullscreenNow();
+      return;
+    }
+
     const onPointerDown = () => {
+      if (!enabledRef.current) return;
       if (Date.now() < cooldownUntilRef.current) return;
       if (getFullscreenElement() || enteringRef.current) return;
 
@@ -98,7 +124,7 @@ export function KioskFullscreenGuard() {
       document.removeEventListener("MSFullscreenChange", onFullscreenChange as EventListener);
       window.removeEventListener("pointerdown", onPointerDown, true);
     };
-  }, []);
+  }, [enabled]);
 
   return null;
 }
