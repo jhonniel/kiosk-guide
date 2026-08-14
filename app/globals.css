@@ -185,13 +185,41 @@
   height: 0;
 }
 
+@keyframes kiosk-scroll-hint-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(5px);
+  }
+}
+
+@keyframes kiosk-scroll-hint-bob-up {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.kiosk-scroll-hint-badge {
+  animation: kiosk-scroll-hint-bob 1.35s ease-in-out infinite;
+}
+
+.kiosk-scroll-hint-badge-up {
+  animation: kiosk-scroll-hint-bob-up 1.35s ease-in-out infinite;
+}
+
 html.kiosk-large-text {
   font-size: 118%;
 }
 
 /*
- * Home keeps a 5-column card grid on typical kiosk widths.
- * Shell fills the live viewport (no fixed canvas / transform scale).
+ * Home keeps a fixed 5-column card grid.
+ * The shell uses a fixed design canvas + scale, so browser zoom does not reflow.
  */
 .kiosk-ui-scale-viewport {
   --kiosk-ui-scale: 1;
@@ -204,13 +232,6 @@ html.kiosk-large-text {
   gap: 0.75rem;
   min-height: 0;
   flex: 1 1 0%;
-}
-
-@container (max-width: 900px) {
-  .kiosk-home-cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem;
-  }
 }
 
 /* Kiosk lockdown: no text selection / copy / image drag */

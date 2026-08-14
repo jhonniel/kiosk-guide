@@ -262,8 +262,8 @@ export const CHARTER_CORE_TOPICS: CharterCoreTopic[] = [
 ];
 
 export const CHARTER_SCENIC_IMAGE = "/images/tourism/tourism-mt-hibok-hibok.png";
-/** Cover art with the embedded seal cropped out (see scripts/crop-charter-cover.ts). */
-export const CHARTER_COVER_IMAGE = "/images/citizens-charter/charter-cover-2026-nologo.png?v=4";
+/** Kiosk cover: scenic + title art only (no embedded seals); system logo overlaid in UI. */
+export const CHARTER_COVER_IMAGE = "/images/citizens-charter/charter-cover-2026-kiosk.png?v=2";
 
 export function officeThemeIcon(name: string): CharterCategoryIcon {
   const category = categoryForOffice(name);

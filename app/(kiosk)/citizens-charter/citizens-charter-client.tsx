@@ -1,10 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import Link from "next/link";
+import { KioskBackButton } from "@/components/kiosk/kiosk-back-button";
 import QRCode from "qrcode";
 import {
-  ArrowLeft,
   Briefcase,
   Building2,
   CheckCircle2,
@@ -27,6 +26,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { kioskDateTimeReserveClass } from "@/components/kiosk/date-time-widget";
+import { KioskBrandLogos } from "@/components/kiosk/kiosk-brand-logos";
+import { KioskFitPanel } from "@/components/kiosk/kiosk-fit-panel";
+import { ScrollFadeContainer } from "@/components/kiosk/scroll-fade-container";
+import { useOffline } from "@/components/providers/offline-provider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -71,7 +74,7 @@ interface CitizensCharterClientProps {
 }
 
 type CharterView = "overview" | "browse";
-type BrowseMode = "category" | "department";
+type BrowseMode = "category" | "department" | "requested";
 
 function normalizeSearchText(value: unknown) {
   return String(value ?? "")
@@ -225,10 +228,11 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
     }).filter((item) => item.offices.length > 0);
   }, [groups]);
 
-  const requested = useMemo(
-    () => mostRequestedServices(edition?.offices ?? [], 4),
+  const allRequested = useMemo(
+    () => mostRequestedServices(edition?.offices ?? [], 24),
     [edition?.offices]
   );
+  const requested = useMemo(() => allRequested.slice(0, 4), [allRequested]);
 
   const activeGroup = useMemo(
     () => groups.find((group) => group.id === expandedOfficeId) ?? null,
@@ -366,29 +370,33 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
         className={cn(
           "relative z-10 flex min-h-0 flex-1 flex-col",
           view === "overview"
-            ? "min-h-0 overflow-y-auto overscroll-contain px-4 pb-3 sm:px-6 sm:pb-4 lg:px-8 lg:pb-5"
-            : "overflow-y-auto px-4 pb-2 sm:px-6 lg:overflow-hidden lg:px-8"
+            ? "min-h-0 overflow-hidden px-4 pb-3 sm:px-6 sm:pb-4 lg:px-8 lg:pb-5"
+            : "min-h-0 overflow-hidden px-4 pb-2 sm:px-6 lg:px-8"
         )}
       >
         {view === "overview" ? (
-          <OverviewView
-            languageBackLabel={t(language, "backToHome")}
-            edition={edition}
-            editionLabel={editionLabel}
-            qrDataUrl={qrDataUrl}
-            activeTopicId={activeTopicId}
-            activeTopic={activeTopic}
-            onSelectTopic={setActiveTopicId}
-            onBrowse={() => setView("browse")}
-          />
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <OverviewView
+              languageBackLabel={t(language, "backToHome")}
+              edition={edition}
+              editionLabel={editionLabel}
+              qrDataUrl={qrDataUrl}
+              activeTopicId={activeTopicId}
+              activeTopic={activeTopic}
+              onSelectTopic={setActiveTopicId}
+              onBrowse={() => setView("browse")}
+            />
+          </div>
         ) : (
-          <BrowseView
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <BrowseView
             browseMode={browseMode}
             query={query}
             searchInputRef={searchInputRef}
             categoryCards={categoryCards}
             groups={groups}
             requested={requested}
+            allRequested={allRequested}
             onBack={() => setView("overview")}
             onBrowseMode={setBrowseMode}
             onQueryChange={setQuery}
@@ -411,11 +419,11 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
               window.setTimeout(() => openService(serviceId), 40);
             }}
             onViewAll={() => {
-              setBrowseMode("department");
+              setBrowseMode("requested");
               setQuery("");
-              searchInputRef.current?.focus();
             }}
           />
+          </div>
         )}
       </div>
 
@@ -459,12 +467,22 @@ function OverviewView({
   onBrowse: () => void;
 }) {
   const { language } = useKiosk();
+  const { offlineData } = useOffline();
+  const settings = offlineData?.settings ?? {};
   const [topicOpen, setTopicOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [emailSending, setEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [coverLoaded, setCoverLoaded] = useState(false);
+  const coverRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    if (coverRef.current?.complete) {
+      setCoverLoaded(true);
+    }
+  }, []);
 
   function openEmailDialog() {
     setEmail("");
@@ -493,49 +511,62 @@ function OverviewView({
   }
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain bg-transparent">
-      <header className={cn("relative z-10 shrink-0 px-1 pt-3 pb-2 sm:pt-4 sm:pb-3", kioskDateTimeReserveClass)}>
-        <Link
-          href="/"
-          className="mb-2 inline-flex items-center gap-2 rounded-full border-0 bg-white/70 px-3 py-1.5 text-[13px] font-medium text-kiosk-navy/75 shadow-none backdrop-blur-sm transition hover:bg-white/90 hover:text-kiosk-navy sm:mb-3"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          {languageBackLabel}
-        </Link>
-
-        <div className="min-w-0 max-w-xl">
-          <h1 className="text-[1.35rem] leading-none font-black tracking-tight text-kiosk-navy uppercase sm:text-[1.65rem] lg:text-[1.9rem]">
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent">
+      <header className={cn("relative z-10 shrink-0 px-1 pt-4 pb-3", kioskDateTimeReserveClass)}>
+        <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-4">
+          <KioskBackButton href="/">{languageBackLabel}</KioskBackButton>
+          <h1 className="min-w-0 text-[1.85rem] leading-none font-black tracking-tight text-kiosk-navy uppercase lg:text-[2.15rem]">
             Citizens&apos; Charter
           </h1>
-          <p className="mt-1 text-[10px] font-bold tracking-[0.34em] text-[#0f766e] uppercase sm:text-[11px]">
+        </div>
+
+        <div className="mt-1.5 min-w-0 max-w-xl">
+          <p className="text-[11px] font-bold tracking-[0.34em] text-[#0f766e] uppercase">
             Overview
           </p>
-          <p className="mt-1.5 max-w-lg text-[12px] leading-relaxed text-slate-500 sm:text-[13px]">
+          <p className="mt-2 max-w-lg text-[13px] leading-relaxed text-slate-500">
             Your guide to government services in Camiguin. Explore services, requirements,
             processing time, and fees all in one place.
           </p>
         </div>
       </header>
 
-      {/* Compact fit layout — avoids bottom cards being clipped after UI scale */}
-      <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col gap-2.5 px-1 pb-3 sm:gap-3 lg:flex-row lg:items-stretch lg:gap-4">
-        <article className="flex w-full shrink-0 flex-col rounded-[20px] border-0 bg-white p-3 shadow-[0_12px_40px_-24px_rgba(15,35,70,0.35)] ring-0 sm:p-3.5 lg:w-[min(30vw,320px)] lg:max-w-[320px]">
-          <div className="relative min-h-[9rem] flex-1 overflow-hidden rounded-[16px] bg-[#0b3d6e] sm:min-h-[11rem] lg:min-h-0">
+      {/* Classic overview: cover | (equal Browse/QR + topics) */}
+      <div className="relative z-10 flex min-h-0 w-full flex-1 flex-row items-stretch gap-5 px-1 pb-2">
+        <article className="flex w-[300px] shrink-0 flex-col rounded-[20px] border-0 bg-white p-3.5 shadow-[0_10px_28px_-16px_rgba(15,35,70,0.32)] ring-0 lg:w-[320px]">
+          <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-[16px] bg-[#0b3d6e]">
+            {!coverLoaded ? (
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 animate-pulse bg-[linear-gradient(180deg,#0b3d6e_0%,#0f4a82_100%)]"
+              />
+            ) : null}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
+              ref={coverRef}
               src={CHARTER_COVER_IMAGE}
               alt="Citizens' Charter 2026 cover"
-              className="absolute inset-0 h-full w-full object-cover object-top"
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+              onLoad={() => setCoverLoaded(true)}
+              className={cn(
+                "block h-full min-h-[320px] w-full object-cover object-top transition-opacity duration-300",
+                coverLoaded ? "opacity-100" : "opacity-0"
+              )}
             />
+            <div className="pointer-events-none absolute inset-x-0 top-[5%] flex justify-center">
+              <KioskBrandLogos settings={settings} variant="cover" />
+            </div>
           </div>
-          <div className="mt-2.5 shrink-0 text-center sm:mt-3">
-            <h2 className="text-[15px] font-extrabold text-kiosk-navy sm:text-[16px]">{editionLabel}</h2>
-            <p className="mt-0.5 text-[12px] text-slate-500">Complete Citizens&apos; Charter</p>
+          <div className="mt-3 shrink-0 text-center">
+            <h2 className="text-[17px] font-extrabold text-kiosk-navy">{editionLabel}</h2>
+            <p className="mt-0.5 text-[13px] text-slate-500">Complete Citizens&apos; Charter</p>
             {edition.pdfUrl ? (
               <button
                 type="button"
                 onClick={openEmailDialog}
-                className="mt-2.5 flex h-9 w-full items-center justify-center gap-2 rounded-full bg-[#e8eef6] text-[12px] font-semibold text-kiosk-navy transition hover:bg-[#dce5f1] sm:h-10 sm:text-[13px]"
+                className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[#e8eef6] text-[13px] font-semibold text-kiosk-navy transition hover:bg-[#dce5f1]"
               >
                 <FileText className="h-4 w-4 text-slate-500" />
                 <span>PDF Document</span>
@@ -546,55 +577,56 @@ function OverviewView({
           </div>
         </article>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2.5 sm:gap-3">
-          <div className="flex min-h-0 flex-1 flex-col gap-2.5 sm:gap-3">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
+          {/* Browse + QR share equal natural height (not stretched sparse) */}
+          <div className="grid shrink-0 grid-rows-2 gap-4">
             <button
               type="button"
               onClick={onBrowse}
-              className="flex min-h-0 flex-1 items-center gap-3 rounded-[20px] border-0 bg-white px-4 py-3 text-left shadow-[0_12px_40px_-24px_rgba(15,35,70,0.32)] ring-0 transition hover:-translate-y-0.5 active:scale-[0.995] sm:gap-4 sm:px-5 sm:py-3.5 lg:gap-5 lg:px-5"
+              className="flex h-full min-h-[9.5rem] items-center gap-6 rounded-[22px] border-0 bg-white px-6 py-5 text-left shadow-[0_8px_24px_-16px_rgba(15,35,70,0.28)] ring-0 transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.995]"
             >
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0d9488] text-white sm:h-16 sm:w-16 lg:h-20 lg:w-20">
-                <Landmark className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10" strokeWidth={2} />
+              <span className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#0d9488] text-white">
+                <Landmark className="h-12 w-12" strokeWidth={2} />
               </span>
               <div className="min-w-0 flex-1">
-                <h2 className="text-base leading-tight font-extrabold text-kiosk-navy sm:text-lg lg:text-xl xl:text-[1.45rem]">
+                <h2 className="text-[1.5rem] leading-tight font-extrabold text-kiosk-navy lg:text-[1.75rem]">
                   Browse By Department / Category
                 </h2>
-                <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-slate-500 sm:text-sm lg:text-base">
+                <p className="mt-2 text-base leading-snug text-slate-500 lg:text-lg">
                   Browse official services, published fees, processing time, and source pages.
                 </p>
               </div>
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eef2f7]/90 text-slate-500 sm:h-10 sm:w-10">
-                <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#eef2f7] text-slate-500">
+                <ChevronRight className="h-6 w-6" />
               </span>
             </button>
 
-            <div className="flex min-h-0 flex-1 items-center gap-3 rounded-[20px] border-0 bg-white px-4 py-3 shadow-[0_12px_40px_-24px_rgba(15,35,70,0.28)] outline outline-2 outline-dashed outline-[#14b8a6]/55 ring-0 sm:gap-4 sm:px-5 sm:py-3.5 lg:gap-5 lg:px-5">
-              <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4 lg:gap-5">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#7c3aed] text-white sm:h-16 sm:w-16 lg:h-20 lg:w-20">
-                  <QrCode className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10" strokeWidth={2} />
+            <div className="flex h-full min-h-[9.5rem] items-center gap-6 rounded-[22px] border-0 bg-white px-6 py-5 shadow-[0_8px_24px_-16px_rgba(15,35,70,0.2)] outline outline-2 outline-dashed outline-[#14b8a6] ring-0">
+              <div className="flex min-w-0 flex-1 items-center gap-6">
+                <span className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#7c3aed] text-white">
+                  <QrCode className="h-12 w-12" strokeWidth={2} />
                 </span>
                 <div className="min-w-0">
-                  <h2 className="text-base leading-tight font-extrabold text-kiosk-navy sm:text-lg lg:text-xl xl:text-[1.45rem]">
+                  <h2 className="text-[1.5rem] leading-tight font-extrabold text-kiosk-navy lg:text-[1.75rem]">
                     Scan QR to Open the Document
                   </h2>
-                  <p className="mt-1 line-clamp-2 max-w-xl text-[13px] leading-snug text-slate-500 sm:text-sm lg:text-base">
+                  <p className="mt-2 max-w-xl text-base leading-snug text-slate-500 lg:text-lg">
                     Scan the QR code to view or download the complete {edition.year} Citizens&apos;
                     Charter.
                   </p>
                 </div>
               </div>
-              <div className="flex w-[5rem] shrink-0 flex-col items-center gap-1.5 sm:w-[6.5rem] sm:gap-2 lg:w-[7.25rem]">
-                <div className="rounded-lg bg-white p-1 sm:rounded-xl sm:p-1.5">
+              <div className="flex w-[148px] shrink-0 flex-col items-center gap-2.5">
+                <div className="rounded-xl bg-white p-2 ring-1 ring-slate-200">
                   {qrDataUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={qrDataUrl}
                       alt="Citizens' Charter PDF QR code"
-                      className="h-14 w-14 sm:h-20 sm:w-20 lg:h-[5.75rem] lg:w-[5.75rem]"
+                      className="h-[7.75rem] w-[7.75rem]"
                     />
                   ) : (
-                    <div className="flex h-14 w-14 items-center justify-center rounded-md bg-slate-100 text-xs text-slate-400 sm:h-20 sm:w-20 lg:h-[5.75rem] lg:w-[5.75rem]">
+                    <div className="flex h-[7.75rem] w-[7.75rem] items-center justify-center rounded-md bg-slate-100 text-xs text-slate-400">
                       QR
                     </div>
                   )}
@@ -603,7 +635,7 @@ function OverviewView({
                   <button
                     type="button"
                     onClick={() => setQrOpen(true)}
-                    className="inline-flex w-full items-center justify-center rounded-md bg-[#0d9488] px-2 py-1.5 text-[10px] font-bold tracking-wide text-white uppercase transition hover:bg-[#0f766e] sm:px-3 sm:py-2 sm:text-xs"
+                    className="inline-flex w-full items-center justify-center rounded-md bg-[#0d9488] px-3 py-2.5 text-sm font-bold tracking-wide text-white uppercase transition hover:bg-[#0f766e]"
                   >
                     Scan Here
                   </button>
@@ -612,12 +644,12 @@ function OverviewView({
             </div>
           </div>
 
-          <div className="flex shrink-0 flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-stretch">
+          <div className="mt-auto flex shrink-0 items-stretch gap-3.5">
             <div className="min-w-0 shrink-0">
-              <p className="mb-1.5 text-[10px] font-bold tracking-[0.18em] text-slate-400 uppercase sm:text-[11px]">
+              <p className="mb-2 text-[11px] font-bold tracking-[0.18em] text-slate-400 uppercase">
                 Core Charter Topics
               </p>
-              <div className="flex flex-wrap gap-2 sm:gap-2.5">
+              <div className="flex gap-2.5">
                 {CHARTER_CORE_TOPICS.map((topic) => {
                   const Icon = topic.icon;
                   const selected = topic.id === activeTopicId;
@@ -630,22 +662,22 @@ function OverviewView({
                         setTopicOpen(true);
                       }}
                       className={cn(
-                        "flex h-[5.75rem] w-[5.75rem] flex-col items-center justify-center gap-1 overflow-hidden rounded-[14px] border-0 bg-white px-1 text-center shadow-[0_10px_28px_-18px_rgba(15,35,70,0.28)] ring-0 transition sm:h-[6.5rem] sm:w-[6.5rem] sm:gap-1.5 sm:rounded-[16px]",
+                        "flex h-[7.25rem] w-[7.25rem] flex-col items-center justify-center gap-2 overflow-hidden rounded-[16px] border-0 bg-white px-1.5 text-center shadow-[0_6px_18px_-12px_rgba(15,35,70,0.3)] ring-0 transition",
                         selected
                           ? "outline outline-2 outline-[#f59e0b] outline-offset-0"
-                          : "hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-16px_rgba(15,35,70,0.32)]"
+                          : "hover:-translate-y-0.5 hover:shadow-md"
                       )}
                     >
                       <span
                         className={cn(
-                          "flex h-8 w-8 items-center justify-center rounded-full sm:h-10 sm:w-10 lg:h-11 lg:w-11",
+                          "flex h-14 w-14 items-center justify-center rounded-full",
                           topic.soft,
                           topic.accent
                         )}
                       >
-                        <Icon className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2.25} />
+                        <Icon className="h-7 w-7" strokeWidth={2.25} />
                       </span>
-                      <span className="px-0.5 text-[9px] leading-tight font-extrabold tracking-wide text-kiosk-navy uppercase sm:text-[10px] lg:text-[11px]">
+                      <span className="px-0.5 text-[11px] leading-tight font-extrabold tracking-wide text-kiosk-navy uppercase">
                         {topic.title}
                       </span>
                     </button>
@@ -654,15 +686,15 @@ function OverviewView({
               </div>
             </div>
 
-            <aside className="flex min-w-0 flex-1 items-start gap-3 rounded-[16px] border-0 bg-[#eef5ff] px-3.5 py-3 shadow-none ring-0 sm:gap-3.5 sm:px-4 sm:py-3.5">
-              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2563eb] text-white sm:h-10 sm:w-10">
-                <Info className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2.5} />
+            <aside className="flex min-w-0 flex-1 items-start gap-4 rounded-[16px] border-0 bg-[#eef5ff] px-4 py-4 shadow-none ring-0">
+              <span className="mt-0.5 flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#2563eb] text-white">
+                <Info className="h-6 w-6" strokeWidth={2.5} />
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-extrabold text-kiosk-navy sm:text-base">
+                <p className="text-base font-extrabold text-kiosk-navy lg:text-lg">
                   For Reference and Information Only
                 </p>
-                <p className="mt-1 text-[12px] leading-snug text-slate-500 sm:text-sm">
+                <p className="mt-1.5 text-sm leading-snug text-slate-500 lg:text-[15px]">
                   The Citizens&apos; Charter provides detailed information on our services, policies,
                   and commitments to the public.
                 </p>
@@ -692,14 +724,11 @@ function OverviewView({
                   {activeTopic.title}
                 </h3>
               </div>
-              <button
-                type="button"
+              <CharterCloseButton
                 onClick={() => setTopicOpen(false)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 sm:h-11 sm:w-11"
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
+                label={pickLang(language, "CLOSE", "ISARA", "SIRADO")}
+                size="md"
+              />
             </div>
             <p className="text-base leading-relaxed text-slate-600 sm:text-lg sm:leading-8 lg:text-xl">
               {activeTopic.body}
@@ -874,6 +903,7 @@ function BrowseView({
   categoryCards,
   groups,
   requested,
+  allRequested,
   onBack,
   onBrowseMode,
   onQueryChange,
@@ -892,6 +922,7 @@ function BrowseView({
   }>;
   groups: CharterOfficeView[];
   requested: Array<{ office: CharterOfficeView; service: CharterServiceView }>;
+  allRequested: Array<{ office: CharterOfficeView; service: CharterServiceView }>;
   onBack: () => void;
   onBrowseMode: (mode: BrowseMode) => void;
   onQueryChange: (value: string) => void;
@@ -900,30 +931,34 @@ function BrowseView({
   onOpenRequested: (officeId: string, serviceId: string) => void;
   onViewAll: () => void;
 }) {
+  const fitKey = `${browseMode}:${query}:${categoryCards.length}:${groups.length}:${allRequested.length}`;
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden pb-2 sm:gap-4">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <header className={cn("flex shrink-0 flex-wrap items-start gap-3 pt-1 sm:gap-4", kioskDateTimeReserveClass)}>
         <div className="min-w-0 flex-1">
-          <button
-            type="button"
-            onClick={onBack}
-            className="mb-2 inline-flex items-center gap-2 text-sm font-medium text-kiosk-navy/70 transition-colors hover:text-kiosk-navy sm:mb-3"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Overview
-          </button>
-          <h1 className="text-2xl font-black tracking-tight text-kiosk-navy uppercase sm:text-3xl lg:text-4xl">
-            Browse Services
-          </h1>
+          <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-4">
+            <KioskBackButton onClick={onBack}>Back to Overview</KioskBackButton>
+            <h1 className="min-w-0 text-2xl font-black tracking-tight text-kiosk-navy uppercase sm:text-3xl lg:text-4xl">
+              {browseMode === "requested" ? "Most Requested Services" : "Browse Services"}
+            </h1>
+          </div>
           <p className="mt-1 text-xs text-slate-500 sm:text-sm">
-            Find services, requirements, processing time, and fees.
+            {browseMode === "requested"
+              ? "Quick access to commonly requested provincial services."
+              : "Find services, requirements, processing time, and fees."}
           </p>
         </div>
       </header>
 
-      <div className="flex shrink-0 flex-wrap items-center gap-3">
-        <p className="text-sm font-semibold text-kiosk-navy">Browse By</p>
-        <div className="flex flex-wrap gap-2">
+      <div
+        className={cn(
+          "relative z-10 mb-3 flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2.5 sm:mb-4",
+          kioskDateTimeReserveClass
+        )}
+      >
+        <p className="shrink-0 text-sm font-semibold text-kiosk-navy">Browse By</p>
+        <div className="flex min-w-0 flex-wrap items-center gap-2.5">
           <ModeChip
             active={browseMode === "category"}
             icon={LayoutGrid}
@@ -936,137 +971,188 @@ function BrowseView({
             label="By Department"
             onClick={() => onBrowseMode("department")}
           />
+          <ModeChip
+            active={browseMode === "requested"}
+            icon={ListChecks}
+            label="Most Requested"
+            onClick={() => onBrowseMode("requested")}
+          />
         </div>
-        <CharterCollapsibleSearch
-          query={query}
-          searchInputRef={searchInputRef}
-          onQueryChange={onQueryChange}
-        />
+        {browseMode !== "requested" ? (
+          <CharterCollapsibleSearch
+            query={query}
+            searchInputRef={searchInputRef}
+            onQueryChange={onQueryChange}
+          />
+        ) : null}
       </div>
 
-      {browseMode === "category" ? (
-        <div className="kiosk-stagger grid grid-cols-2 gap-3 xl:min-h-0 xl:flex-1 xl:grid-cols-4 xl:grid-rows-2 xl:auto-rows-fr xl:gap-4">
-          {categoryCards.map(({ category, serviceCount }) => {
-            const Icon = category.icon;
-            return (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() => onOpenCategory(category.id)}
-                className="kiosk-hover-lift flex min-h-[120px] flex-col justify-between rounded-[18px] bg-white p-4 text-left shadow-[0_10px_28px_-18px_rgba(15,35,70,0.35)] sm:min-h-[136px] sm:p-5 lg:min-h-[148px] xl:h-full xl:min-h-0 xl:rounded-[20px] xl:p-6"
-              >
-                <div className="flex items-start gap-3 sm:gap-3.5 xl:gap-4">
-                  <Icon className="h-14 w-14 shrink-0 sm:h-16 sm:w-16 xl:h-[4.75rem] xl:w-[4.75rem]" />
-                  <h3
-                    className={cn(
-                      "line-clamp-2 pt-1 text-[12px] font-extrabold tracking-wide uppercase sm:text-[13px] xl:pt-2 xl:text-[15px] xl:leading-snug",
-                      category.titleColor
-                    )}
-                  >
-                    {category.title}
-                  </h3>
-                </div>
-                <p className="mt-3 line-clamp-3 flex-1 text-xs leading-snug text-slate-600 sm:mt-4 sm:text-sm xl:mt-5 xl:text-[15px] xl:leading-relaxed">
-                  {category.description}
-                </p>
-                <div className="mt-3 flex items-center justify-between sm:mt-4 xl:mt-5">
-                  <span className="text-xs font-bold text-kiosk-navy sm:text-sm xl:text-base">
-                    {serviceCount} {serviceCount === 1 ? "Service" : "Services"}
-                  </span>
-                  <ChevronRight className="h-4 w-4 text-slate-400 xl:h-5 xl:w-5" />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="kiosk-stagger grid grid-cols-2 gap-3 xl:min-h-0 xl:flex-1 xl:grid-cols-4 xl:auto-rows-fr">
-          {groups.map((office) => {
-            const theme = categoryForOffice(office.name);
-            const Icon = officeThemeIcon(office.name);
-            const serviceCount = countServices(office);
-            return (
-              <button
-                key={office.id}
-                type="button"
-                onClick={() => onOpenOffice(office.id)}
-                className="kiosk-hover-lift flex min-h-[120px] flex-col justify-between rounded-[18px] bg-white p-4 text-left shadow-[0_10px_28px_-18px_rgba(15,35,70,0.35)] sm:min-h-[136px] sm:p-5 lg:min-h-[148px] xl:h-full xl:min-h-0 xl:rounded-[20px] xl:p-6"
-              >
-                <div className="flex items-start gap-3 sm:gap-3.5 xl:gap-4">
-                  {theme ? (
-                    <Icon className="h-14 w-14 shrink-0 sm:h-16 sm:w-16 xl:h-[4.75rem] xl:w-[4.75rem]" />
-                  ) : (
-                    <span
+      <KioskFitPanel className="min-h-0 flex-1" measureKey={fitKey} fit="height">
+        {browseMode === "category" ? (
+          <div className="kiosk-stagger grid grid-cols-4 gap-4">
+            {categoryCards.map(({ category, serviceCount }) => {
+              const Icon = category.icon;
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => onOpenCategory(category.id)}
+                  className="kiosk-hover-lift flex min-h-[14rem] flex-col justify-between rounded-[20px] bg-white p-6 text-left shadow-[0_10px_28px_-18px_rgba(15,35,70,0.35)]"
+                >
+                  <div className="flex items-start gap-5">
+                    <Icon className="h-24 w-24 shrink-0" />
+                    <h3
                       className={cn(
-                        "flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-white shadow-sm sm:h-16 sm:w-16 xl:h-[4.75rem] xl:w-[4.75rem]",
-                        "bg-kiosk-navy"
+                        "line-clamp-2 pt-2 text-xl leading-snug font-extrabold tracking-wide uppercase",
+                        category.titleColor
                       )}
                     >
-                      <Icon className="h-6 w-6 sm:h-7 sm:w-7 xl:h-8 xl:w-8" />
+                      {category.title}
+                    </h3>
+                  </div>
+                  <p className="mt-5 line-clamp-3 text-[15px] leading-relaxed text-slate-600">
+                    {category.description}
+                  </p>
+                  <div className="mt-5 flex items-center justify-between">
+                    <span className="text-base font-bold text-kiosk-navy">
+                      {serviceCount} {serviceCount === 1 ? "Service" : "Services"}
                     </span>
-                  )}
-                  <h3
-                    className={cn(
-                      "line-clamp-2 pt-1 text-[12px] font-extrabold tracking-wide uppercase sm:text-[13px] xl:pt-2 xl:text-[15px] xl:leading-snug",
-                      theme?.titleColor ?? "text-kiosk-navy"
+                    <ChevronRight className="h-5 w-5 text-slate-400" />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {browseMode === "department" ? (
+          <div className="kiosk-stagger grid grid-cols-4 gap-4">
+            {groups.map((office) => {
+              const theme = categoryForOffice(office.name);
+              const Icon = officeThemeIcon(office.name);
+              const serviceCount = countServices(office);
+              return (
+                <button
+                  key={office.id}
+                  type="button"
+                  onClick={() => onOpenOffice(office.id)}
+                  className="kiosk-hover-lift flex min-h-[14rem] flex-col justify-between rounded-[20px] bg-white p-6 text-left shadow-[0_10px_28px_-18px_rgba(15,35,70,0.35)]"
+                >
+                  <div className="flex items-start gap-5">
+                    {theme ? (
+                      <Icon className="h-24 w-24 shrink-0" />
+                    ) : (
+                      <span
+                        className={cn(
+                          "flex h-24 w-24 shrink-0 items-center justify-center rounded-full text-white shadow-sm",
+                          "bg-kiosk-navy"
+                        )}
+                      >
+                        <Icon className="h-11 w-11" />
+                      </span>
                     )}
-                  >
-                    {office.name}
-                  </h3>
-                </div>
-                <p className="mt-3 line-clamp-3 flex-1 text-xs leading-snug text-slate-600 sm:mt-4 sm:text-sm xl:mt-5 xl:text-[15px] xl:leading-relaxed">
-                  {office.categories.map((category) => category.name).slice(0, 2).join(" · ") ||
-                    "Provincial office services"}
-                </p>
-                <div className="mt-3 flex items-center justify-between sm:mt-4 xl:mt-5">
-                  <span className="text-xs font-bold text-kiosk-navy sm:text-sm xl:text-base">
-                    {serviceCount} {serviceCount === 1 ? "Service" : "Services"}
+                    <h3
+                      className={cn(
+                        "line-clamp-2 pt-2 text-xl leading-snug font-extrabold tracking-wide uppercase",
+                        theme?.titleColor ?? "text-kiosk-navy"
+                      )}
+                    >
+                      {office.name}
+                    </h3>
+                  </div>
+                  <p className="mt-5 line-clamp-3 text-[15px] leading-relaxed text-slate-600">
+                    {office.categories.map((category) => category.name).slice(0, 2).join(" · ") ||
+                      "Provincial office services"}
+                  </p>
+                  <div className="mt-5 flex items-center justify-between">
+                    <span className="text-base font-bold text-kiosk-navy">
+                      {serviceCount} {serviceCount === 1 ? "Service" : "Services"}
+                    </span>
+                    <ChevronRight className="h-5 w-5 text-slate-400" />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {browseMode === "requested" ? (
+          <div className="kiosk-stagger grid grid-cols-3 items-start gap-3 lg:grid-cols-4">
+            {allRequested.map(({ office, service }) => {
+              const meta = requestedServiceMeta(service.name);
+              const Icon = meta.icon;
+              return (
+                <button
+                  key={service.id}
+                  type="button"
+                  onClick={() => onOpenRequested(office.id, service.id)}
+                  className="kiosk-hover-lift flex flex-col gap-2.5 rounded-[18px] bg-white p-4 text-left shadow-[0_10px_28px_-18px_rgba(15,35,70,0.35)]"
+                >
+                  <div className="flex items-start gap-3">
+                    <span
+                      className={cn(
+                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#eef5ff]",
+                        meta.iconClass
+                      )}
+                    >
+                      <Icon className="h-5 w-5" strokeWidth={2} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="line-clamp-2 text-[15px] leading-snug font-extrabold text-kiosk-navy">
+                        {meta.label}
+                      </h3>
+                      <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{office.name}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-2">
+                    <span className="text-xs font-semibold text-slate-500">Open service</span>
+                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {!categoryCards.length && browseMode === "category" ? <EmptySearch /> : null}
+        {!groups.length && browseMode === "department" ? <EmptySearch /> : null}
+        {!allRequested.length && browseMode === "requested" ? <EmptySearch /> : null}
+      </KioskFitPanel>
+
+      {browseMode !== "requested" ? (
+        <section className="shrink-0 rounded-[22px] bg-[#e8eef6]/90 px-4 py-4 sm:px-5">
+          <h2 className="mb-3 text-[13px] font-extrabold tracking-[0.14em] text-kiosk-navy uppercase">
+            Most Requested Services
+          </h2>
+          <div className="flex flex-wrap items-stretch gap-2.5">
+            {requested.map(({ office, service }) => {
+              const meta = requestedServiceMeta(service.name);
+              const Icon = meta.icon;
+              return (
+                <button
+                  key={service.id}
+                  type="button"
+                  onClick={() => onOpenRequested(office.id, service.id)}
+                  className="inline-flex min-h-[48px] min-w-0 flex-1 items-center gap-2.5 rounded-2xl bg-white px-3.5 py-2.5 text-left shadow-[0_1px_2px_rgba(15,35,70,0.04)] transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] sm:flex-none sm:px-4"
+                >
+                  <Icon className={cn("h-[18px] w-[18px] shrink-0", meta.iconClass)} strokeWidth={2} />
+                  <span className="truncate text-[13px] font-semibold text-kiosk-navy sm:text-sm">
+                    {meta.label}
                   </span>
-                  <ChevronRight className="h-4 w-4 text-slate-400 xl:h-5 xl:w-5" />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {!categoryCards.length && browseMode === "category" ? (
-        <EmptySearch />
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={onViewAll}
+              className="inline-flex min-h-[48px] items-center gap-1.5 rounded-2xl bg-white px-4 py-2.5 text-[13px] font-semibold text-[#2563eb] shadow-[0_1px_2px_rgba(15,35,70,0.04)] transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] sm:text-sm"
+            >
+              View All
+              <ChevronRight className="h-4 w-4" strokeWidth={2.25} />
+            </button>
+          </div>
+        </section>
       ) : null}
-      {!groups.length && browseMode === "department" ? <EmptySearch /> : null}
-
-      <section className="mt-auto shrink-0 rounded-[22px] bg-[#e8eef6]/90 px-4 py-4 sm:px-5">
-        <h2 className="mb-3 text-[13px] font-extrabold tracking-[0.14em] text-kiosk-navy uppercase">
-          Most Requested Services
-        </h2>
-        <div className="flex flex-wrap items-stretch gap-2.5">
-          {requested.map(({ office, service }) => {
-            const meta = requestedServiceMeta(service.name);
-            const Icon = meta.icon;
-            return (
-              <button
-                key={service.id}
-                type="button"
-                onClick={() => onOpenRequested(office.id, service.id)}
-                className="inline-flex min-h-[48px] min-w-0 flex-1 items-center gap-2.5 rounded-2xl bg-white px-3.5 py-2.5 text-left shadow-[0_1px_2px_rgba(15,35,70,0.04)] transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] sm:flex-none sm:px-4"
-              >
-                <Icon className={cn("h-[18px] w-[18px] shrink-0", meta.iconClass)} strokeWidth={2} />
-                <span className="truncate text-[13px] font-semibold text-kiosk-navy sm:text-sm">
-                  {meta.label}
-                </span>
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            onClick={onViewAll}
-            className="inline-flex min-h-[48px] items-center gap-1.5 rounded-2xl bg-white px-4 py-2.5 text-[13px] font-semibold text-[#2563eb] shadow-[0_1px_2px_rgba(15,35,70,0.04)] transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] sm:text-sm"
-          >
-            View All
-            <ChevronRight className="h-4 w-4" strokeWidth={2.25} />
-          </button>
-        </div>
-      </section>
     </div>
   );
 }
@@ -1349,10 +1435,62 @@ function officeInitials(name: string) {
   return name.slice(0, 3).toUpperCase();
 }
 
+function CharterCloseButton({
+  onClick,
+  label = "CLOSE",
+  size = "lg",
+  ariaLabel = "Close",
+}: {
+  onClick: () => void;
+  label?: string;
+  size?: "lg" | "md";
+  ariaLabel?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-rose-300 bg-rose-50 font-extrabold tracking-[0.12em] text-rose-700 shadow-sm transition hover:border-rose-400 hover:bg-rose-100 active:scale-[0.98]",
+        size === "lg" ? "min-h-[3rem] px-6 py-3 text-base" : "min-h-[2.75rem] px-5 py-2.5 text-sm"
+      )}
+      aria-label={ariaLabel}
+    >
+      <X className={size === "lg" ? "h-5 w-5" : "h-4 w-4"} strokeWidth={2.5} />
+      {label}
+    </button>
+  );
+}
+
+function isPublishedFeeAmount(raw: string): boolean {
+  const fee = raw.trim();
+  if (!fee || /^(none|n\/a|free|-|—)$/i.test(fee)) return false;
+  if (/^none\b/i.test(fee) && !/(?:₱|php|\d+(?:\.\d+)?\s*(?:pesos?|php))/i.test(fee)) {
+    return false;
+  }
+
+  if (
+    /as reflected/i.test(fee) ||
+    /see (?:price list|table|cash slip|steps?|charter)/i.test(fee) ||
+    /refer to/i.test(fee)
+  ) {
+    return false;
+  }
+
+  if (/₱|php\.?\s*\d|\bpeso?s?\b/i.test(fee)) return true;
+  if (/\d+(?:\.\d{1,2})?\s*(?:\+|\/)\s*\d+/i.test(fee)) return true;
+  if (/\d+(?:\.\d{1,2})?(?:\s*(?:\/head|\/ copy|per ))/i.test(fee)) return true;
+
+  return (
+    /\d+(?:\.\d{2})\b/.test(fee) &&
+    !/(?:minutes?|mins?|hours?|hrs?|days?|calendar|working day)/i.test(fee)
+  );
+}
+
 function publishedFee(service: CharterServiceView) {
   const fees = service.steps
     .map((step) => step.fee.trim())
-    .filter((fee) => fee && !/^none$|^n\/a$|^-$|^—$/i.test(fee));
+    .filter(isPublishedFeeAmount);
   if (!fees.length) return "None";
   const unique = [...new Set(fees)];
   if (unique.length === 1) return unique[0];
@@ -1497,30 +1635,24 @@ function OfficeModal({
         }`}
         onClick={(event) => event.stopPropagation()}
       >
-        <aside className="flex w-[min(20rem,34%)] shrink-0 flex-col border-r border-slate-200/80 bg-[#f7fafc] p-4 sm:p-5">
-          <div className="mb-4 flex items-start justify-between gap-2">
-            <div>
-              <p className="text-[10px] font-bold tracking-[0.16em] text-[#0d9488] uppercase">
-                Provincial Offices
-              </p>
-              <div className="mt-1 flex items-center gap-2">
-                <h3 className="text-xl font-extrabold text-kiosk-navy">Departments</h3>
-                <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#dbeafe] px-1.5 text-xs font-bold text-[#1d4ed8]">
-                  {relatedOffices.length}
-                </span>
-              </div>
+        <aside className="flex min-h-0 w-[min(20rem,34%)] shrink-0 flex-col border-r border-slate-200/80 bg-[#f7fafc] p-4 sm:p-5">
+          <div className="mb-4">
+            <p className="text-[10px] font-bold tracking-[0.16em] text-[#0d9488] uppercase">
+              Provincial Offices
+            </p>
+            <div className="mt-1 flex items-center gap-2">
+              <h3 className="text-xl font-extrabold text-kiosk-navy">Departments</h3>
+              <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#dbeafe] px-1.5 text-xs font-bold text-[#1d4ed8]">
+                {relatedOffices.length}
+              </span>
             </div>
-            <button
-              type="button"
-              onClick={onCloseOffice}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200"
-              aria-label="Close"
-            >
-              <X className="h-4 w-4" />
-            </button>
           </div>
 
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+          <ScrollFadeContainer
+            className="min-h-0 flex-1"
+            contentClassName="space-y-2 pr-1"
+            fadeClassName="from-[#f7fafc] via-[#f7fafc]/80"
+          >
             {relatedOffices.map((office) => {
               const active = office.id === group.id;
               const count = countServices(office);
@@ -1551,40 +1683,50 @@ function OfficeModal({
                 </button>
               );
             })}
-          </div>
+          </ScrollFadeContainer>
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
           <header className="shrink-0 border-b border-slate-100 px-5 py-5 sm:px-6">
-            <div className="flex flex-wrap items-start gap-4">
-              <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#0d9488] text-lg font-black tracking-wide text-white sm:h-[4.5rem] sm:w-[4.5rem] sm:text-xl">
-                {initials}
-              </span>
-              <div className="min-w-0 flex-1">
-                {category ? (
-                  <span className="inline-flex rounded-full bg-[#dbeafe] px-2.5 py-1 text-[10px] font-bold tracking-[0.14em] text-[#1d4ed8] uppercase">
-                    {category.title.replace(/ services$/i, "")}
-                  </span>
-                ) : null}
-                <h2
-                  id="charter-office-title"
-                  className="mt-2 text-2xl font-extrabold tracking-tight text-kiosk-navy sm:text-[1.75rem]"
-                >
-                  {group.name}
-                </h2>
-                <p className="mt-1 max-w-2xl text-sm text-slate-500">{officeBlurb(group)}</p>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex min-w-0 flex-1 items-start gap-4">
+                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#0d9488] text-lg font-black tracking-wide text-white sm:h-[4.5rem] sm:w-[4.5rem] sm:text-xl">
+                  {initials}
+                </span>
+                <div className="min-w-0 flex-1">
+                  {category ? (
+                    <span className="inline-flex rounded-full bg-[#dbeafe] px-2.5 py-1 text-[10px] font-bold tracking-[0.14em] text-[#1d4ed8] uppercase">
+                      {category.title.replace(/ services$/i, "")}
+                    </span>
+                  ) : null}
+                  <h2
+                    id="charter-office-title"
+                    className={cn(
+                      "text-2xl font-extrabold tracking-tight text-kiosk-navy sm:text-[1.75rem]",
+                      category ? "mt-2" : "mt-0"
+                    )}
+                  >
+                    {group.name}
+                  </h2>
+                </div>
               </div>
-              {edition.pdfUrl ? (
-                <button
-                  type="button"
-                  onClick={() => setPdfOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-[#2563eb]/30 bg-white px-3.5 py-2.5 text-sm font-semibold text-[#2563eb] shadow-sm transition hover:bg-blue-50"
-                >
-                  <FileText className="h-4 w-4" />
-                  Open full PDF
-                </button>
-              ) : null}
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">
+                {edition.pdfUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => setPdfOpen(true)}
+                    className="inline-flex min-h-[3rem] items-center gap-2 rounded-xl border border-[#2563eb]/30 bg-white px-5 py-3 text-base font-semibold text-[#2563eb] shadow-sm transition hover:bg-blue-50"
+                  >
+                    <FileText className="h-5 w-5" />
+                    Open full PDF
+                  </button>
+                ) : null}
+                <CharterCloseButton onClick={onCloseOffice} />
+              </div>
             </div>
+            <p className="mt-4 max-w-4xl text-[15px] leading-relaxed text-slate-600">
+              {officeBlurb(group)}
+            </p>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               <div className="flex items-center gap-3 rounded-2xl bg-[#f3f7fb] px-4 py-3">
@@ -1619,7 +1761,11 @@ function OfficeModal({
             </div>
           </header>
 
-          <div className="min-h-0 flex-1 overflow-y-auto bg-[#f7f9fc] p-4 sm:p-5">
+          <ScrollFadeContainer
+            className="min-h-0 flex-1"
+            contentClassName="bg-[#f7f9fc] p-4 sm:p-5"
+            fadeClassName="from-[#f7f9fc] via-[#f7f9fc]/80"
+          >
             <div className="mb-4 flex items-end justify-between gap-3">
               <h3 className="text-lg font-extrabold text-kiosk-navy">Documented services</h3>
               <p className="text-xs font-medium text-slate-500">
@@ -1649,14 +1795,14 @@ function OfficeModal({
                         {service.name}
                       </p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                        {service.typeOfTransaction ? (
-                          <span className="rounded-full bg-[#ccfbf1] px-2 py-0.5 text-[10px] font-bold text-[#0f766e]">
-                            {service.typeOfTransaction}
+                        {service.classification ? (
+                          <span className="max-w-full truncate rounded-full bg-[#ccfbf1] px-2 py-0.5 text-[10px] font-bold text-[#0f766e]">
+                            {service.classification}
                           </span>
                         ) : null}
-                        {service.classification ? (
-                          <span className="rounded-full bg-[#ccfbf1] px-2 py-0.5 text-[10px] font-bold text-[#0f766e]">
-                            {service.classification}
+                        {service.typeOfTransaction ? (
+                          <span className="max-w-[14rem] truncate rounded-full bg-[#ccfbf1] px-2 py-0.5 text-[10px] font-bold text-[#0f766e]">
+                            {service.typeOfTransaction}
                           </span>
                         ) : null}
                         {service.pageNumber != null ? (
@@ -1691,7 +1837,7 @@ function OfficeModal({
                 </button>
               ))}
             </div>
-          </div>
+          </ScrollFadeContainer>
         </div>
       </section>
 
@@ -1726,14 +1872,11 @@ function OfficeModal({
                   {edition.editionLabel ? ` · ${edition.editionLabel}` : ""} · Full PDF
                 </p>
               </div>
-              <button
-                type="button"
+              <CharterCloseButton
                 onClick={() => setPdfOpen(false)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200"
-                aria-label="Close PDF"
-              >
-                <X className="h-5 w-5" />
-              </button>
+                size="md"
+                ariaLabel="Close PDF"
+              />
             </header>
             <div className="min-h-0 flex-1 bg-slate-100">
               <iframe
@@ -1783,7 +1926,7 @@ function ServiceDetailModal({
       onClick={onClose}
     >
       <section
-        className={`flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-kiosk-green/40 bg-white shadow-2xl ${
+        className={`flex max-h-[92vh] min-h-0 w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-kiosk-green/40 bg-white shadow-2xl ${
           isClosing ? "charter-modal-panel-out" : "charter-modal-panel-in"
         }`}
         onClick={(event) => event.stopPropagation()}
@@ -1798,17 +1941,19 @@ function ServiceDetailModal({
               {service.name}
             </h3>
           </div>
-          <button
-            type="button"
+          <CharterCloseButton
             onClick={onClose}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-gray-500 shadow-sm ring-1 ring-gray-200 transition hover:bg-gray-100 hover:text-kiosk-navy"
-            aria-label="Close service details"
-          >
-            <X className="h-5 w-5" />
-          </button>
+            size="md"
+            ariaLabel="Close service details"
+          />
         </header>
 
-        <div className="space-y-4 overflow-y-auto p-4 sm:p-5">
+        <ScrollFadeContainer
+          className="min-h-0 flex-1"
+          contentClassName="p-4 sm:p-5"
+          fadeClassName="from-white via-white/80"
+        >
+          <div className="space-y-4">
           {service.description && (
             <p className="text-sm leading-relaxed text-gray-700">{service.description}</p>
           )}
@@ -1984,7 +2129,8 @@ function ServiceDetailModal({
               </div>
             </div>
           )}
-        </div>
+          </div>
+        </ScrollFadeContainer>
       </section>
     </div>
   );

@@ -3,10 +3,8 @@
 import { useEffect, useState, type CSSProperties } from "react";
 
 /**
- * Fit the kiosk to the live window/screen.
- * Stage = full viewport (always fills the display).
- * Optional rem bump on large screens when auto-zoom is on.
- * No CSS transform scale — that blocked true screen adapt and broke taps.
+ * Optional large-screen readability bump via root font-size only.
+ * No CSS transform scale — fills the live window and keeps tap coords correct.
  */
 const LARGE_MIN_WIDTH = 1600;
 const LARGE_MIN_HEIGHT = 900;
@@ -34,8 +32,8 @@ function computeFit(autoZoomEnabled: boolean) {
 
   const isLarge =
     autoZoomEnabled &&
-    (Math.max(screen.w, viewport.w) >= LARGE_MIN_WIDTH) &&
-    (Math.max(screen.h, viewport.h) >= LARGE_MIN_HEIGHT);
+    Math.max(screen.w, viewport.w) >= LARGE_MIN_WIDTH &&
+    Math.max(screen.h, viewport.h) >= LARGE_MIN_HEIGHT;
 
   return {
     width: viewport.w,

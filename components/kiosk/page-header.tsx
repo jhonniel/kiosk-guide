@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { KioskBackButton } from "@/components/kiosk/kiosk-back-button";
 import { kioskDateTimeReserveClass } from "@/components/kiosk/date-time-widget";
 import { t, type Language } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
@@ -24,6 +23,8 @@ export function PageHeader({
   compact = false,
   transparent = false,
 }: PageHeaderProps) {
+  const backLabel = t(language, "backToHome");
+
   if (compact) {
     return (
       <div
@@ -35,17 +36,9 @@ export function PageHeader({
             : "border-gray-200/60 bg-kiosk-bg/95 backdrop-blur-sm supports-[backdrop-filter]:bg-kiosk-bg/85"
         )}
       >
-        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-          {showBack && (
-            <Link
-              href="/"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-kiosk-navy shadow-sm ring-1 ring-gray-200 transition hover:bg-kiosk-navy hover:text-white sm:h-10 sm:w-10"
-              aria-label={t(language, "backToHome")}
-            >
-              <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            </Link>
-          )}
-          <h1 className="truncate text-xl font-bold tracking-tight text-kiosk-navy sm:text-2xl lg:text-3xl">
+        <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-4">
+          {showBack ? <KioskBackButton href="/">{backLabel}</KioskBackButton> : null}
+          <h1 className="min-w-0 truncate text-xl font-bold tracking-tight text-kiosk-navy sm:text-2xl lg:text-3xl">
             {title}
           </h1>
         </div>
@@ -64,23 +57,15 @@ export function PageHeader({
       )}
     >
       <div className="relative z-10 min-w-0 flex-1 pr-2">
-        {showBack && (
-          <Link
-            href="/"
-            className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-kiosk-navy/70 transition-colors hover:text-kiosk-navy"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t(language, "backToHome")}
-          </Link>
-        )}
-        <h1 className="truncate text-3xl font-bold tracking-tight text-kiosk-navy">
-          {title}
-        </h1>
-        {description && (
-          <p className="mt-0.5 line-clamp-2 text-base text-gray-600">
-            {description}
-          </p>
-        )}
+        <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-4">
+          {showBack ? <KioskBackButton href="/">{backLabel}</KioskBackButton> : null}
+          <h1 className="min-w-0 truncate text-3xl font-bold tracking-tight text-kiosk-navy">
+            {title}
+          </h1>
+        </div>
+        {description ? (
+          <p className="mt-1 line-clamp-2 text-base text-gray-600">{description}</p>
+        ) : null}
       </div>
     </div>
   );

@@ -3,8 +3,8 @@ import type { HomepageCard, Service } from "@prisma/client";
 import { t, type Language } from "@/lib/i18n/translations";
 import {
   resolveBrandingFooterImageUrl,
-  resolveBrandingLogoUrl,
 } from "@/lib/branding";
+import { KioskBrandLogos } from "@/components/kiosk/kiosk-brand-logos";
 import { getLocalizedSetting } from "@/features/settings/resolve-settings";
 import { QuickStartNav } from "@/components/kiosk/quick-start-nav";
 import { KioskVisitLogger } from "@/components/kiosk/kiosk-visit-logger";
@@ -28,7 +28,6 @@ export function Sidebar({
   const tagline = getLocalizedSetting(settings, "tagline", language);
   const welcome = getLocalizedSetting(settings, "welcome", language);
   const footerTagline = getLocalizedSetting(settings, "footer_tagline", language);
-  const logoUrl = resolveBrandingLogoUrl(settings);
   const footerImageUrl = resolveBrandingFooterImageUrl(settings);
 
   return (
@@ -36,16 +35,8 @@ export function Sidebar({
       <KioskVisitLogger />
 
       <div className="relative z-10 shrink-0 px-5 pt-6">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="relative h-[66px] w-[66px] shrink-0 overflow-hidden rounded-full bg-white/5">
-            <Image
-              src={logoUrl}
-              alt="Government logo"
-              fill
-              className="object-contain p-0.5"
-              unoptimized
-            />
-          </div>
+        <div className="mb-4 flex items-start gap-3">
+          <KioskBrandLogos settings={settings} variant="sidebar" />
           <div className="min-w-0">
             <p className="text-[10px] font-semibold tracking-[0.14em] text-white/75 uppercase">
               {govPrefix}

@@ -33,6 +33,7 @@ export const DEFAULT_QUICK_QUESTIONS_BIS = [
 
 export const SETTING_DEFAULTS: Record<string, string> = {
   branding_logo_url: "/images/branding/logo.png",
+  branding_caring_logo_url: "/images/branding/caring-camiguin.png?v=2",
   branding_footer_image_url: "/images/branding/camiguin-sidebar-landscape.png",
   gov_name_en: "Provincial Government of Camiguin",
   gov_name_fil: "Pamahalaang Panlalawigan ng Camiguin",

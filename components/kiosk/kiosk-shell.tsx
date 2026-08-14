@@ -21,7 +21,9 @@ interface KioskShellProps {
 export function KioskShell({ sidebar, children, autoZoomEnabled = true }: KioskShellProps) {
   const pathname = usePathname();
   const isHome = pathname === "/";
-  const showScenicBackdrop = isHome || pathname.startsWith("/citizens-charter");
+  const isCitizensCharter = pathname.startsWith("/citizens-charter");
+  const showScenicBackdrop = isHome || isCitizensCharter;
+  const lockMainScroll = isHome || isCitizensCharter;
   const { viewportStyle, stageStyle } = useKioskUiScale(autoZoomEnabled);
 
   return (
@@ -46,7 +48,7 @@ export function KioskShell({ sidebar, children, autoZoomEnabled = true }: KioskS
             <div
               className={cn(
                 "kiosk-main-scroll relative flex min-h-0 flex-1 flex-col overscroll-y-contain",
-                isHome ? "overflow-hidden" : "overflow-x-hidden overflow-y-auto"
+                lockMainScroll ? "overflow-hidden" : "overflow-x-hidden overflow-y-auto"
               )}
             >
               {children}

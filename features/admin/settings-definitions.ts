@@ -301,7 +301,7 @@ export const SETTING_GROUPS: SettingGroupDef[] = [
         label: "Auto zoom for large screens",
         type: "boolean",
         description:
-          "When on, slightly enlarges text on large screens and allows tap-to-enter fullscreen. The kiosk always fills the current window/screen size. Turn off for default text size and no fullscreen-on-tap.",
+          "When on, slightly enlarges text on large screens and allows tap-to-enter fullscreen. The kiosk fills the current window. Turn off for default text size and no fullscreen-on-tap.",
       },
     ],
   },

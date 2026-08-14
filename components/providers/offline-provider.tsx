@@ -14,6 +14,7 @@ import { KIOSK_OFFLINE_DATA_VERSION, type KioskOfflineData } from "@/features/of
 import { normalizeOfflineData } from "@/features/offline/normalize-offline-data";
 import { loadKioskOfflineData, saveKioskOfflineData } from "@/lib/offline/idb";
 import { syncQueuedFeedback } from "@/lib/offline/feedback-queue";
+import { warmCitizensCharterEdition } from "@/hooks/use-citizens-charter-data";
 
 interface OfflineContextValue {
   isOnline: boolean;
@@ -169,6 +170,7 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
     window.addEventListener("offline", handleOffline);
 
     void syncOfflineData();
+    void warmCitizensCharterEdition();
 
     return () => {
       window.removeEventListener("online", handleOnline);

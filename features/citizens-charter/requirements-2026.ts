@@ -2884,11 +2884,11 @@ export const CITIZENS_CHARTER_META: Record<number, CharterServiceMeta> = {
     whoMayAvail: "A. Provincial Engineering Department B. Prospect Bidders",
   },
   25: {
-    description: "This service deals with the procurement of goods and services as mandated by the Implementing Rules and Regulations of R.A. 9184 otherwise known as the Government Procurement Reform Act/Implementing Rules and Regulations of R. A. 12009. Office or Bids and Awards Committee (BAC) Office Division:",
-    officeOrDivision: "",
-    classification: "Highly Technical (Multi Stage) Type of G2G- Government to Government Transaction: G2B - Government to Business Who may All Provincial Government of Camiguin Department and Offices avail: Other National Government Agency (NGAs) Prospect Bidders",
-    typeOfTransaction: "",
-    whoMayAvail: "",
+    description: "This service deals with the procurement of goods and services as mandated by the Implementing Rules and Regulations of R.A. 9184 otherwise known as the Government Procurement Reform Act/Implementing Rules and Regulations of R. A. 12009.",
+    officeOrDivision: "Bids and Awards Committee (BAC) Office",
+    classification: "Highly Technical (Multi Stage)",
+    typeOfTransaction: "G2G - Government to Government; G2B - Government to Business",
+    whoMayAvail: "All Provincial Government of Camiguin Departments and Offices; Other National Government Agencies (NGAs); Prospect Bidders",
   },
   36: {
     description: "This service deals with the procurement of consulting services as mandated by the Implementing Rules and Regulations of R.A. 9184 otherwise known as the Government Procurement Reform Act/Implementing Rules and Regulations of R. A. 12009.",

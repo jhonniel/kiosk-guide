@@ -7,6 +7,7 @@ import type {
   CharterService,
   CharterStep,
 } from "@prisma/client";
+import { normalizeCharterMetaFields } from "./normalize-meta";
 import type { CharterEditionView, CharterServiceView } from "./types";
 
 type ServiceWithChildren = CharterService & {
@@ -46,15 +47,23 @@ function serializeService(service: ServiceWithChildren, includeInactive: boolean
     ? service.medicines
     : service.medicines.filter((row) => row.isActive);
 
+  const meta = normalizeCharterMetaFields({
+    description: service.description,
+    officeOrDivision: service.officeOrDivision,
+    classification: service.classification,
+    typeOfTransaction: service.typeOfTransaction,
+    whoMayAvail: service.whoMayAvail,
+  });
+
   return {
     id: service.id,
     name: service.name,
     pageNumber: service.pageNumber,
-    description: service.description ?? "",
-    officeOrDivision: service.officeOrDivision ?? "",
-    classification: service.classification ?? "",
-    typeOfTransaction: service.typeOfTransaction ?? "",
-    whoMayAvail: service.whoMayAvail ?? "",
+    description: meta.description,
+    officeOrDivision: meta.officeOrDivision,
+    classification: meta.classification,
+    typeOfTransaction: meta.typeOfTransaction,
+    whoMayAvail: meta.whoMayAvail,
     details: parseDetails(service.detailsJson),
     sortOrder: service.sortOrder,
     isActive: service.isActive,

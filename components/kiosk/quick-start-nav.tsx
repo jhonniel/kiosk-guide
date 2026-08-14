@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { HomepageCard, Service } from "@prisma/client";
 import { getIcon } from "@/utils/icon-map";
 import { localized, type Language } from "@/lib/i18n/translations";
@@ -28,6 +29,7 @@ export function QuickStartNav({
   homepageCards,
   services,
 }: QuickStartNavProps) {
+  const router = useRouter();
   const { language: kioskLanguage } = useKiosk();
   const { edition: charterEdition } = useCitizensCharterEdition();
   const { visitCounts, recordVisit } = useQuickStartVisits();
@@ -53,11 +55,12 @@ export function QuickStartNav({
       const page = candidateVisitKey(link);
       const now = Date.now();
       const last = lastClickRef.current;
-      if (last && last.page === page && now - last.at < 400) return;
+      if (last && last.page === page && now - last.at < 400) return false;
       lastClickRef.current = { page, at: now };
 
       recordVisit(page);
       void logVisitor(page, kioskLanguage, getKioskSessionId()).catch(() => undefined);
+      return true;
     },
     [kioskLanguage, recordVisit]
   );
@@ -87,9 +90,21 @@ export function QuickStartNav({
           <Link
             key={link.id}
             href={link.href}
+            prefetch
             onPointerDown={(event) => {
+              // Navigate on pointerdown so routing still works when
+              // click-to-fullscreen consumes the following click event.
               if (event.button !== 0) return;
-              onOpenLink(link);
+              if (!onOpenLink(link)) return;
+              router.push(link.href);
+            }}
+            onClick={(event) => {
+              // Pointer path already navigated; keep keyboard (detail===0) working.
+              if (event.detail === 0) {
+                if (onOpenLink(link)) router.push(link.href);
+                return;
+              }
+              event.preventDefault();
             }}
             className="flex items-center gap-2.5 rounded-xl bg-[#1c3358]/90 px-3 py-2.5 text-[12px] font-semibold text-white transition-all duration-200 hover:bg-[#244270] active:scale-[0.98] sm:gap-3 sm:rounded-2xl sm:px-4 sm:py-3.5 sm:text-[13px]"
           >
