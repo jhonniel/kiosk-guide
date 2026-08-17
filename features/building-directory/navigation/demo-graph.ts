@@ -1,5 +1,11 @@
 import type { NavigationGraph, NavEdge, NavNode, FloorPlanConfig } from "./types";
 
+export {
+  getNodeByLocationId,
+  getRoomNodesForFloor,
+  getLandmarkNodesForFloor,
+} from "./graph-helpers";
+
 const nodes: NavNode[] = [
   // Floor 1
   { id: "f1_main_entrance", floor: 1, x: 70, y: 230, type: "entrance", label: "Main Entrance", locationId: "f1-main-entrance", landmark: true },
@@ -233,15 +239,3 @@ export const DEMO_NAVIGATION_GRAPH: NavigationGraph = {
   floorPlans,
   defaultStartLocationId: "f1-kiosk",
 };
-
-export function getNodeByLocationId(graph: NavigationGraph, locationId: string): NavNode | undefined {
-  return graph.nodes.find((n) => n.locationId === locationId);
-}
-
-export function getRoomNodesForFloor(graph: NavigationGraph, floor: number): NavNode[] {
-  return graph.nodes.filter((n) => n.floor === floor && (n.type === "room" || n.type === "facility"));
-}
-
-export function getLandmarkNodesForFloor(graph: NavigationGraph, floor: number): NavNode[] {
-  return graph.nodes.filter((n) => n.floor === floor && n.landmark);
-}

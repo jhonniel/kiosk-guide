@@ -2,13 +2,12 @@
 
 import { Suspense, useEffect, useMemo, useRef, type RefObject } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, useTexture } from "@react-three/drei";
 import { Minus, Plus } from "lucide-react";
 import { Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { cn } from "@/lib/utils";
 import { Building3DScene } from "@/components/kiosk/building-3d-scene";
-import { IsometricNavigationCamera } from "@/components/kiosk/building-isometric-camera";
 import { BuildingOrbitCameraFit } from "@/components/kiosk/building-orbit-camera-fit";
 import { getFloorExtents, graphHasFloorPlanImages } from "@/features/building-directory/navigation/building-3d";
 import {
@@ -70,6 +69,7 @@ function zoomOrbitControls(controls: OrbitControlsImpl | null, factor: number) {
   );
   offset.setLength(next);
   cam.position.copy(controls.target).add(offset);
+  cam.updateProjectionMatrix();
   controls.update();
 }
 
@@ -99,10 +99,10 @@ export function Building3DViewer({
   const focusFloor = currentFloor;
   const kioskLocation = kioskLocationProp ?? {
     floor: 1,
-    x: 105,
-    y: 200,
-    locationId: "f1-kiosk",
-    nodeId: "f1_kiosk",
+    x: 468,
+    y: 455,
+    locationId: "gf-kiosk",
+    nodeId: "gf_kiosk",
     labelEn: "You are here",
     labelFil: "Nandito ka",
     labelBis: "Ania ka",
@@ -167,12 +167,22 @@ export function Building3DViewer({
 
   const floorLabel = graph.floorPlans.find((f) => f.floor === focusFloor)?.label ?? `Floor ${focusFloor}`;
   const imageBased = graphHasFloorPlanImages(graph);
+  const imageIsoMode = imageBased;
   const kioskLabel = pickLang(
     language,
     kioskLocation.labelEn,
     kioskLocation.labelFil,
     kioskLocation.labelBis
   );
+
+  useEffect(() => {
+    if (!imageBased) return;
+    for (const plan of graph.floorPlans) {
+      if (plan.imageUrl) {
+        useTexture.preload(plan.imageUrl);
+      }
+    }
+  }, [graph, imageBased]);
 
   if (!graph.floorPlans.length) {
     return (
@@ -225,9 +235,15 @@ export function Building3DViewer({
               ? pickLang(language, "Navigation map", "Mapa ng navigation", "Mapa sa navigation")
               : pickLang(
                   language,
-                  "Drag to rotate · Pinch or buttons to zoom",
-                  "I-drag para i-rotate · I-pinch o gumamit ng buttons para mag-zoom",
-                  "I-drag aron i-rotate · I-pinch o gamita ang buttons aron mag-zoom"
+                  imageIsoMode
+                    ? "Pinch or +/− to zoom · Drag to pan · Tap an office · Navigate for pink path"
+                    : "Drag to rotate · Pinch or buttons to zoom",
+                  imageIsoMode
+                    ? "I-pinch o +/− para mag-zoom · I-drag para mag-pan · Pindutin ang opisina"
+                    : "I-drag para i-rotate · I-pinch o gumamit ng buttons para mag-zoom",
+                  imageIsoMode
+                    ? "I-pinch o +/− aron mag-zoom · I-drag aron mag-pan · Pindota ang opisina"
+                    : "I-drag aron i-rotate · I-pinch o gamita ang buttons aron mag-zoom"
                 )}
         </p>
       </div>
@@ -267,9 +283,10 @@ export function Building3DViewer({
       <div
         style={!fill && height > 0 ? { height } : undefined}
         className={cn(
-          "relative min-h-0 bg-[#f0f4f8]",
+          "relative min-h-0",
+          imageBased ? "bg-[#ebe4d8]" : "bg-[#f0f4f8]",
           fill
-            ? "flex-1"
+            ? "min-h-[320px] flex-1"
             : height <= 0 && (imageBased ? "h-[min(70vh,900px)]" : "h-[min(55vh,720px)]")
         )}
         data-kiosk-zoom-surface
@@ -290,15 +307,13 @@ export function Building3DViewer({
         )}
 
         <Canvas
-          shadows={imageBased ? "soft" : false}
+          shadows={false}
           dpr={[1, 1.5]}
           frameloop={isNavigating || imageBased ? "always" : "demand"}
           camera={
-            navigationMapMode
-              ? undefined
-              : imageBased
-                ? { position: [28, 40, 28], fov: 42, near: 0.1, far: 400 }
-                : { position: [0, 48, 48], fov: 46, near: 0.1, far: 160 }
+            imageIsoMode
+              ? { position: [55, 65, 55], fov: 32, near: 0.1, far: 500 }
+              : { position: [0, 48, 48], fov: 46, near: 0.1, far: 160 }
           }
           gl={{
             antialias: true,
@@ -307,13 +322,9 @@ export function Building3DViewer({
             logarithmicDepthBuffer: false,
           }}
         >
-          <color attach="background" args={[imageBased ? "#f5f5f5" : "#f0f4f8"]} />
+          <color attach="background" args={[imageBased ? "#ebe4d8" : "#f0f4f8"]} />
           {!navigationMapMode && !imageBased && <fog attach="fog" args={["#e8f0fa", 55, 130]} />}
-          {!navigationMapMode && imageBased && <fog attach="fog" args={["#f5f5f5", 120, 280]} />}
           <Suspense fallback={<SceneLoader />}>
-            {navigationMapMode && (
-              <IsometricNavigationCamera graph={graph} viewFloor={focusFloor} />
-            )}
             <Building3DScene
               graph={graph}
               kioskLocation={kioskLocation}
@@ -332,28 +343,25 @@ export function Building3DViewer({
               roomOverlayRef={roomOverlayRef}
               roomAnchorPosition={roomAnchorPosition}
             />
-            {!navigationMapMode && (
-              <>
-                <OrbitControls
-                  ref={controlsRef}
-                  makeDefault
-                  target={[0, 0, 0]}
-                  enablePan
-                  enableZoom
-                  zoomSpeed={0.85}
-                  minDistance={floorSpan * 0.28}
-                  maxDistance={floorSpan * 1.55}
-                  minPolarAngle={0.3}
-                  maxPolarAngle={Math.PI / 2.1}
-                  enableDamping={false}
-                />
-                <BuildingOrbitCameraFit graph={graph} viewFloor={focusFloor} />
-              </>
-            )}
+            <OrbitControls
+              ref={controlsRef}
+              makeDefault
+              target={[0, 0, 0]}
+              enablePan
+              enableRotate={!imageIsoMode}
+              enableZoom
+              zoomSpeed={0.85}
+              minDistance={imageIsoMode ? floorSpan * 0.35 : floorSpan * 0.28}
+              maxDistance={imageIsoMode ? floorSpan * 1.85 : floorSpan * 1.55}
+              minPolarAngle={imageIsoMode ? Math.atan(1.05) : 0.3}
+              maxPolarAngle={imageIsoMode ? Math.atan(1.05) : Math.PI / 2.1}
+              enableDamping={false}
+            />
+            <BuildingOrbitCameraFit graph={graph} viewFloor={focusFloor} />
           </Suspense>
         </Canvas>
 
-        {!navigationMapMode && (
+        {(!navigationMapMode || imageIsoMode) && (
           <div className="absolute right-3 bottom-3 z-20 flex flex-col gap-2">
             <button
               type="button"
@@ -387,7 +395,7 @@ export function Building3DViewer({
               </span>
               {isNavigating && (
                 <span className="flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 shadow-sm">
-                  <span className="inline-block h-2 w-2 rounded-full bg-[#3b82f6]" />
+                  <span className="inline-block h-2 w-2 rounded-full bg-[#ec4899]" />
                   {pickLang(language, "You", "Ikaw", "Ikaw")}
                 </span>
               )}

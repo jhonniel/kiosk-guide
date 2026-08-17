@@ -70,7 +70,7 @@ export function BuildingLayoutPanel({
           <div>
             <h2 className="text-sm font-bold tracking-wider text-kiosk-navy">
               {imageBased
-                ? pickLang(language, "3D BUILDING NAVIGATION", "3D NAVIGATION NG GUSALI", "3D NAVIGATION SA BUILDING")
+                ? pickLang(language, "3D FLOOR PLAN", "3D PLANO NG PALAPAG", "3D FLOOR PLAN")
                 : uiText(language, "buildingLayoutTitle")}
             </h2>
             <p className="text-xs text-gray-500">{buildingName}</p>
@@ -80,9 +80,9 @@ export function BuildingLayoutPanel({
           {imageBased
             ? pickLang(
                 language,
-                "Drag to orbit · Switch floors · Your uploaded floor plans in 3D",
-                "I-drag para i-orbit · Palitan ang palapag · Floor plan mo sa 3D",
-                "I-drag aron i-orbit · Ilisan ang andana · Imong floor plan sa 3D"
+                "Drag to rotate · Pinch or +/− to zoom · Tap an office · Start navigation for directions",
+                "I-drag para i-rotate · I-pinch o +/− para mag-zoom · Pindutin ang opisina · Mag-navigate para sa direksyon",
+                "I-drag aron i-rotate · I-pinch o +/− aron mag-zoom · Pindota ang opisina · Sugdi ang navigation para sa direksyon"
               )
             : uiText(language, "tapRoomHint")}
         </p>

@@ -20,7 +20,7 @@ let warmPromise: Promise<CharterEditionView | null> | null = null;
 function isValidBundle(data: unknown): data is CitizensCharterOfflineBundle {
   if (!data || typeof data !== "object") return false;
   const d = data as Partial<CitizensCharterOfflineBundle>;
-  return d.version === KIOSK_OFFLINE_DATA_VERSION && "citizensCharter" in d;
+  return typeof d.version === "number" && "citizensCharter" in d && Boolean(d.citizensCharter);
 }
 
 async function fetchJson(url: string, timeoutMs?: number): Promise<unknown | null> {
@@ -99,7 +99,10 @@ async function syncCitizensCharterEdition() {
 
   rememberEdition(chosen.citizensCharter);
   try {
-    await saveCitizensCharterOfflineData(chosen);
+    await saveCitizensCharterOfflineData({
+      ...chosen,
+      version: KIOSK_OFFLINE_DATA_VERSION,
+    });
   } catch {
     // Ignore IndexedDB failures.
   }

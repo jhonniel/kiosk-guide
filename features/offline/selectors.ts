@@ -12,9 +12,9 @@ export function getBuildingDirectoryFromOffline(data: KioskOfflineData): Buildin
     .sort((a, b) => a.sortOrder - b.sortOrder);
 
   return {
-    isDemoMode: normalized.guideContext.isDemoMode,
+    isDemoMode: false,
     buildingName: normalized.guideContext.buildingName,
-    showOfficialDirectory: !normalized.guideContext.isDemoMode && buildingDirectories.length > 0,
+    showOfficialDirectory: buildingDirectories.length > 0,
     navigationGraph: normalized.navigationGraph,
     locations: normalized.guideContext.locations,
     uiConfigEn: normalized.uiConfigEn,

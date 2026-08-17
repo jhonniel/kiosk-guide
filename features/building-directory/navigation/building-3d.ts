@@ -9,10 +9,10 @@ export const IMAGE_PLAN_TARGET = 72;
 
 export const KIOSK_LOCATION = {
   floor: 1,
-  x: 105,
-  y: 200,
-  locationId: "f1-kiosk",
-  nodeId: "f1_kiosk",
+  x: 468,
+  y: 455,
+  locationId: "gf-kiosk",
+  nodeId: "gf_kiosk",
   labelEn: "You are here",
   labelFil: "Nandito ka",
   labelBis: "Ania ka",
@@ -75,6 +75,7 @@ export function graphHasFloorPlanImages(graph: NavigationGraph): boolean {
 
 export function getPlanCenter(graph: NavigationGraph, viewFloor?: number) {
   const plan = getActivePlan(graph, viewFloor) ?? graph.floorPlans[0];
+  if (!plan) return { cx: 0, cy: 0 };
   return { cx: plan.width / 2, cy: plan.height / 2 };
 }
 
@@ -93,17 +94,35 @@ export function fitOrthographicZoom(
   camera: OrthographicCamera,
   floorWidth: number,
   floorDepth: number,
-  padding = 1.15
+  padding = 1.15,
+  viewportWidth?: number,
+  viewportHeight?: number
 ) {
-  const frustumW = camera.right - camera.left;
-  const frustumH = camera.top - camera.bottom;
-  if (frustumW <= 0 || frustumH <= 0) return;
+  let frustumW = camera.right - camera.left;
+  let frustumH = camera.top - camera.bottom;
+
+  if ((frustumW <= 0 || frustumH <= 0) && viewportWidth && viewportHeight) {
+    const aspect = viewportWidth / Math.max(viewportHeight, 1);
+    frustumH = 10;
+    frustumW = frustumH * aspect;
+    camera.left = -frustumW / 2;
+    camera.right = frustumW / 2;
+    camera.top = frustumH / 2;
+    camera.bottom = -frustumH / 2;
+  }
+
+  frustumW = camera.right - camera.left;
+  frustumH = camera.top - camera.bottom;
+  if (frustumW <= 0 || frustumH <= 0) return false;
+
   const zoomW = frustumW / (floorWidth * padding);
   const zoomH = frustumH / (floorDepth * padding);
   const zoom = Math.min(zoomW, zoomH);
-  if (!Number.isFinite(zoom) || zoom <= 0) return;
-  camera.zoom = zoom;
+  if (!Number.isFinite(zoom) || zoom <= 0) return false;
+
+  camera.zoom = Math.min(3, Math.max(0.08, zoom));
   camera.updateProjectionMatrix();
+  return true;
 }
 
 export function map2DTo3D(
@@ -147,6 +166,49 @@ export function nodeSize(node: NavNode): { w: number; d: number; h: number } {
       return { w: 3.5, d: 2.5, h: WALL_HEIGHT * 0.7 };
     default:
       return { w: 2, d: 2, h: 1.2 };
+  }
+}
+
+/** Extruded mall-style blocks on top of a floor-plan image. */
+export function nodeSizeForImagePlan(node: NavNode): { w: number; d: number; h: number } {
+  const base = nodeSize(node);
+  const shrink =
+    node.type === "room" ? 0.58 : node.type === "facility" ? 0.54 : 0.62;
+  const height =
+    node.type === "room"
+      ? 1.35
+      : node.type === "facility"
+        ? 1.05
+        : node.type === "elevator" || node.type === "staircase"
+          ? 1.2
+          : 0.9;
+  return {
+    w: base.w * shrink,
+    d: base.d * shrink,
+    h: height,
+  };
+}
+
+export function nodeExtrudedColors(
+  node: NavNode,
+  highlighted: boolean
+): { body: string; emissive: string } {
+  if (highlighted) return { body: "#fcd34d", emissive: "#f59e0b" };
+  switch (node.type) {
+    case "room":
+      return { body: "#e85d6a", emissive: "#be123c" };
+    case "facility":
+      return { body: "#9ca3af", emissive: "#475569" };
+    case "elevator":
+      return { body: "#7da8d8", emissive: "#2563eb" };
+    case "staircase":
+      return { body: "#94a3b8", emissive: "#475569" };
+    case "entrance":
+      return { body: "#6ee7b7", emissive: "#059669" };
+    case "emergency_exit":
+      return { body: "#fca5a5", emissive: "#dc2626" };
+    default:
+      return { body: "#cbd5e1", emissive: "#64748b" };
   }
 }
 

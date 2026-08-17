@@ -1,34 +1,27 @@
-import {
-  DEMO_BUILDING_NAME_EN,
-  DEMO_BUILDING_NAME_FIL,
-} from "@/features/building-directory/demo-building";
-import {
-  DEMO_MODE_NOTICE,
-  MISSING_LOCATION_MESSAGE,
-} from "@/features/building-directory/guide-prompt";
+import { CAPITOL_BUILDING_NAME_EN, CAPITOL_BUILDING_NAME_FIL } from "@/features/building-directory/capitol-building";
 
 export const DEFAULT_QUICK_QUESTIONS_EN = [
-  "Where is the Registrar's Office?",
-  "How do I get to the Library?",
-  "Where is the nearest restroom?",
-  "Where is the Dean's Office?",
-  "Emergency exit",
+  "Where is the Provincial Treasury Office?",
+  "Where is the Provincial Assessor's Office?",
+  "Where is the Provincial Tourism Office?",
+  "Where is the nearest comfort room?",
+  "Where is Elevator 2?",
 ];
 
 export const DEFAULT_QUICK_QUESTIONS_FIL = [
-  "Nasaan ang Registrar's Office?",
-  "Paano pumunta sa Library?",
-  "Nasaan ang pinakamalapit na restroom?",
-  "Nasaan ang Dean's Office?",
-  "Emergency exit",
+  "Nasaan ang Provincial Treasury Office?",
+  "Nasaan ang Provincial Assessor's Office?",
+  "Nasaan ang Provincial Tourism Office?",
+  "Nasaan ang pinakamalapit na comfort room?",
+  "Nasaan ang Elevator 2?",
 ];
 
 export const DEFAULT_QUICK_QUESTIONS_BIS = [
-  "Asa ang Registrar's Office?",
-  "Unsaon pag-adto sa Library?",
-  "Asa ang labing duol nga restroom?",
-  "Asa ang Dean's Office?",
-  "Emergency exit",
+  "Asa ang Provincial Treasury Office?",
+  "Asa ang Provincial Assessor's Office?",
+  "Asa ang Provincial Tourism Office?",
+  "Asa ang labing duol nga comfort room?",
+  "Asa ang Elevator 2?",
 ];
 
 export const SETTING_DEFAULTS: Record<string, string> = {
@@ -64,34 +57,36 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   contact_phone: "(088) 387-1001",
   contact_email: "info@camiguin.gov.ph",
   contact_address: "Mambajao, Camiguin",
-  building_floor_plan_uploaded: "false",
-  indoor_map_v2: "true",
-  building_name_en: DEMO_BUILDING_NAME_EN,
-  building_name_fil: DEMO_BUILDING_NAME_FIL,
-  building_name_bis: DEMO_BUILDING_NAME_FIL,
-  building_demo_notice_en: DEMO_MODE_NOTICE,
+  building_floor_plan_uploaded: "true",
+  indoor_map_v2: "false",
+  building_name_en: CAPITOL_BUILDING_NAME_EN,
+  building_name_fil: CAPITOL_BUILDING_NAME_FIL,
+  building_name_bis: CAPITOL_BUILDING_NAME_FIL,
+  building_demo_notice_en:
+    "Ground floor map of the Provincial Capitol Building. Tap an office for step-by-step directions.",
   building_demo_notice_fil:
-    "Gumagamit ng demonstration data ang gusaling ito. Ang navigation ay batay sa Demo Academic Building para sa testing.",
+    "Ground floor map ng Provincial Capitol Building. Pindutin ang opisina para sa hakbang-hakbang na direksyon.",
   building_demo_notice_bis:
-    "Kini nga building naggamit ug demonstration data. Ang navigation gibase sa Demo Academic Building para sa testing.",
+    "Ground floor map sa Provincial Capitol Building. Pindota ang opisina para sa step-by-step nga direksyon.",
   building_demo_banner_en:
-    "The official building floor plan has not been uploaded yet. Navigation uses the Demo Academic Building for testing.",
+    "Navigate the Provincial Capitol ground floor. Search for an office or tap a room on the 3D map.",
   building_demo_banner_fil:
-    "Hindi pa na-upload ang opisyal na floor plan. Gumagamit ng Demo Academic Building ang navigation para sa testing.",
+    "Mag-navigate sa ground floor ng Provincial Capitol. Maghanap ng opisina o pindutin ang silid sa 3D map.",
   building_demo_banner_bis:
-    "Wala pa na-upload ang opisyal nga floor plan. Ang navigation naggamit sa Demo Academic Building para sa testing.",
-  building_missing_location_en: MISSING_LOCATION_MESSAGE,
+    "Navigate sa ground floor sa Provincial Capitol. Pangitaa ang opisina o pindota ang kwarto sa 3D map.",
+  building_missing_location_en:
+    "I could not find that location in the building directory. Please visit the Information Desk, or try a room number or office name.",
   building_missing_location_fil:
-    "Hindi ko mahanap ang lokasyong iyon sa kasalukuyang building directory. Kung hindi pa na-upload ang opisyal na floor plan, gumagamit ang system ng demonstration data para sa testing.",
+    "Hindi ko mahanap ang lokasyong iyon sa building directory. Mangyaring bisitahin ang Information Desk, o subukang maghanap ng room number o pangalan ng opisina.",
   building_missing_location_bis:
-    "Dili nako makit-an kana nga lokasyon sa kasamtangang building directory. Kung wala pa na-upload ang opisyal nga floor plan, naggamit ang system ug demonstration data para sa testing.",
+    "Dili nako makit-an kana nga lokasyon sa building directory. Palihog bisitaha ang Information Desk, o sulayi ang room number o ngalan sa opisina.",
   building_quick_questions_en: JSON.stringify(DEFAULT_QUICK_QUESTIONS_EN),
   building_quick_questions_fil: JSON.stringify(DEFAULT_QUICK_QUESTIONS_FIL),
   building_quick_questions_bis: JSON.stringify(DEFAULT_QUICK_QUESTIONS_BIS),
-  building_kiosk_location_id: "f1-kiosk",
-  building_kiosk_node_id: "f1_kiosk",
-  building_kiosk_x: "105",
-  building_kiosk_y: "200",
+  building_kiosk_location_id: "gf-kiosk",
+  building_kiosk_node_id: "gf_kiosk",
+  building_kiosk_x: "468",
+  building_kiosk_y: "455",
   building_kiosk_floor: "1",
   building_page_title_en: "Building Directory",
   building_page_title_fil: "Direktoryo ng Gusali",
@@ -111,9 +106,9 @@ export const SETTING_DEFAULTS: Record<string, string> = {
     "Tanungin kung nasaan ang silid o pasilidad — gagabayan kita nang hakbang-hakbang.",
   building_guide_subtitle_bis:
     "Pangutana asa ang kwarto o pasilidad — giyahan tika step by step.",
-  building_guide_placeholder_en: 'e.g. "Where is the Registrar\'s Office?"',
-  building_guide_placeholder_fil: 'hal. "Nasaan ang Registrar\'s Office?"',
-  building_guide_placeholder_bis: 'pananglitan, "Asa ang Registrar\'s Office?"',
+  building_guide_placeholder_en: 'e.g. "Where is the Provincial Treasury Office?"',
+  building_guide_placeholder_fil: 'hal. "Nasaan ang Provincial Assessor\'s Office?"',
+  building_guide_placeholder_bis: 'pananglitan, "Asa ang Provincial Tourism Office?"',
   building_navigation_graph: "",
   download_qr_enabled: "true",
   download_email_enabled: "true",

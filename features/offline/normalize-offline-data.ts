@@ -1,17 +1,22 @@
 import { buildBuildingUiConfig } from "@/features/settings/building-config";
 import { SETTING_DEFAULTS } from "@/features/settings/defaults";
-import type { KioskOfflineData } from "./types";
+import { normalizeBuildingDirectoryOffline } from "./normalize-building-directory";
+import { KIOSK_OFFLINE_DATA_VERSION, type KioskOfflineData } from "./types";
 
 export function normalizeOfflineData(data: KioskOfflineData): KioskOfflineData {
   // Fill missing keys from defaults, but never overwrite explicit saved values
   // (important for booleans like kiosk_auto_zoom_enabled = "false").
   const settings = { ...SETTING_DEFAULTS, ...(data.settings ?? {}) };
+  const buildingDirectory = normalizeBuildingDirectoryOffline({ ...data, settings });
+  const mergedSettings = buildingDirectory.settings;
   const uiConfigBis =
-    data.uiConfigBis ?? buildBuildingUiConfig(settings, "bis");
+    buildingDirectory.uiConfigBis ?? buildBuildingUiConfig(mergedSettings, "bis");
 
   return {
     ...data,
-    settings,
+    ...buildingDirectory,
+    version: KIOSK_OFFLINE_DATA_VERSION,
+    settings: mergedSettings,
     downloads: data.downloads.map((download) => ({
       ...download,
       downloadCount: download.downloadCount ?? 0,
@@ -20,7 +25,6 @@ export function normalizeOfflineData(data: KioskOfflineData): KioskOfflineData {
     pageVisitCounts: data.pageVisitCounts ?? data.serviceVisitCounts ?? {},
     citizensCharter: data.citizensCharter ?? null,
     indoorMap: data.indoorMap ?? null,
-    indoorMapV2: data.indoorMapV2 ?? false,
     uiConfigBis,
   };
 }

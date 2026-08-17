@@ -10,6 +10,7 @@ import {
 } from "@/features/building-directory/location-display";
 import {
   FLOOR_LAYERS,
+  graphHasFloorPlanImages,
   map2DToFloorPlan3D,
   nodeSize,
 } from "@/features/building-directory/navigation/building-3d";
@@ -24,6 +25,9 @@ export function getRoomAnchorPosition(
   navigationMapMode: boolean
 ): [number, number, number] {
   const pos = map2DToFloorPlan3D(node.x, node.y, graph, node.floor);
+  if (graphHasFloorPlanImages(graph)) {
+    return [pos.x, 0.22, pos.z];
+  }
   const { h } = nodeSize(node);
   const anchorY = navigationMapMode
     ? FLOOR_LAYERS.roomFloorY + ISO_WALL_H + 0.22
@@ -116,10 +120,11 @@ export function BuildingRoomSelectionPulse({
   navigationMapMode = false,
 }: BuildingRoomSelectionPulseProps) {
   const pos = map2DToFloorPlan3D(node.x, node.y, graph, node.floor);
+  const imageBased = graphHasFloorPlanImages(graph);
   const { w, d } = nodeSize(node);
-  const ringY = FLOOR_LAYERS.roomFloorY + 0.05;
-  const rx = w * 0.48;
-  const rz = d * 0.48;
+  const ringY = imageBased ? 0.05 : FLOOR_LAYERS.roomFloorY + 0.05;
+  const rx = imageBased ? 0.85 : w * 0.48;
+  const rz = imageBased ? 0.85 : d * 0.48;
 
   return (
     <group position={[pos.x, ringY, pos.z]}>
@@ -127,7 +132,7 @@ export function BuildingRoomSelectionPulse({
         <ringGeometry args={[Math.min(rx, rz) * 0.82, Math.min(rx, rz) * 0.98, 32]} />
         <meshBasicMaterial color="#22c55e" transparent opacity={0.55} depthWrite={false} />
       </mesh>
-      {!navigationMapMode && (
+      {!navigationMapMode && !imageBased && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]} renderOrder={12}>
           <planeGeometry args={[w - 0.1, d - 0.1]} />
           <meshBasicMaterial color="#fef08a" transparent opacity={0.25} depthWrite={false} />

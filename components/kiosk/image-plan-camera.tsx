@@ -7,12 +7,13 @@ import type * as THREE from "three";
 import type { NavigationGraph } from "@/features/building-directory/navigation/types";
 import { fitOrthographicZoom, getFloorExtents } from "@/features/building-directory/navigation/building-3d";
 
-interface IsometricNavigationCameraProps {
+interface ImagePlanCameraProps {
   graph: NavigationGraph;
   viewFloor: number;
 }
 
-export function IsometricNavigationCamera({ graph, viewFloor }: IsometricNavigationCameraProps) {
+/** Straight top-down camera so uploaded floor plans look like the 2D architectural drawing. */
+export function ImagePlanCamera({ graph, viewFloor }: ImagePlanCameraProps) {
   const ref = useRef<THREE.OrthographicCamera>(null);
   const fittedRef = useRef(false);
   const { size, invalidate } = useThree();
@@ -26,11 +27,11 @@ export function IsometricNavigationCamera({ graph, viewFloor }: IsometricNavigat
     if (!cam || fittedRef.current) return;
 
     const { width, depth } = getFloorExtents(graph, viewFloor);
-    cam.position.set(22, 34, 22);
+    cam.position.set(0, 100, 0);
+    cam.up.set(0, 0, -1);
     cam.lookAt(0, 0, 0);
-    cam.up.set(0, 1, 0);
 
-    const ok = fitOrthographicZoom(cam, width, depth, 1.2, size.width, size.height);
+    const ok = fitOrthographicZoom(cam, width, depth, 1.04, size.width, size.height);
     if (!ok) return;
 
     fittedRef.current = true;
@@ -41,8 +42,8 @@ export function IsometricNavigationCamera({ graph, viewFloor }: IsometricNavigat
     <OrthographicCamera
       ref={ref}
       makeDefault
-      position={[22, 34, 22]}
-      near={-80}
+      position={[0, 100, 0]}
+      near={-200}
       far={200}
     />
   );

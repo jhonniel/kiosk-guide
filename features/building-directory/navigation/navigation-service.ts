@@ -1,10 +1,8 @@
 import { getGuideContext } from "../guide-service";
-import { DEMO_BUILDING_LOCATIONS } from "../demo-building";
+import { CAPITOL_BUILDING_LOCATIONS } from "../capitol-building";
 import { getLocationDisplay } from "../location-display";
-import {
-  DEMO_NAVIGATION_GRAPH,
-  getNodeByLocationId,
-} from "./demo-graph";
+import { CAPITOL_GROUND_NAVIGATION_GRAPH } from "./capitol-ground-graph";
+import { getNodeByLocationId } from "./graph-helpers";
 import { calculateRoute } from "./routing-engine";
 import { getResolvedSettings, getSetting } from "@/features/settings/resolve-settings";
 import type { Language } from "@/lib/i18n/translations";
@@ -14,11 +12,6 @@ import type {
   NavigationResponse,
 } from "./types";
 
-async function isNavigationGraphAvailable(): Promise<boolean> {
-  const settings = await getResolvedSettings();
-  return settings.building_floor_plan_uploaded === "true";
-}
-
 async function getOfficialNavigationGraph(): Promise<NavigationGraph | null> {
   const settings = await getResolvedSettings();
   const raw = getSetting(settings, "building_navigation_graph");
@@ -26,7 +19,7 @@ async function getOfficialNavigationGraph(): Promise<NavigationGraph | null> {
   try {
     const parsed = JSON.parse(raw) as NavigationGraph;
     if (parsed?.nodes?.length && parsed?.floorPlans?.length) {
-      const startId = getSetting(settings, "building_kiosk_location_id", "f1-kiosk");
+      const startId = getSetting(settings, "building_kiosk_location_id", "gf-kiosk");
       return { ...parsed, defaultStartLocationId: parsed.defaultStartLocationId ?? startId };
     }
   } catch {
@@ -36,12 +29,9 @@ async function getOfficialNavigationGraph(): Promise<NavigationGraph | null> {
 }
 
 async function getNavigationGraph(): Promise<{ graph: NavigationGraph | null; isDemoMode: boolean }> {
-  const officialUploaded = await isNavigationGraphAvailable();
-  if (officialUploaded) {
-    const official = await getOfficialNavigationGraph();
-    if (official) return { graph: official, isDemoMode: false };
-  }
-  return { graph: DEMO_NAVIGATION_GRAPH, isDemoMode: true };
+  const official = await getOfficialNavigationGraph();
+  if (official) return { graph: official, isDemoMode: false };
+  return { graph: CAPITOL_GROUND_NAVIGATION_GRAPH, isDemoMode: false };
 }
 
 export async function navigateBuilding(
@@ -143,7 +133,7 @@ export async function getNavigationGraphForClient(): Promise<{
 }
 
 export function getLocationName(locationId: string, lang: Language = "en"): string {
-  const loc = DEMO_BUILDING_LOCATIONS.find((l) => l.id === locationId);
+  const loc = CAPITOL_BUILDING_LOCATIONS.find((l) => l.id === locationId);
   if (!loc) return locationId;
   return getLocationDisplay(loc, lang).name;
 }

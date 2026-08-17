@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { KIOSK_OFFLINE_DATA_VERSION, type KioskOfflineData } from "@/features/offline/types";
+import type { KioskOfflineData } from "@/features/offline/types";
 import { normalizeOfflineData } from "@/features/offline/normalize-offline-data";
 import { loadKioskOfflineData, saveKioskOfflineData } from "@/lib/offline/idb";
 import { syncQueuedFeedback } from "@/lib/offline/feedback-queue";
@@ -30,7 +30,7 @@ function isValidOfflineData(data: unknown): data is KioskOfflineData {
   if (!data || typeof data !== "object") return false;
   const d = data as Partial<KioskOfflineData>;
   return Boolean(
-    d.version === KIOSK_OFFLINE_DATA_VERSION &&
+    typeof d.version === "number" &&
       d.settings &&
       Array.isArray(d.homepageCards) &&
       Array.isArray(d.quickLinks) &&

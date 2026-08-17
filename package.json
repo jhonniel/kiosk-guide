@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "npm run offline:generate && next dev -H 0.0.0.0 -p 3000",
     "dev:turbo": "next dev --turbopack -H 0.0.0.0 -p 3000",
-    "dev:clean": "lsof -ti:3000 | xargs kill -9 2>/dev/null || true; rm -rf .next && next dev -H 0.0.0.0 -p 3000",
+    "dev:clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && next dev -H 0.0.0.0 -p 3000",
     "dev:clean:turbo": "lsof -ti:3000 | xargs kill -9 2>/dev/null || true; rm -rf .next && next dev --turbopack -H 0.0.0.0 -p 3000",
     "build": "npm run offline:generate && next build",
     "build:next": "next build",

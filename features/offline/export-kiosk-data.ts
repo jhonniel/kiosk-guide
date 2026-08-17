@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { getGuideContext } from "@/features/building-directory/guide-service";
 import { getNavigationGraphForClient } from "@/features/building-directory/navigation/navigation-service";
-import { DEMO_NAVIGATION_GRAPH } from "@/features/building-directory/navigation/demo-graph";
+import { CAPITOL_GROUND_NAVIGATION_GRAPH } from "@/features/building-directory/navigation/capitol-ground-graph";
 import {
   applyIndoorFloorPlansToGraph,
   loadIndoorFloorPlansFor3D,
@@ -97,7 +97,7 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
     getBoolSetting(settings, "indoor_map_v2") &&
     Boolean(indoorMap?.buildings.some((b) => b.floors.length > 0));
 
-  const baseGraph = navData.graph ?? DEMO_NAVIGATION_GRAPH;
+  const baseGraph = navData.graph ?? CAPITOL_GROUND_NAVIGATION_GRAPH;
   const kioskStartId = getSetting(settings, "building_kiosk_location_id", baseGraph.defaultStartLocationId);
   const withIndoorPlans = applyIndoorFloorPlansToGraph(baseGraph, indoorFloorPlans, {
     leafletActive: indoorMapV2,

@@ -50,7 +50,7 @@ function searchBuildingLocationsFromContext(query: string, context: GuideContext
     .map(({ loc, name, floor }) => ({
       id: loc.id,
       title: loc.room ? `${name} (Room ${loc.room})` : name,
-      description: `${floor}${context.isDemoMode ? " · Demo Building" : ""}`,
+      description: floor,
       href: `/building-directory?q=${encodeURIComponent(name)}`,
       floor,
     }));

@@ -18,7 +18,7 @@ import type {
 } from "@prisma/client";
 
 /** Bump when offline payload shape or required client cache invalidation changes. */
-export const KIOSK_OFFLINE_DATA_VERSION = 16;
+export const KIOSK_OFFLINE_DATA_VERSION = 19;
 
 export interface KioskOfflineData {
   version: number;

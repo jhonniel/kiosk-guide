@@ -1,15 +1,14 @@
 import { db } from "@/lib/db";
 import { pickLang, pickLocalizedText, type Language } from "@/lib/i18n/translations";
 import {
-  DEMO_BUILDING_LOCATIONS,
-  DEMO_BUILDING_NAME_EN,
-} from "./demo-building";
+  CAPITOL_BUILDING_LOCATIONS,
+  CAPITOL_BUILDING_NAME_EN,
+} from "./capitol-building";
 import { getLocationDisplay } from "./location-display";
 import {
   getLocalizedSetting,
   getResolvedSettings,
   getSetting,
-  getBoolSetting,
 } from "@/features/settings/resolve-settings";
 import type { BuildingLocationData, GuideContext, GuideResponse } from "./types";
 
@@ -69,40 +68,19 @@ function dbLocationToData(row: {
 
 export async function getGuideContext(): Promise<GuideContext> {
   const settings = await getResolvedSettings();
-  const isDemoMode = !getBoolSetting(settings, "building_floor_plan_uploaded");
-  const buildingName = getSetting(settings, "building_name_en", DEMO_BUILDING_NAME_EN);
+  const buildingName = getSetting(settings, "building_name_en", CAPITOL_BUILDING_NAME_EN);
   const demoNotice = getSetting(settings, "building_demo_notice_en");
   const missingLocationMessage = getSetting(settings, "building_missing_location_en");
-
-  if (isDemoMode) {
-    return {
-      isDemoMode: true,
-      buildingName,
-      locations: DEMO_BUILDING_LOCATIONS,
-      demoNotice,
-      missingLocationMessage,
-    };
-  }
 
   const rows = await db.buildingLocation.findMany({
     where: { isActive: true },
     orderBy: [{ floor: "asc" }, { sortOrder: "asc" }],
   });
 
-  if (rows.length === 0) {
-    return {
-      isDemoMode: true,
-      buildingName,
-      locations: DEMO_BUILDING_LOCATIONS,
-      demoNotice,
-      missingLocationMessage,
-    };
-  }
-
   return {
     isDemoMode: false,
     buildingName: rows[0]?.buildingNameEn ?? buildingName,
-    locations: rows.map(dbLocationToData),
+    locations: rows.length > 0 ? rows.map(dbLocationToData) : CAPITOL_BUILDING_LOCATIONS,
     demoNotice,
     missingLocationMessage,
   };
@@ -207,13 +185,13 @@ function buildFoundResponse(
     `Ang ${name} ay matatagpuan sa **${locatedIn}**.`,
     `Ang ${name} naa sa **${locatedIn}**.`
   );
-  if (context.isDemoMode && context.demoNotice) {
+  if (context.demoNotice) {
     message = `${context.demoNotice}\n\n${message}`;
   }
 
   return {
     type: "found",
-    isDemoMode: context.isDemoMode,
+    isDemoMode: false,
     buildingName,
     query,
     message,
@@ -252,24 +230,18 @@ export function askBuildingGuide(
   const missingMessage = context.missingLocationMessage ?? "";
 
   if (!trimmed) {
+    const helpText = pickLang(
+      lang,
+      'Ask me about any room or office — for example: "Where is the Treasurer\'s Office?" or "Where is Room 108?"',
+      'Tanungin kung nasaan ang silid o opisina — halimbawa: "Nasaan ang Treasurer\'s Office?" o "Nasaan ang Room 108?"',
+      'Pangutana asa ang kwarto o opisina — pananglitan: "Asa ang Treasurer\'s Office?" o "Asa ang Room 108?"'
+    );
     return {
       type: "demo_notice",
-      isDemoMode: context.isDemoMode,
+      isDemoMode: false,
       buildingName,
       query: trimmed,
-      message: context.isDemoMode
-        ? `${demoNotice}\n\n${pickLang(
-            lang,
-            'Ask me about any room or facility — for example: "Where is the Registrar\'s Office?" or "How do I get to the Library?"',
-            'Tanungin kung nasaan ang silid o pasilidad — halimbawa: "Nasaan ang Registrar\'s Office?" o "Paano pumunta sa Library?"',
-            'Pangutana asa ang kwarto o pasilidad — pananglitan: "Asa ang Opisina sa Registrar?" o "Unsaon pag-adto sa Library?"'
-          )}`
-        : pickLang(
-            lang,
-            'Ask me about any room or facility in the building. For example: "Where is Room 205?" or "How do I get to the Library?"',
-            'Tanungin tungkol sa anumang silid o pasilidad sa gusali. Halimbawa: "Nasaan ang Room 205?" o "Paano pumunta sa Library?"',
-            'Pangutana bahin sa bisan unsang kwarto o pasilidad sa building. Pananglitan: "Asa ang Room 205?" o "Unsaon pag-adto sa Library?"'
-          ),
+      message: demoNotice ? `${demoNotice}\n\n${helpText}` : helpText,
     };
   }
 
@@ -283,7 +255,7 @@ export function askBuildingGuide(
         ...response,
         type: "emergency",
         message:
-          (context.isDemoMode && demoNotice ? `${demoNotice}\n\n` : "") +
+          (demoNotice ? `${demoNotice}\n\n` : "") +
           pickLang(
             lang,
             "For your safety, please follow official emergency procedures and building announcements.\n\n",
@@ -320,11 +292,11 @@ export function askBuildingGuide(
 
     return {
       type: "restroom",
-      isDemoMode: context.isDemoMode,
+      isDemoMode: false,
       buildingName,
       query: trimmed,
       message:
-        (context.isDemoMode && demoNotice ? `${demoNotice}\n\n` : "") +
+        (demoNotice ? `${demoNotice}\n\n` : "") +
         pickLang(
           lang,
           "Here are the restrooms in the building:\n\n",
@@ -355,11 +327,11 @@ export function askBuildingGuide(
 
     return {
       type: "multiple",
-      isDemoMode: context.isDemoMode,
+      isDemoMode: false,
       buildingName,
       query: trimmed,
       message:
-        (context.isDemoMode && demoNotice ? `${demoNotice}\n\n` : "") +
+        (demoNotice ? `${demoNotice}\n\n` : "") +
         pickLang(
           lang,
           "I found multiple locations that match your search. Which one do you mean?",
@@ -377,9 +349,9 @@ export function askBuildingGuide(
 
   const defaultSuggestions = pickLang(
     lang,
-    ["Registrar's Office", "Library", "Information Desk"],
-    ["Registrar's Office", "Library", "Information Desk"],
-    ["Opisina sa Registrar", "Library", "Information Desk"]
+    ["Treasurer's Office", "Business Permits Office", "Information Desk"],
+    ["Treasurer's Office", "Business Permits Office", "Information Desk"],
+    ["Treasurer's Office", "Business Permits Office", "Information Desk"]
   );
 
   const notFoundSuffix = pickLang(
@@ -389,20 +361,11 @@ export function askBuildingGuide(
     "Palihog bisitaha ang Information Desk para sa dugang tabang, o sulayi pangitaa ang room number o ngalan sa opisina."
   );
 
-  let message = context.isDemoMode
-    ? missingMessage
-    : missingMessage.includes(
-          "If the official building floor plan has not yet been uploaded, the system is using demonstration data for testing purposes."
-        )
-      ? missingMessage.replace(
-          "If the official building floor plan has not yet been uploaded, the system is using demonstration data for testing purposes. Once the official floor plan and directory are available, I will provide accurate navigation based on the real building.",
-          notFoundSuffix
-        )
-      : missingMessage || notFoundSuffix;
+  const message = missingMessage || notFoundSuffix;
 
   return {
     type: "not_found",
-    isDemoMode: context.isDemoMode,
+    isDemoMode: false,
     buildingName,
     query: trimmed,
     message,
@@ -461,7 +424,7 @@ export async function searchBuildingLocations(query: string, lang: Language = "e
       return {
         id: loc.id,
         title: loc.room ? `${name} (Room ${loc.room})` : name,
-        description: `${floor}${context.isDemoMode ? pickLang(lang, " · Demo Building", " · Demo Building", " · Demo Building") : ""}`,
+        description: floor,
         href: `/building-directory?q=${encodeURIComponent(name)}`,
         floor,
       };

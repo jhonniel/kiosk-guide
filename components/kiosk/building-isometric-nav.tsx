@@ -10,6 +10,10 @@ const NAV_BLUE = "#2563eb";
 const NAV_BLUE_BRIGHT = "#3b82f6";
 const NAV_BLUE_GLOW = "#60a5fa";
 const NAV_BLUE_LIGHT = "#bfdbfe";
+const NAV_PINK = "#ec4899";
+const NAV_PINK_BRIGHT = "#f472b6";
+const NAV_PINK_GLOW = "#fbcfe8";
+const NAV_PINK_LIGHT = "#fce7f3";
 const WALL_ISO = "#d1d5db";
 const WALL_TOP_ISO = "#9ca3af";
 const FLOOR_ISO = "#f8fafc";
@@ -38,8 +42,18 @@ const lineMat = {
   polygonOffsetUnits: -4,
 };
 
-function FlatRoutePath({ curve }: { curve: THREE.CatmullRomCurve3 }) {
+function FlatRoutePath({
+  curve,
+  variant = "blue",
+}: {
+  curve: THREE.CatmullRomCurve3;
+  variant?: "blue" | "mall";
+}) {
   const linePoints = useMemo(() => curveToLinePoints(curve), [curve]);
+  const isMall = variant === "mall";
+  const glow = isMall ? NAV_PINK_LIGHT : NAV_BLUE_LIGHT;
+  const core = isMall ? NAV_PINK : NAV_BLUE;
+  const width = isMall ? PATH_WIDTH + 0.14 : PATH_WIDTH;
 
   if (linePoints.length < 2) return null;
 
@@ -47,20 +61,31 @@ function FlatRoutePath({ curve }: { curve: THREE.CatmullRomCurve3 }) {
     <group renderOrder={15}>
       <Line
         points={linePoints}
-        color={NAV_BLUE_LIGHT}
-        lineWidth={PATH_WIDTH + 0.1}
+        color={glow}
+        lineWidth={width + 0.18}
         worldUnits
         transparent
-        opacity={0.65}
+        opacity={isMall ? 0.75 : 0.65}
         {...lineMat}
       />
       <Line
         points={linePoints}
-        color={NAV_BLUE}
-        lineWidth={PATH_WIDTH}
+        color={core}
+        lineWidth={width}
         worldUnits
         {...lineMat}
       />
+      {isMall && (
+        <Line
+          points={linePoints}
+          color="#ffffff"
+          lineWidth={width * 0.35}
+          worldUnits
+          transparent
+          opacity={0.85}
+          {...lineMat}
+        />
+      )}
     </group>
   );
 }
@@ -70,15 +95,21 @@ function NavigationOvalMarker({
   progress,
   progressRef,
   animated,
+  variant = "blue",
 }: {
   curve: THREE.CatmullRomCurve3;
   progress: number;
   progressRef?: RefObject<number>;
   animated: boolean;
+  variant?: "blue" | "mall";
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const glowRef = useRef<THREE.Mesh>(null);
   const innerRef = useRef<THREE.Mesh>(null);
+  const isMall = variant === "mall";
+  const glowColor = isMall ? NAV_PINK_GLOW : NAV_BLUE_GLOW;
+  const coreColor = isMall ? NAV_PINK : NAV_BLUE;
+  const innerColor = isMall ? NAV_PINK_BRIGHT : NAV_BLUE_BRIGHT;
 
   useFrame((state) => {
     if (!groupRef.current) return;
@@ -104,11 +135,11 @@ function NavigationOvalMarker({
     <group ref={groupRef} renderOrder={28}>
       <mesh ref={glowRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
         <circleGeometry args={[0.28, 32]} />
-        <meshBasicMaterial color={NAV_BLUE_GLOW} transparent opacity={0.5} depthWrite={false} />
+        <meshBasicMaterial color={glowColor} transparent opacity={0.5} depthWrite={false} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} scale={[1.65, 1, 1.1]}>
         <circleGeometry args={[0.2, 32]} />
-        <meshBasicMaterial color={NAV_BLUE} depthWrite={false} />
+        <meshBasicMaterial color={coreColor} depthWrite={false} />
       </mesh>
       <mesh
         ref={innerRef}
@@ -117,7 +148,7 @@ function NavigationOvalMarker({
         scale={[1.15, 1, 0.75]}
       >
         <circleGeometry args={[0.11, 24]} />
-        <meshBasicMaterial color={NAV_BLUE_BRIGHT} transparent opacity={0.9} depthWrite={false} />
+        <meshBasicMaterial color={innerColor} transparent opacity={0.9} depthWrite={false} />
       </mesh>
     </group>
   );
@@ -150,12 +181,14 @@ export function IsometricRoom({
   label,
   highlighted,
   onClick,
+  hideLabel = false,
 }: {
   position: [number, number, number];
   size: [number, number, number];
   label: string;
   highlighted?: boolean;
   onClick?: () => void;
+  hideLabel?: boolean;
 }) {
   const [w, h, d] = size;
   const wt = 0.1;
@@ -170,18 +203,20 @@ export function IsometricRoom({
       <IsometricWall position={[-w / 2 + wt / 2, h / 2 + FLOOR_LAYERS.roomFloorY, 0]} size={[wt, h, d]} />
       <IsometricWall position={[w / 2 - wt / 2, h / 2 + FLOOR_LAYERS.roomFloorY, 0]} size={[wt, h, d]} />
       <IsometricWall position={[0, h / 2 + FLOOR_LAYERS.roomFloorY, d / 2 - wt / 2]} size={[w * 0.55, h, wt]} />
-      <Text
-        position={[0, FLOOR_LAYERS.roomFloorY + h + 0.05, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.32}
-        color={highlighted ? "#854d0e" : "#475569"}
-        anchorX="center"
-        anchorY="middle"
-        maxWidth={w}
-        renderOrder={20}
-      >
-        {label}
-      </Text>
+      {!hideLabel && label ? (
+        <Text
+          position={[0, FLOOR_LAYERS.roomFloorY + h + 0.05, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          fontSize={0.32}
+          color={highlighted ? "#854d0e" : "#475569"}
+          anchorX="center"
+          anchorY="middle"
+          maxWidth={w}
+          renderOrder={20}
+        >
+          {label}
+        </Text>
+      ) : null}
       {onClick && (
         <mesh
           position={[0, FLOOR_LAYERS.roomFloorY + 0.04, 0]}
@@ -337,12 +372,14 @@ export function NavigationBluePath({
   progressRef,
   animated,
   showMovingMarker = true,
+  variant = "blue",
 }: {
   points: [number, number, number][];
   progress: number;
   progressRef?: RefObject<number>;
   animated: boolean;
   showMovingMarker?: boolean;
+  variant?: "blue" | "mall";
 }) {
   const curve = useMemo(() => buildRouteCurve(points), [points]);
 
@@ -350,7 +387,7 @@ export function NavigationBluePath({
 
   return (
     <group renderOrder={15}>
-      <FlatRoutePath curve={curve} />
+      <FlatRoutePath curve={curve} variant={variant} />
 
       {showMovingMarker && (
         <NavigationOvalMarker
@@ -358,6 +395,7 @@ export function NavigationBluePath({
           progress={progress}
           progressRef={progressRef}
           animated={animated}
+          variant={variant}
         />
       )}
     </group>

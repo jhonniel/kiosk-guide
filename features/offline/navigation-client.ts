@@ -13,7 +13,7 @@ export function navigateBuildingOffline(
 ): NavigationResponse {
   const graph = data.navigationGraph;
   const context = data.guideContext;
-  const isDemoMode = context.isDemoMode;
+  const isDemoMode = false;
 
   const destination = context.locations.find((l) => l.id === request.toLocationId);
   if (!destination) {

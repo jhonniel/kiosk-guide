@@ -237,7 +237,7 @@ export function calculateRoute(
     estimatedMinutes: Math.max(1, Math.round(path.totalDistance / WALKING_SPEED_M_PER_MIN)),
     voiceInstructions: buildVoiceInstructions(graph, path.nodeIds, destinationName),
     floorChanges,
-    isDemoMode: options.isDemoMode ?? true,
+    isDemoMode: options.isDemoMode ?? false,
     usesGraph: true,
   };
 }
