@@ -39,7 +39,7 @@ async function main() {
   const routes = [
     ...getKioskPrecacheRoutes(data),
     "/kiosk-citizens-charter.json",
-    ...(charter.citizensCharter?.pdfUrl ? [charter.citizensCharter.pdfUrl] : []),
+    "/kiosk-offline-data.json",
   ];
   writeFileSync("public/kiosk-precache-routes.json", JSON.stringify([...new Set(routes)]));
 

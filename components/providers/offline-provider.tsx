@@ -14,7 +14,8 @@ import type { KioskOfflineData } from "@/features/offline/types";
 import { normalizeOfflineData } from "@/features/offline/normalize-offline-data";
 import { loadKioskOfflineData, saveKioskOfflineData } from "@/lib/offline/idb";
 import { syncQueuedFeedback } from "@/lib/offline/feedback-queue";
-import { warmCitizensCharterEdition } from "@/hooks/use-citizens-charter-data";
+import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
+import { isRemoteKioskSync } from "@/lib/kiosk-sync-url";
 
 interface OfflineContextValue {
   isOnline: boolean;
@@ -45,15 +46,22 @@ function exportedAtMs(data: KioskOfflineData) {
 
 const REMOTE_FETCH_TIMEOUT_MS = 8000;
 
-async function fetchJson(url: string, timeoutMs?: number): Promise<unknown | null> {
+async function fetchJson(
+  path: string,
+  options?: { timeoutMs?: number; cache?: RequestCache }
+): Promise<unknown | null> {
   const controller = new AbortController();
+  const timeoutMs = options?.timeoutMs;
   const timer =
     timeoutMs != null
       ? window.setTimeout(() => controller.abort(), timeoutMs)
       : undefined;
 
   try {
-    const res = await fetch(url, { cache: "no-store", signal: controller.signal });
+    const res = await kioskSyncFetch(path, {
+      cache: options?.cache ?? "no-store",
+      signal: controller.signal,
+    });
     if (!res.ok) return null;
     return await res.json();
   } catch {
@@ -64,12 +72,26 @@ async function fetchJson(url: string, timeoutMs?: number): Promise<unknown | nul
 }
 
 async function loadBundledOfflineData(): Promise<KioskOfflineData | null> {
-  const data = await fetchJson(`/kiosk-offline-data.json?t=${Date.now()}`);
-  return isValidOfflineData(data) ? data : null;
+  const remoteBundled = await fetchJson("/kiosk-offline-data.json", { cache: "force-cache" });
+  if (isValidOfflineData(remoteBundled)) return remoteBundled;
+
+  if (isRemoteKioskSync()) {
+    try {
+      const res = await fetch("/kiosk-offline-data.json", { cache: "force-cache" });
+      if (res.ok) {
+        const local = await res.json();
+        if (isValidOfflineData(local)) return local;
+      }
+    } catch {
+      // Use IndexedDB / remote API when local bundled file is unavailable.
+    }
+  }
+
+  return null;
 }
 
 async function fetchRemoteOfflineData(): Promise<KioskOfflineData | null> {
-  const data = await fetchJson("/api/kiosk/offline-data", REMOTE_FETCH_TIMEOUT_MS);
+  const data = await fetchJson("/api/kiosk/offline-data", { timeoutMs: REMOTE_FETCH_TIMEOUT_MS });
   return isValidOfflineData(data) ? data : null;
 }
 
@@ -115,29 +137,22 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
     setLoadError(null);
   }, []);
 
-  const syncOfflineData = useCallback(async () => {
+  const syncLocalOfflineData = useCallback(async () => {
     if (loadingRef.current) return;
     loadingRef.current = true;
     setLoadError(null);
 
     try {
-      const cachedPromise = loadCachedOfflineData();
-      const bundledPromise = loadBundledOfflineData();
-      const remotePromise = navigator.onLine
-        ? fetchRemoteOfflineData()
-        : Promise.resolve(null);
+      const [cached, bundled] = await Promise.all([
+        loadCachedOfflineData(),
+        loadBundledOfflineData(),
+      ]);
 
-      // Paint quickly from local cache when present.
-      const cached = await cachedPromise;
       if (cached) {
         await applyData(cached);
       }
 
-      const [bundled, remote] = await Promise.all([bundledPromise, remotePromise]);
-
-      // Always pick the newest snapshot by exportedAt. Never let a stale HTTP-cached
-      // API payload overwrite a fresher bundled/IndexedDB copy (breaks admin settings).
-      const chosen = pickFreshest([remote, bundled, cached]);
+      const chosen = pickFreshest([bundled, cached]);
 
       if (chosen) {
         await applyData(chosen, true);
@@ -152,6 +167,27 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
       loadingRef.current = false;
     }
   }, [applyData]);
+
+  const syncRemoteOfflineData = useCallback(async () => {
+    if (!navigator.onLine) return;
+
+    try {
+      const remote = await fetchRemoteOfflineData();
+      if (!remote) return;
+
+      const chosen = pickFreshest([remote, dataRef.current]);
+      if (chosen) {
+        await applyData(chosen, true);
+      }
+    } catch {
+      // Keep showing local/bundled data when the remote refresh fails.
+    }
+  }, [applyData]);
+
+  const syncOfflineData = useCallback(async () => {
+    await syncLocalOfflineData();
+    await syncRemoteOfflineData();
+  }, [syncLocalOfflineData, syncRemoteOfflineData]);
 
   useEffect(() => {
     setIsOnline(navigator.onLine);
@@ -169,14 +205,27 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    void syncOfflineData();
-    void warmCitizensCharterEdition();
+    void syncLocalOfflineData();
+
+    const scheduleRemoteSync = () => {
+      void syncRemoteOfflineData();
+    };
+
+    let cancelRemoteSync: () => void;
+    if (typeof window.requestIdleCallback === "function") {
+      const idleId = window.requestIdleCallback(scheduleRemoteSync, { timeout: 4000 });
+      cancelRemoteSync = () => window.cancelIdleCallback(idleId);
+    } else {
+      const remoteSyncTimer = window.setTimeout(scheduleRemoteSync, 2000);
+      cancelRemoteSync = () => window.clearTimeout(remoteSyncTimer);
+    }
 
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      cancelRemoteSync();
     };
-  }, [syncOfflineData]);
+  }, [syncLocalOfflineData, syncRemoteOfflineData, syncOfflineData]);
 
   const value = useMemo(
     () => ({ isOnline, isOfflineReady, offlineData, loadError, syncOfflineData }),

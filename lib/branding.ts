@@ -1,4 +1,4 @@
-import { getSetting } from "@/features/settings/resolve-settings";
+import { getSetting } from "@/features/settings/settings-helpers";
 
 export const DEFAULT_LOGO_URL = "/images/branding/logo.png";
 export const DEFAULT_CARING_CAMIGUIN_LOGO_URL = "/images/branding/caring-camiguin.png?v=2";

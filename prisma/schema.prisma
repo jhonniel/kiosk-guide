@@ -264,6 +264,18 @@ model VisitorLog {
   createdAt DateTime @default(now())
 }
 
+model KioskSessionCapture {
+  id        String   @id @default(cuid())
+  sessionId String
+  page      String
+  language  String?
+  imagePath String
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([createdAt])
+}
+
 model SearchLog {
   id        String   @id @default(cuid())
   query     String

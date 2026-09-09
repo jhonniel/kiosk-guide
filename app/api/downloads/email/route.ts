@@ -21,9 +21,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to send email" },
-      { status: 400 }
-    );
+    const message = error instanceof Error ? error.message : "Failed to send email";
+    if (process.env.NODE_ENV === "development") {
+      console.error("[downloads/email]", message);
+    }
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }

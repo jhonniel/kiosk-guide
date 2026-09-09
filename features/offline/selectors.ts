@@ -82,13 +82,11 @@ export function getServiceBySlug(data: KioskOfflineData, slug: string) {
   return data.services.find((s) => s.slug === slug && s.isActive) ?? null;
 }
 
-export function getKioskPrecacheRoutes(data: KioskOfflineData): string[] {
-  const staticRoutes = [
+export function getKioskPrecacheRoutes(_data: KioskOfflineData): string[] {
+  return [
     "/",
     "/building-directory",
     "/map",
-    "/contact",
-    "/office-hours",
     "/faq",
     "/emergency",
     "/government-directory",
@@ -99,6 +97,4 @@ export function getKioskPrecacheRoutes(data: KioskOfflineData): string[] {
     "/citizens-charter",
     "/feedback",
   ];
-  const serviceRoutes = data.services.filter((s) => s.isActive).map((s) => `/services/${s.slug}`);
-  return [...staticRoutes, ...serviceRoutes];
 }

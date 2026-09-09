@@ -9,6 +9,7 @@ export async function GET() {
   return NextResponse.json(
     {
       autoZoomEnabled: getBoolSetting(settings, "kiosk_auto_zoom_enabled"),
+      cameraTrackingEnabled: getBoolSetting(settings, "kiosk_camera_tracking_enabled"),
     },
     {
       headers: {

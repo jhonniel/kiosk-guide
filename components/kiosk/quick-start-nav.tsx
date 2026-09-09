@@ -15,7 +15,8 @@ import {
 } from "@/features/kiosk/quick-start-catalog";
 import { getKioskSessionId } from "@/features/kiosk/visit-tracking";
 import { useKiosk } from "@/hooks/use-kiosk";
-import { useCitizensCharterEdition } from "@/hooks/use-citizens-charter-data";
+import { useCitizensCharterEditionLazy } from "@/hooks/use-citizens-charter-data";
+import { useShouldLoadCharterForQuickStart } from "@/hooks/use-deferred-charter-quick-start";
 import { useQuickStartVisits } from "@/components/kiosk/quick-start-visit-provider";
 
 interface QuickStartNavProps {
@@ -31,8 +32,9 @@ export function QuickStartNav({
 }: QuickStartNavProps) {
   const router = useRouter();
   const { language: kioskLanguage } = useKiosk();
-  const { edition: charterEdition } = useCitizensCharterEdition();
   const { visitCounts, recordVisit } = useQuickStartVisits();
+  const shouldLoadCharter = useShouldLoadCharterForQuickStart(visitCounts);
+  const { edition: charterEdition } = useCitizensCharterEditionLazy(shouldLoadCharter);
   const lastClickRef = useRef<{ page: string; at: number } | null>(null);
 
   const candidates = useMemo(
@@ -90,7 +92,7 @@ export function QuickStartNav({
           <Link
             key={link.id}
             href={link.href}
-            prefetch
+            prefetch={false}
             onPointerDown={(event) => {
               // Navigate on pointerdown so routing still works when
               // click-to-fullscreen consumes the following click event.

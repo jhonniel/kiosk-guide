@@ -8,7 +8,8 @@ import { Sidebar } from "@/components/kiosk/sidebar";
 import { QuickStartVisitProvider } from "@/components/kiosk/quick-start-visit-provider";
 import { useKiosk } from "@/hooks/use-kiosk";
 import { useKioskOfflineData } from "@/hooks/use-kiosk-offline-data";
-import { getBoolSetting, getNumberSetting, getSetting } from "@/features/settings/resolve-settings";
+import { getBoolSetting, getNumberSetting, getSetting } from "@/features/settings/settings-helpers";
+import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
 
 interface KioskLayoutClientProps {
   children: React.ReactNode;
@@ -35,7 +36,7 @@ function KioskLayoutInner({ children }: KioskLayoutClientProps) {
 
     async function refreshDisplaySettings() {
       try {
-        const res = await fetch(`/api/kiosk/display-settings?t=${Date.now()}`, {
+        const res = await kioskSyncFetch(`/api/kiosk/display-settings?t=${Date.now()}`, {
           cache: "no-store",
         });
         if (!res.ok) return;

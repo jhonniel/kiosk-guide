@@ -8,6 +8,7 @@ import { DownloadDeliveryDialog } from "@/components/kiosk/download-delivery-dia
 import type { DownloadDeliverySettings } from "@/features/downloads/download-settings";
 import type { Download as DownloadModel } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
 
 interface DownloadCenterClientProps {
   downloads: DownloadModel[];
@@ -63,7 +64,7 @@ export function DownloadCenterClient({
 
     async function refreshRankings() {
       try {
-        const response = await fetch("/api/downloads/rankings", { cache: "no-store" });
+        const response = await kioskSyncFetch("/api/downloads/rankings", { cache: "no-store" });
         if (!response.ok) return;
         const latest = (await response.json()) as DownloadModel[];
         if (active) setRankedDownloads(latest);

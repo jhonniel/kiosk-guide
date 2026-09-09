@@ -10,9 +10,11 @@ import {
   loadCitizensCharterOfflineData,
   saveCitizensCharterOfflineData,
 } from "@/lib/offline/idb";
+import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
+import { isRemoteKioskSync } from "@/lib/kiosk-sync-url";
 
 const REMOTE_TIMEOUT_MS = 8000;
-const BUNDLED_CHARTER_URL = "/kiosk-citizens-charter.json";
+const BUNDLED_CHARTER_PATH = "/kiosk-citizens-charter.json";
 
 let memoryEdition: CharterEditionView | null = null;
 let warmPromise: Promise<CharterEditionView | null> | null = null;
@@ -23,12 +25,12 @@ function isValidBundle(data: unknown): data is CitizensCharterOfflineBundle {
   return typeof d.version === "number" && "citizensCharter" in d && Boolean(d.citizensCharter);
 }
 
-async function fetchJson(url: string, timeoutMs?: number): Promise<unknown | null> {
+async function fetchJson(path: string, timeoutMs?: number): Promise<unknown | null> {
   const controller = new AbortController();
   const timer =
     timeoutMs != null ? window.setTimeout(() => controller.abort(), timeoutMs) : undefined;
   try {
-    const res = await fetch(url, { signal: controller.signal });
+    const res = await kioskSyncFetch(path, { signal: controller.signal });
     if (!res.ok) return null;
     return await res.json();
   } catch {
@@ -47,7 +49,25 @@ function rememberEdition(edition: CharterEditionView | null) {
   return edition;
 }
 
-/** Warm charter data as soon as the kiosk boots (sidebar / home). */
+async function fetchBundledCharter(): Promise<CitizensCharterOfflineBundle | null> {
+  const remote = (await fetchJson(BUNDLED_CHARTER_PATH)) as CitizensCharterOfflineBundle | null;
+  if (isValidBundle(remote)) return remote;
+
+  if (isRemoteKioskSync()) {
+    try {
+      const res = await fetch(BUNDLED_CHARTER_PATH, { cache: "force-cache" });
+      if (res.ok) {
+        const local = (await res.json()) as CitizensCharterOfflineBundle | null;
+        if (isValidBundle(local)) return local;
+      }
+    } catch {
+      // Fall through to API / IndexedDB paths.
+    }
+  }
+
+  return null;
+}
+
 export function warmCitizensCharterEdition() {
   if (memoryEdition) return Promise.resolve(memoryEdition);
   if (warmPromise) return warmPromise;
@@ -58,7 +78,7 @@ export function warmCitizensCharterEdition() {
       const fromCache = bundleEdition(cached);
       if (fromCache) return rememberEdition(fromCache);
 
-      const bundled = (await fetchJson(BUNDLED_CHARTER_URL)) as CitizensCharterOfflineBundle | null;
+      const bundled = await fetchBundledCharter();
       const fromBundled = bundleEdition(bundled);
       if (fromBundled && bundled) {
         try {
@@ -80,7 +100,7 @@ export function warmCitizensCharterEdition() {
 
 async function syncCitizensCharterEdition() {
   const cachedPromise = loadCitizensCharterOfflineData<CitizensCharterOfflineBundle>();
-  const bundledPromise = fetchJson(BUNDLED_CHARTER_URL);
+  const bundledPromise = fetchBundledCharter();
   const remotePromise = navigator.onLine
     ? fetchJson("/api/kiosk/citizens-charter", REMOTE_TIMEOUT_MS)
     : Promise.resolve(null);
@@ -165,4 +185,54 @@ export function useCitizensCharterEdition(initialEdition?: CharterEditionView | 
   };
 
   return { edition, isLoading, error, reload };
+}
+
+/** Loads charter data only when needed (e.g. Quick Start after idle). */
+export function useCitizensCharterEditionLazy(
+  enabled: boolean,
+  initialEdition?: CharterEditionView | null
+) {
+  const seed = initialEdition ?? memoryEdition;
+  if (seed && !memoryEdition) memoryEdition = seed;
+
+  const [edition, setEdition] = useState<CharterEditionView | null>(enabled ? seed : null);
+  const [isLoading, setIsLoading] = useState(enabled && !seed);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    let cancelled = false;
+
+    async function run() {
+      if (!seed) {
+        setIsLoading(true);
+        setError(null);
+        const warmed = await warmCitizensCharterEdition();
+        if (cancelled) return;
+        if (warmed) {
+          setEdition(warmed);
+          setIsLoading(false);
+        }
+      }
+
+      const result = await syncCitizensCharterEdition();
+      if (cancelled) return;
+
+      if (result.edition) {
+        setEdition(result.edition);
+        setError(null);
+      } else if (result.error && !memoryEdition) {
+        setError(result.error);
+      }
+      setIsLoading(false);
+    }
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, seed]);
+
+  return { edition, isLoading, error };
 }

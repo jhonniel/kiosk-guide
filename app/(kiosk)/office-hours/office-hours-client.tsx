@@ -3,7 +3,7 @@
 import { Clock } from "lucide-react";
 import { useKiosk } from "@/hooks/use-kiosk";
 import { pickLang } from "@/lib/i18n/translations";
-import { getLocalizedSetting } from "@/features/settings/resolve-settings";
+import { getLocalizedSetting } from "@/features/settings/settings-helpers";
 import { ContentCard } from "@/components/kiosk/content-card";
 
 interface Props {

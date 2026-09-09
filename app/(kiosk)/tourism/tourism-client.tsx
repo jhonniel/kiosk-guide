@@ -6,12 +6,14 @@ import { FlipHorizontal2, MapPin, Palmtree } from "lucide-react";
 import { useKiosk } from "@/hooks/use-kiosk";
 import { localized } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
+import { resolveKioskAssetUrl } from "@/lib/kiosk-sync-url";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { TourismSiteRules } from "@/components/kiosk/tourism-site-rules";
 import type { Tourism } from "@prisma/client";
 
 const CATEGORY_STYLES: Record<string, { label: string; badge: string }> = {
@@ -111,12 +113,14 @@ export function TourismClient({ items }: { items: Tourism[] }) {
               <div className="relative h-36 w-full shrink-0 bg-pink-50 sm:h-44 lg:h-48">
                 {item.imageUrl ? (
                   <Image
-                    src={item.imageUrl}
+                    src={resolveKioskAssetUrl(item.imageUrl)}
                     alt={title}
                     fill
                     sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                     unoptimized
+                    loading="lazy"
+                    decoding="async"
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center">
@@ -196,9 +200,13 @@ export function TourismClient({ items }: { items: Tourism[] }) {
                     </button>
                   </div>
                   <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-4 sm:px-7 sm:py-6">
-                    <DialogDescription className="my-auto text-center text-sm leading-7 text-gray-600 sm:text-[16px] sm:leading-8">
+                    <DialogDescription className="text-center text-sm leading-7 text-gray-600 sm:text-[16px] sm:leading-8">
                       {localized(selected, language, "description")}
                     </DialogDescription>
+                    <TourismSiteRules
+                      language={language}
+                      className="mt-5 shrink-0 border-t border-gray-100 pt-4"
+                    />
                   </div>
                   <div className="flex justify-center border-t border-gray-100 p-4">
                     <button
@@ -215,20 +223,20 @@ export function TourismClient({ items }: { items: Tourism[] }) {
 
                 {/* Back: photo */}
                 <div className="absolute inset-0 overflow-hidden rounded-3xl shadow-2xl [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                  {selected.imageUrl ? (
+                  {selected.imageUrl && showPhoto ? (
                     <Image
-                      src={selected.imageUrl}
+                      src={resolveKioskAssetUrl(selected.imageUrl)}
                       alt={localized(selected, language, "title")}
                       fill
                       sizes="760px"
                       className="object-cover"
                       unoptimized
                     />
-                  ) : (
+                  ) : !selected.imageUrl ? (
                     <div className="flex h-full items-center justify-center bg-pink-50">
                       <Palmtree className="h-16 w-16 text-pink-500" />
                     </div>
-                  )}
+                  ) : null}
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-kiosk-navy/85 via-kiosk-navy/35 to-transparent" />
                   <button
                     type="button"

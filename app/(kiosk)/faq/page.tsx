@@ -1,10 +1,15 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { ModulePageClient } from "@/features/kiosk/module-page-client";
 import { useKioskOfflineData } from "@/hooks/use-kiosk-offline-data";
 import { getSortedFaqs } from "@/features/offline/selectors";
-import { CamiChat } from "@/components/kiosk/cami-chat";
 import { FaqClient } from "./faq-client";
+
+const CamiChat = dynamic(
+  () => import("@/components/kiosk/cami-chat").then((module) => ({ default: module.CamiChat })),
+  { ssr: false }
+);
 
 export default function FaqPage() {
   const data = useKioskOfflineData();

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { getIcon } from "@/utils/icon-map";
 import { KIOSK_COLORS, type CardColor } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { resolveKioskAssetUrl } from "@/lib/kiosk-sync-url";
 import { normalizeVisitPage } from "@/features/kiosk/quick-start";
 import { isQuickStartEligiblePage } from "@/features/kiosk/quick-start-catalog";
 import { useQuickStartVisits } from "@/components/kiosk/quick-start-visit-provider";
@@ -17,9 +18,20 @@ interface ServiceCardProps {
   color: string;
   href: string;
   className?: string;
+  /** When false, defer the icon PNG until near viewport (saves RAM on home grid). */
+  priority?: boolean;
 }
 
-export function ServiceCard({ title, description, icon, iconUrl, color, href, className }: ServiceCardProps) {
+export function ServiceCard({
+  title,
+  description,
+  icon,
+  iconUrl,
+  color,
+  href,
+  className,
+  priority = false,
+}: ServiceCardProps) {
   const Icon = getIcon(icon);
   const colorKey = (color in KIOSK_COLORS.card ? color : "blue") as CardColor;
   const palette = KIOSK_COLORS.card[colorKey];
@@ -35,6 +47,7 @@ export function ServiceCard({ title, description, icon, iconUrl, color, href, cl
   return (
     <Link
       href={href}
+      prefetch={false}
       onPointerDown={(event) => {
         if (event.button !== 0) return;
         onOpen();
@@ -51,12 +64,14 @@ export function ServiceCard({ title, description, icon, iconUrl, color, href, cl
           style={{ boxShadow: `0 8px 20px -6px ${palette.icon}66` }}
         >
           <Image
-            src={iconUrl}
+            src={resolveKioskAssetUrl(iconUrl)}
             alt=""
             width={160}
             height={160}
             className="h-full w-full scale-[1.22] object-cover"
             unoptimized
+            loading={priority ? "eager" : "lazy"}
+            decoding="async"
           />
         </div>
       ) : (

@@ -4,6 +4,7 @@ import {
   listQueuedFeedback,
   removeQueuedFeedback,
 } from "@/lib/offline/idb";
+import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
 
 export async function queueFeedbackEntry(
   data: Omit<QueuedFeedback, "id" | "createdAt">
@@ -24,7 +25,7 @@ export async function syncQueuedFeedback(): Promise<number> {
   let synced = 0;
   for (const item of queue) {
     try {
-      const res = await fetch("/api/kiosk/feedback/sync", {
+      const res = await kioskSyncFetch("/api/kiosk/feedback/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -50,6 +50,7 @@ import { getKioskSessionId } from "@/features/kiosk/visit-tracking";
 import { useQuickStartVisits } from "@/components/kiosk/quick-start-visit-provider";
 import { pickLang, t } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
+import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
 import type {
   CharterEditionView,
   CharterOfficeView,
@@ -495,7 +496,7 @@ function OverviewView({
     event.preventDefault();
     setEmailSending(true);
     try {
-      const res = await fetch("/api/kiosk/citizens-charter/email", {
+      const res = await kioskSyncFetch("/api/kiosk/citizens-charter/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, lang: language }),
@@ -830,9 +831,9 @@ function OverviewView({
                 <p className="max-w-xs text-xs leading-relaxed text-gray-500">
                   {pickLang(
                     language,
-                    `Check your inbox at ${email}`,
-                    `Tingnan ang iyong inbox sa ${email}`,
-                    `Tan-awa ang imong inbox sa ${email}`
+                    `We handed off the PDF to the mail server for ${email}. Delivery can take a few minutes — check Inbox and Spam/Junk.`,
+                    `Naipasa na ang PDF sa mail server para kay ${email}. Maaaring tumagal ng ilang minuto — tingnan ang Inbox at Spam/Junk.`,
+                    `Gipasa na ang PDF sa mail server para kang ${email}. Mahimong molungtad ug pipila ka minuto — tan-awa ang Inbox ug Spam/Junk.`
                   )}
                 </p>
                 <Button
@@ -1526,7 +1527,7 @@ function formatTotalMinutes(totalMinutes: number): string {
 
   const workingDayMinutes = 8 * 60;
   const days = Math.floor(totalMinutes / workingDayMinutes);
-  let rem = Math.round(totalMinutes - days * workingDayMinutes);
+  const rem = Math.round(totalMinutes - days * workingDayMinutes);
   const hours = Math.floor(rem / 60);
   const minutes = rem % 60;
 

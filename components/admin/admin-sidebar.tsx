@@ -23,6 +23,7 @@ import {
   MessageSquare,
   LogOut,
   ScrollText,
+  Camera,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -83,6 +84,12 @@ const navItems: NavItem[] = [
     permission: "manage_homepage_cards",
   },
   { href: "/admin/feedback", label: "Feedback", icon: MessageSquare, permission: "manage_feedback" },
+  {
+    href: "/admin/kiosk-tracking",
+    label: "Kiosk Tracking",
+    icon: Camera,
+    permission: "manage_kiosk_tracking",
+  },
   { href: "/admin/settings", label: "Settings", icon: Settings, permission: "manage_settings" },
   { href: "/admin/users", label: "Users", icon: Users, permission: "manage_users" },
 ];

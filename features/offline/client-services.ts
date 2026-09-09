@@ -1,9 +1,9 @@
 import type { Language } from "@/lib/i18n/translations";
 import { localized } from "@/lib/i18n/translations";
 import type { SearchResult } from "@/features/search/search-service";
-import { resolveBuildingGuideWithContext } from "@/features/building-directory/guide-service";
+import { resolveBuildingGuideWithContext } from "@/features/building-directory/guide-logic";
 import { getLocationDisplay } from "@/features/building-directory/location-display";
-import { getLocalizedSetting } from "@/features/settings/resolve-settings";
+import { getLocalizedSetting } from "@/features/settings/settings-helpers";
 import type { GuideContext, GuideResponse } from "@/features/building-directory/types";
 import type { CharterEditionView } from "@/features/citizens-charter/types";
 import {

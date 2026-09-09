@@ -1,5 +1,9 @@
-import nodemailer from "nodemailer";
-import { getBoolSetting, getNumberSetting, getSetting } from "@/features/settings/resolve-settings";
+import {
+  createSmtpTransporter,
+  formatSmtpFrom,
+  resolveSmtpConfig,
+  resolveSmtpConfigForRecipient,
+} from "@/features/email/smtp-config";
 
 interface SendDownloadEmailInput {
   settings: Record<string, string>;
@@ -12,36 +16,52 @@ interface SendDownloadEmailInput {
 }
 
 export async function sendDownloadEmail(input: SendDownloadEmailInput) {
-  const host = getSetting(input.settings, "smtp_host");
-  const port = getNumberSetting(input.settings, "smtp_port", 587);
-  const user = getSetting(input.settings, "smtp_user");
-  const pass = getSetting(input.settings, "smtp_password");
-  const fromEmail = getSetting(input.settings, "smtp_from_email");
-  const fromName = getSetting(input.settings, "smtp_from_name", "LGU Kiosk");
-  const secure = getBoolSetting(input.settings, "smtp_secure");
-
-  if (!host || !fromEmail) {
+  const smtp = resolveSmtpConfigForRecipient(input.settings, input.to);
+  if (!smtp.configured) {
     throw new Error("SMTP host and from email are required.");
   }
 
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure,
-    auth: user ? { user, pass } : undefined,
-  });
+  const transporter = createSmtpTransporter(smtp);
 
-  await transporter.sendMail({
-    from: fromName ? `"${fromName}" <${fromEmail}>` : fromEmail,
-    to: input.to,
-    subject: input.subject,
-    text: input.body,
-    attachments: [
-      {
-        filename: input.attachmentName,
-        content: input.attachmentBuffer,
-        contentType: input.attachmentContentType,
-      },
-    ],
-  });
+  try {
+    const info = await transporter.sendMail({
+      from: formatSmtpFrom(smtp),
+      to: input.to,
+      subject: input.subject,
+      text: input.body,
+      attachments: [
+        {
+          filename: input.attachmentName,
+          content: input.attachmentBuffer,
+          contentType: input.attachmentContentType,
+        },
+      ],
+    });
+
+    if (process.env.NODE_ENV === "development") {
+      console.info("[smtp] sent", {
+        to: input.to,
+        messageId: info.messageId,
+        response: info.response,
+      });
+    }
+
+    return {
+      messageId: info.messageId,
+      response: info.response,
+    };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "Unknown SMTP error";
+    throw new Error(`Email could not be sent: ${detail}`);
+  }
+}
+
+export async function verifySmtpConnection(settings: Record<string, string>) {
+  const smtp = resolveSmtpConfig(settings);
+  if (!smtp.configured) {
+    throw new Error("SMTP host and from email are required.");
+  }
+  const transporter = createSmtpTransporter(smtp);
+  await transporter.verify();
+  return smtp;
 }

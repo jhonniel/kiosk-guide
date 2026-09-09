@@ -4,7 +4,7 @@ import {
   getLocalizedSetting,
   getNumberSetting,
   getSetting,
-} from "@/features/settings/resolve-settings";
+} from "@/features/settings/settings-helpers";
 
 export interface DownloadDeliverySettings {
   qrEnabled: boolean;

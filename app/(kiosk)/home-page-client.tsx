@@ -35,7 +35,7 @@ export default function HomePage() {
         </div>
 
         <div className="kiosk-home-cards">
-          {cards.map((card) => (
+          {cards.map((card, index) => (
             <ServiceCard
               key={card.id}
               title={localized(card, language, "title")}
@@ -44,6 +44,7 @@ export default function HomePage() {
               iconUrl={card.iconUrl}
               color={card.color}
               href={card.href}
+              priority={index < 4}
             />
           ))}
         </div>

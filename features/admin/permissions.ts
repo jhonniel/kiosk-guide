@@ -107,6 +107,13 @@ export const ADMIN_PERMISSIONS = [
     href: "/admin/feedback",
   },
   {
+    name: "manage_kiosk_tracking",
+    module: "kiosk-tracking",
+    label: "Kiosk User Tracking",
+    description: "View camera captures of recent kiosk visitors",
+    href: "/admin/kiosk-tracking",
+  },
+  {
     name: "manage_settings",
     module: "settings",
     label: "Settings",

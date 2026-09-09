@@ -13,8 +13,9 @@ import {
   rankChunks,
 } from "@/features/cami/retrieve-context";
 import type { CamiChatResponse, CamiMessage } from "@/features/cami/types";
-import { getLocalizedSetting } from "@/features/settings/resolve-settings";
+import { getLocalizedSetting } from "@/features/settings/settings-helpers";
 import type { KioskOfflineData } from "@/features/offline/types";
+import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
 
 type AskCamiOptions = {
   message: string;
@@ -136,7 +137,7 @@ export async function askCami({
   try {
     const online = typeof navigator === "undefined" ? true : navigator.onLine;
     if (online) {
-      const res = await fetch("/api/cami/chat", {
+      const res = await kioskSyncFetch("/api/cami/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

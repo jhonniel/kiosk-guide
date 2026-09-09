@@ -15,6 +15,7 @@ import {
   readLocalVisitCounts,
   recordLocalVisit,
 } from "@/features/kiosk/visit-tracking";
+import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
 
 function mergeCounts(
   ...sources: Array<Record<string, number> | undefined>
@@ -73,7 +74,7 @@ export function QuickStartVisitProvider({
 
   const refreshFromServer = useCallback(async () => {
     try {
-      const response = await fetch("/api/kiosk/quick-start", { cache: "no-store" });
+      const response = await kioskSyncFetch("/api/kiosk/quick-start", { cache: "no-store" });
       if (!response.ok) return;
       const payload = (await response.json()) as {
         pageVisitCounts?: Record<string, number>;

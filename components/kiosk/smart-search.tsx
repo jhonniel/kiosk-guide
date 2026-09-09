@@ -8,10 +8,10 @@ import { useKiosk } from "@/hooks/use-kiosk";
 import { useOffline } from "@/components/providers/offline-provider";
 import { searchAllOffline } from "@/features/offline/client-services";
 import { formatSearchType } from "@/features/search/kiosk-catalog";
-import { askCami } from "@/features/cami/client";
 import type { CamiChatResponse } from "@/features/cami/types";
 import { t, SMART_SEARCH_EXAMPLES } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
+import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
 import { loadCitizensCharterOfflineData } from "@/lib/offline/idb";
 import type { CitizensCharterOfflineBundle } from "@/features/offline/types";
 import type { CharterEditionView } from "@/features/citizens-charter/types";
@@ -144,7 +144,7 @@ export function SmartSearch() {
       }
       if (!navigator.onLine) return;
       try {
-        const res = await fetch("/api/kiosk/citizens-charter", { cache: "force-cache" });
+        const res = await kioskSyncFetch("/api/kiosk/citizens-charter", { cache: "force-cache" });
         if (!res.ok) return;
         const data = (await res.json()) as CitizensCharterOfflineBundle;
         if (!cancelled && data.citizensCharter) setCharterEdition(data.citizensCharter);
@@ -174,7 +174,7 @@ export function SmartSearch() {
       }
 
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&lang=${language}`);
+        const res = await kioskSyncFetch(`/api/search?q=${encodeURIComponent(query)}&lang=${language}`);
         const data = await res.json();
         setResults(data.results ?? []);
         setIsOpen(true);
@@ -189,6 +189,7 @@ export function SmartSearch() {
       setCamiBusy(true);
       setIsOpen(true);
       try {
+        const { askCami } = await import("@/features/cami/client");
         const data = await askCami({
           message: query,
           language,

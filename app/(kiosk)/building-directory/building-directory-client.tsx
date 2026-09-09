@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { BuildingDirectoryComingSoon } from "@/components/kiosk/building-directory-coming-soon";
 import { BUILDING_3D_MAP_ENABLED } from "@/features/building-directory/feature-flags";
 import type { BuildingUiConfig } from "@/features/settings/building-config";
@@ -7,7 +8,14 @@ import type { BuildingLocationData } from "@/features/building-directory/types";
 import type { NavigationGraph } from "@/features/building-directory/navigation/types";
 import type { PublishedIndoorPayload } from "@/features/indoor-map/types";
 import type { Directory } from "@prisma/client";
-import { BuildingDirectoryInteractive } from "./building-directory-interactive";
+
+const BuildingDirectoryInteractive = dynamic(
+  () =>
+    import("./building-directory-interactive").then((module) => ({
+      default: module.BuildingDirectoryInteractive,
+    })),
+  { ssr: false }
+);
 
 interface BuildingDirectoryClientProps {
   directories: Directory[];

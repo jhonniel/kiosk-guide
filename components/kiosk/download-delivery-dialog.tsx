@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useKiosk } from "@/hooks/use-kiosk";
@@ -52,8 +53,34 @@ export function DownloadDeliveryDialog({
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [countdown, setCountdown] = useState("");
   const [email, setEmail] = useState("");
+  const [liveSettings, setLiveSettings] = useState<DownloadDeliverySettings | null>(null);
+
+  const activeSettings = liveSettings ?? settings;
 
   const title = download ? localized(download, language, "title") : "";
+
+  useEffect(() => {
+    if (!open) {
+      setLiveSettings(null);
+      return;
+    }
+
+    let cancelled = false;
+    async function refreshDeliverySettings() {
+      try {
+        const res = await kioskSyncFetch(`/api/downloads/delivery-settings?lang=${language}&t=${Date.now()}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const json = (await res.json()) as DownloadDeliverySettings;
+        if (!cancelled) setLiveSettings(json);
+      } catch {
+        // keep offline/bundle settings
+      }
+    }
+
+    void refreshDeliverySettings();
+  }, [open, language]);
 
   useEffect(() => {
     if (!open) {
@@ -65,19 +92,19 @@ export function DownloadDeliveryDialog({
       return;
     }
 
-    if (initialStep === "qr" && settings.qrEnabled) {
+    if (initialStep === "qr" && activeSettings.qrEnabled) {
       void startQrFlow();
-    } else if (initialStep === "email" && settings.emailEnabled) {
+    } else if (initialStep === "email" && activeSettings.emailEnabled) {
       setStep("email");
-    } else if (!settings.qrEnabled && settings.emailEnabled) {
+    } else if (!activeSettings.qrEnabled && activeSettings.emailEnabled) {
       setStep("email");
-    } else if (settings.qrEnabled && !settings.emailEnabled) {
+    } else if (activeSettings.qrEnabled && !activeSettings.emailEnabled) {
       void startQrFlow();
     } else {
       setStep("choose");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, download?.id, initialStep, settings.qrEnabled, settings.emailEnabled]);
+  }, [open, download?.id, initialStep, activeSettings.qrEnabled, activeSettings.emailEnabled]);
 
   useEffect(() => {
     if (!expiresAt) return;
@@ -110,7 +137,7 @@ export function DownloadDeliveryDialog({
     setQrDataUrl(null);
 
     try {
-      const res = await fetch("/api/downloads/qr", {
+      const res = await kioskSyncFetch("/api/downloads/qr", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ downloadId: download.id, lang: language }),
@@ -141,7 +168,7 @@ export function DownloadDeliveryDialog({
       toast.error(offlineMessage);
       return;
     }
-    if (!settings.smtpConfigured) {
+    if (!activeSettings.smtpConfigured) {
       toast.error(
         pickLang(
           language,
@@ -155,7 +182,7 @@ export function DownloadDeliveryDialog({
 
     setLoading(true);
     try {
-      const res = await fetch("/api/downloads/email", {
+      const res = await kioskSyncFetch("/api/downloads/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ downloadId: download.id, email, lang: language }),
@@ -175,7 +202,7 @@ export function DownloadDeliveryDialog({
       ? pickLang(language, "Download via QR", "I-download via QR", "I-download via QR")
       : step === "email" || step === "email-sent"
         ? pickLang(language, "Send via Email", "Ipadala sa Email", "Ipadala sa Email")
-        : settings.modalTitle;
+        : activeSettings.modalTitle;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -199,7 +226,7 @@ export function DownloadDeliveryDialog({
         <div className="px-6 py-5">
           {step === "choose" && (
             <div className="grid gap-2.5">
-              {settings.qrEnabled && (
+              {activeSettings.qrEnabled && (
                 <button
                   type="button"
                   onClick={() => void startQrFlow()}
@@ -215,15 +242,15 @@ export function DownloadDeliveryDialog({
                     <span className="block text-xs text-gray-500">
                       {pickLang(
                         language,
-                        `Valid for ${settings.qrExpiryMinutes} minutes`,
-                        `May bisa sa loob ng ${settings.qrExpiryMinutes} minuto`,
-                        `Valid sulod sa ${settings.qrExpiryMinutes} minuto`
+                        `Valid for ${activeSettings.qrExpiryMinutes} minutes`,
+                        `May bisa sa loob ng ${activeSettings.qrExpiryMinutes} minuto`,
+                        `Valid sulod sa ${activeSettings.qrExpiryMinutes} minuto`
                       )}
                     </span>
                   </span>
                 </button>
               )}
-              {settings.emailEnabled && (
+              {activeSettings.emailEnabled && (
                 <button
                   type="button"
                   onClick={() => setStep("email")}
@@ -358,9 +385,9 @@ export function DownloadDeliveryDialog({
               <p className="max-w-xs text-xs leading-relaxed text-gray-500">
                 {pickLang(
                   language,
-                  `Check your inbox at ${email}`,
-                  `Tingnan ang iyong inbox sa ${email}`,
-                  `Tan-awa ang imong inbox sa ${email}`
+                  `We handed off your file to the mail server for ${email}. Delivery can take a few minutes — check Inbox and Spam/Junk.`,
+                  `Naipasa na ang file sa mail server para kay ${email}. Maaaring tumagal ng ilang minuto — tingnan ang Inbox at Spam/Junk.`,
+                  `Gipasa na ang file sa mail server para kang ${email}. Mahimong molungtad ug pipila ka minuto — tan-awa ang Inbox ug Spam/Junk.`
                 )}
               </p>
               <Button

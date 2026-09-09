@@ -57,13 +57,27 @@ export function ModulePageClient({
     <div
       className={cn(
         "flex flex-1 flex-col",
-        flush ? "p-0" : "p-4 sm:p-6 lg:p-8",
-        fit && "h-full min-h-0 basis-0 overflow-hidden",
-        fit && !flush && "pb-2"
+        fit && "h-full min-h-0 basis-0 overflow-hidden"
       )}
     >
-      {!hideHeader && <PageHeader title={title} language={language} compact />}
+      {!hideHeader && (
+        <div
+          className={cn(
+            "sticky top-0 z-30 shrink-0",
+            flush ? "" : "px-4 sm:px-6 lg:px-8"
+          )}
+        >
+          <PageHeader title={title} language={language} compact showTitle={hideBanner} />
+        </div>
+      )}
 
+      <div
+        className={cn(
+          "flex min-h-0 flex-1 flex-col",
+          flush ? "p-0" : "px-4 pb-4 pt-0 sm:px-6 sm:pb-6 lg:px-8 lg:pb-8",
+          fit && !flush && "pb-2"
+        )}
+      >
       {!hideBanner && (
         <section
           className={cn(
@@ -97,6 +111,7 @@ export function ModulePageClient({
 
       <div className={cn("flex min-h-0 flex-1 flex-col", fit ? "overflow-hidden" : "overflow-y-auto")}>
         {children}
+      </div>
       </div>
     </div>
   );

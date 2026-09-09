@@ -303,6 +303,13 @@ export const SETTING_GROUPS: SettingGroupDef[] = [
         description:
           "When on, slightly enlarges text on large screens and allows tap-to-enter fullscreen. The kiosk fills the current window. Turn off for default text size and no fullscreen-on-tap.",
       },
+      {
+        key: "kiosk_camera_tracking_enabled",
+        label: "Camera visitor tracking",
+        type: "boolean",
+        description:
+          "When on, the kiosk captures webcam snapshots as visitors navigate (admin-only review under Kiosk Tracking). Requires browser camera permission on the kiosk device.",
+      },
     ],
   },
   {

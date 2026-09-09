@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    optimizePackageImports: ["lucide-react", "framer-motion", "date-fns"],
+  },
 };
 
 export default withSerwist(nextConfig);

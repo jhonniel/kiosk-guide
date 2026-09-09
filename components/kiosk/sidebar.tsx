@@ -1,14 +1,15 @@
-import Image from "next/image";
+"use client";
+
 import type { HomepageCard, Service } from "@prisma/client";
 import { t, type Language } from "@/lib/i18n/translations";
 import {
   resolveBrandingFooterImageUrl,
 } from "@/lib/branding";
 import { KioskBrandLogos } from "@/components/kiosk/kiosk-brand-logos";
-import { getLocalizedSetting } from "@/features/settings/resolve-settings";
+import { getLocalizedSetting } from "@/features/settings/settings-helpers";
 import { QuickStartNav } from "@/components/kiosk/quick-start-nav";
 import { KioskVisitLogger } from "@/components/kiosk/kiosk-visit-logger";
-
+import { SidebarFooterImage } from "@/components/kiosk/sidebar-footer-image";
 interface SidebarProps {
   language: Language;
   homepageCards: HomepageCard[];
@@ -83,14 +84,7 @@ export function Sidebar({
       </div>
 
       <div className="relative h-[140px] shrink-0 overflow-hidden">
-        <Image
-          src={footerImageUrl}
-          alt="Camiguin landscape"
-          fill
-          className="object-cover object-[center_35%]"
-          unoptimized
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-kiosk-navy via-kiosk-navy/55 to-transparent" />
+        <SidebarFooterImage src={footerImageUrl} alt="Camiguin landscape" />        <div className="absolute inset-0 bg-gradient-to-b from-kiosk-navy via-kiosk-navy/55 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/35 to-transparent" />
         <p
           className="absolute right-4 bottom-4 left-4 text-xl leading-[1.15] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]"

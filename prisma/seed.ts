@@ -80,6 +80,7 @@ async function main() {
     { name: "manage_quick_links", module: "quick-links", description: "Manage Quick Start links" },
     { name: "manage_homepage_cards", module: "homepage-cards", description: "Manage homepage cards" },
     { name: "manage_feedback", module: "feedback", description: "View feedback" },
+    { name: "manage_kiosk_tracking", module: "kiosk-tracking", description: "View kiosk visitor camera captures" },
     { name: "manage_settings", module: "settings", description: "Manage settings" },
     { name: "manage_users", module: "users", description: "Manage admin users" },
   ];

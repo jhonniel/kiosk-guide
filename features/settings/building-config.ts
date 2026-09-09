@@ -8,9 +8,8 @@ import {
 } from "@/features/settings/defaults";
 import {
   getLocalizedSetting,
-  getResolvedSettings,
   getSetting,
-} from "@/features/settings/resolve-settings";
+} from "@/features/settings/settings-helpers";
 
 export interface BuildingUiConfig {
   buildingName: string;
@@ -70,11 +69,13 @@ export function buildBuildingUiConfig(
 }
 
 export async function getBuildingUiConfig(lang: Language = "en"): Promise<BuildingUiConfig> {
+  const { getResolvedSettings } = await import("@/features/settings/resolve-settings");
   const settings = await getResolvedSettings();
   return buildBuildingUiConfig(settings, lang);
 }
 
 export async function getBuildingMessages(lang: Language = "en") {
+  const { getResolvedSettings } = await import("@/features/settings/resolve-settings");
   const settings = await getResolvedSettings();
   return {
     demoNotice: getLocalizedSetting(settings, "building_demo_notice", lang),

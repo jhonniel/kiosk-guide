@@ -56,16 +56,13 @@ const serwist = new Serwist({
       }),
     },
     {
-      matcher: ({ url }) =>
-        url.pathname.startsWith("/images/") ||
-        url.pathname.startsWith("/downloads/") ||
-        url.pathname.startsWith("/images/branding/"),
+      matcher: ({ url }) => url.pathname.startsWith("/images/"),
       handler: new CacheFirst({
         cacheName: "kiosk-static-assets",
         plugins: [
           new ExpirationPlugin({
-            maxEntries: 64,
-            maxAgeSeconds: 60 * 60 * 24 * 14,
+            maxEntries: 24,
+            maxAgeSeconds: 60 * 60 * 24 * 7,
           }),
         ],
       }),
@@ -90,8 +87,8 @@ const serwist = new Serwist({
         cacheName: "kiosk-pages",
         plugins: [
           new ExpirationPlugin({
-            maxEntries: 64,
-            maxAgeSeconds: 60 * 60 * 24 * 30,
+            maxEntries: 24,
+            maxAgeSeconds: 60 * 60 * 24 * 14,
           }),
         ],
       }),

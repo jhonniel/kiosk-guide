@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { BottomNav } from "@/components/kiosk/bottom-nav";
-import { DateTimeWidget } from "@/components/kiosk/date-time-widget";
+import { DateTimeWidget, kioskTopBarHeightClass, kioskDateTimeWidthClass } from "@/components/kiosk/date-time-widget";
 import { KioskScenicBackdrop } from "@/components/kiosk/kiosk-scenic-backdrop";
 import { OfflineBanner } from "@/components/kiosk/offline-banner";
 import { KioskTapFeedback } from "@/components/kiosk/kiosk-tap-feedback";
@@ -42,7 +42,13 @@ export function KioskShell({ sidebar, children, autoZoomEnabled = true }: KioskS
             {showScenicBackdrop ? (
               <KioskScenicBackdrop imageUrl={CHARTER_SCENIC_IMAGE} />
             ) : null}
-            <div className="pointer-events-none absolute top-4 right-8 z-40">
+            <div
+              className={cn(
+                "pointer-events-none absolute top-0 right-8 z-40 flex items-center justify-end",
+                kioskTopBarHeightClass,
+                kioskDateTimeWidthClass
+              )}
+            >
               <DateTimeWidget />
             </div>
             <div

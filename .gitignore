@@ -40,8 +40,15 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# kiosk visitor captures (admin-only, not in git)
+/data/kiosk-captures/
+
 # generated PWA / offline assets
 /public/sw.js
 /public/kiosk-offline-data.json
 /public/kiosk-citizens-charter.json
 /public/kiosk-precache-routes.json
+
+# Ubuntu kiosk deploy scripts (local / USB only — do not commit)
+/deploy/kiosk-device/
+.env.kiosk.example
