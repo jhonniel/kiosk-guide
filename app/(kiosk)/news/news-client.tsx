@@ -7,7 +7,6 @@ import { Calendar, ChevronRight, Megaphone, X } from "lucide-react";
 import { useKiosk } from "@/hooks/use-kiosk";
 import { localized, pickLang } from "@/lib/i18n/translations";
 import { resolveKioskAssetUrl } from "@/lib/kiosk-sync-url";
-import { scheduleWhenIdle, shouldLightLoad } from "@/lib/kiosk-performance";
 import { cn } from "@/lib/utils";
 import type { Announcement } from "@prisma/client";
 
@@ -33,13 +32,11 @@ function Thumb({
   item,
   className,
   sizesHint,
-  priority = false,
   fit = "cover",
 }: {
   item: Announcement;
   className?: string;
   sizesHint: string;
-  priority?: boolean;
   fit?: "cover" | "contain";
 }) {
   if (item.imageUrl) {
@@ -51,7 +48,7 @@ function Thumb({
         sizes={sizesHint}
         className={cn(fit === "contain" ? "object-contain p-2" : "object-cover", className)}
         unoptimized
-        loading={priority ? "eager" : "lazy"}
+        loading="eager"
         decoding="async"
       />
     );
@@ -90,7 +87,7 @@ function FeaturedContent({
         onClick={() => onOpen(item)}
         aria-label={`${pickLang(language, "Open", "Buksan", "Ablihi")} ${title}`}
       >
-        <Thumb item={item} sizesHint="(min-width: 1024px) 420px, 100vw" priority fit="contain" />
+        <Thumb item={item} sizesHint="(min-width: 1024px) 420px, 100vw" fit="contain" />
       </button>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3.5 sm:p-5">
         <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -168,23 +165,6 @@ export function NewsClient({ announcements }: { announcements: Announcement[] })
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
-
-  // Preload only the next slide — not every announcement image at once.
-  useEffect(() => {
-    if (announcements.length < 2) return;
-    const next = announcements[(safeIndex + 1) % announcements.length];
-    if (!next?.imageUrl) return;
-
-    const preload = () => {
-      const img = new window.Image();
-      img.src = resolveKioskAssetUrl(next.imageUrl!);
-    };
-
-    if (shouldLightLoad()) {
-      return scheduleWhenIdle(preload, 4000);
-    }
-    preload();
-  }, [announcements, safeIndex]);
 
   useEffect(() => {
     if (announcements.length < 2) return;
@@ -330,7 +310,7 @@ function NewsDetailModal({
       >
         <div className="relative shrink-0 border-b border-gray-100">
           <div className="relative h-[min(28vh,220px)] w-full overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 sm:h-[min(30vh,240px)]">
-            <Thumb item={item} sizesHint="768px" priority fit="contain" />
+            <Thumb item={item} sizesHint="768px" fit="contain" />
           </div>
           <button
             type="button"

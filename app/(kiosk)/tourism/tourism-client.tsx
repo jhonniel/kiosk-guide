@@ -119,7 +119,7 @@ export function TourismClient({ items }: { items: Tourism[] }) {
                     sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                     unoptimized
-                    loading="lazy"
+                    loading="eager"
                     decoding="async"
                   />
                 ) : (

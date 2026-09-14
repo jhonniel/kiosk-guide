@@ -9,7 +9,6 @@ import { KioskTapFeedback } from "@/components/kiosk/kiosk-tap-feedback";
 import { KioskFullscreenGuard } from "@/components/kiosk/kiosk-fullscreen-guard";
 import { CHARTER_SCENIC_IMAGE } from "@/features/citizens-charter/ui-catalog";
 import { useKioskUiScale } from "@/hooks/use-kiosk-ui-scale";
-import { shouldLightLoad } from "@/lib/kiosk-performance";
 import { cn } from "@/lib/utils";
 
 interface KioskShellProps {
@@ -23,7 +22,7 @@ export function KioskShell({ sidebar, children, autoZoomEnabled = true }: KioskS
   const pathname = usePathname();
   const isHome = pathname === "/";
   const isCitizensCharter = pathname.startsWith("/citizens-charter");
-  const showScenicBackdrop = (isHome || isCitizensCharter) && !shouldLightLoad();
+  const showScenicBackdrop = isHome || isCitizensCharter;
   const lockMainScroll = isHome || isCitizensCharter;
   const { viewportStyle, stageStyle } = useKioskUiScale(autoZoomEnabled);
 

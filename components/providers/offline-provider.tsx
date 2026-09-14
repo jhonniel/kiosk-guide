@@ -17,6 +17,7 @@ import { syncQueuedFeedback } from "@/lib/offline/feedback-queue";
 import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
 import { isRemoteKioskSync } from "@/lib/kiosk-sync-url";
 import { scheduleWhenIdle, shouldLightLoad } from "@/lib/kiosk-performance";
+import { preloadKioskOfflineImages } from "@/lib/kiosk-preload-images";
 
 interface OfflineContextValue {
   isOnline: boolean;
@@ -136,6 +137,7 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
     setOfflineData(normalized);
     setIsOfflineReady(true);
     setLoadError(null);
+    preloadKioskOfflineImages(normalized);
   }, []);
 
   const syncLocalOfflineData = useCallback(async () => {
@@ -151,6 +153,7 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
         setOfflineData(normalized);
         setIsOfflineReady(true);
         setLoadError(null);
+        preloadKioskOfflineImages(normalized);
       }
 
       const bundled = await loadBundledOfflineData();

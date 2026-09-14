@@ -15,26 +15,14 @@ export function KioskScenicBackdrop({
   useEffect(() => {
     let cancelled = false;
 
-    const loadFullImage = () => {
-      const img = new window.Image();
-      img.src = assetUrl;
-      img.onload = () => {
-        if (!cancelled) setLoadedUrl(assetUrl);
-      };
+    const img = new window.Image();
+    img.src = assetUrl;
+    img.onload = () => {
+      if (!cancelled) setLoadedUrl(assetUrl);
     };
 
-    if (typeof window.requestIdleCallback === "function") {
-      const idleId = window.requestIdleCallback(loadFullImage, { timeout: 1500 });
-      return () => {
-        cancelled = true;
-        window.cancelIdleCallback(idleId);
-      };
-    }
-
-    const timer = window.setTimeout(loadFullImage, 300);
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
     };
   }, [assetUrl, imageUrl]);
 

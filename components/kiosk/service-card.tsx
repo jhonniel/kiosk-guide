@@ -70,7 +70,7 @@ export function ServiceCard({
             height={160}
             className="h-full w-full scale-[1.22] object-cover"
             unoptimized
-            loading={priority ? "eager" : "lazy"}
+            loading="eager"
             decoding="async"
           />
         </div>

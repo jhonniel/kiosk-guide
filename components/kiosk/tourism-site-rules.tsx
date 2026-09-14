@@ -86,7 +86,7 @@ export function TourismSiteRules({ language, className }: TourismSiteRulesProps)
             width={72}
             height={72}
             className="h-[4.5rem] w-[4.5rem] object-contain sm:h-20 sm:w-20"
-            loading="lazy"
+            loading="eager"
             decoding="async"
           />
           <div className="flex flex-col items-center text-center text-[10px] font-semibold leading-tight text-kiosk-navy sm:text-[11px]">
