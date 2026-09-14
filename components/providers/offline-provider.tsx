@@ -16,6 +16,7 @@ import { loadKioskOfflineData, saveKioskOfflineData } from "@/lib/offline/idb";
 import { syncQueuedFeedback } from "@/lib/offline/feedback-queue";
 import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
 import { isRemoteKioskSync } from "@/lib/kiosk-sync-url";
+import { scheduleWhenIdle, shouldLightLoad } from "@/lib/kiosk-performance";
 
 interface OfflineContextValue {
   isOnline: boolean;
@@ -143,16 +144,17 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
     setLoadError(null);
 
     try {
-      const [cached, bundled] = await Promise.all([
-        loadCachedOfflineData(),
-        loadBundledOfflineData(),
-      ]);
-
-      if (cached) {
-        await applyData(cached);
+      const cached = await loadCachedOfflineData();
+      if (cached && !dataRef.current) {
+        const normalized = normalizeOfflineData(cached);
+        dataRef.current = normalized;
+        setOfflineData(normalized);
+        setIsOfflineReady(true);
+        setLoadError(null);
       }
 
-      const chosen = pickFreshest([bundled, cached]);
+      const bundled = await loadBundledOfflineData();
+      const chosen = pickFreshest([bundled, cached, dataRef.current]);
 
       if (chosen) {
         await applyData(chosen, true);
@@ -207,18 +209,10 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
 
     void syncLocalOfflineData();
 
-    const scheduleRemoteSync = () => {
+    const remoteSyncDelayMs = shouldLightLoad() ? 8000 : 4000;
+    const cancelRemoteSync = scheduleWhenIdle(() => {
       void syncRemoteOfflineData();
-    };
-
-    let cancelRemoteSync: () => void;
-    if (typeof window.requestIdleCallback === "function") {
-      const idleId = window.requestIdleCallback(scheduleRemoteSync, { timeout: 4000 });
-      cancelRemoteSync = () => window.cancelIdleCallback(idleId);
-    } else {
-      const remoteSyncTimer = window.setTimeout(scheduleRemoteSync, 2000);
-      cancelRemoteSync = () => window.clearTimeout(remoteSyncTimer);
-    }
+    }, remoteSyncDelayMs);
 
     return () => {
       window.removeEventListener("online", handleOnline);

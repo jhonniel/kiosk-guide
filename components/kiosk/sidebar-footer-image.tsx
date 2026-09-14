@@ -3,13 +3,16 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { resolveKioskAssetUrl } from "@/lib/kiosk-sync-url";
-import { scheduleWhenIdle } from "@/lib/kiosk-performance";
+import { scheduleWhenIdle, shouldLightLoad } from "@/lib/kiosk-performance";
 
 export function SidebarFooterImage({ src, alt }: { src: string; alt: string }) {
   const imageSrc = resolveKioskAssetUrl(src);
   const [loadImage, setLoadImage] = useState(false);
 
-  useEffect(() => scheduleWhenIdle(() => setLoadImage(true), 3000), []);
+  useEffect(
+    () => scheduleWhenIdle(() => setLoadImage(true), shouldLightLoad() ? 8000 : 3000),
+    []
+  );
 
   return (
     <>

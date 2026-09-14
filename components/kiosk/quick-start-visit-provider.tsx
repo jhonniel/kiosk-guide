@@ -16,6 +16,7 @@ import {
   recordLocalVisit,
 } from "@/features/kiosk/visit-tracking";
 import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
+import { getQuickStartPollMs, scheduleWhenIdle } from "@/lib/kiosk-performance";
 
 function mergeCounts(
   ...sources: Array<Record<string, number> | undefined>
@@ -96,9 +97,15 @@ export function QuickStartVisitProvider({
   }, []);
 
   useEffect(() => {
-    void refreshFromServer();
-    const timer = window.setInterval(() => void refreshFromServer(), 5000);
-    return () => window.clearInterval(timer);
+    const cancelIdle = scheduleWhenIdle(() => {
+      void refreshFromServer();
+    }, 3000);
+    const pollMs = getQuickStartPollMs();
+    const timer = window.setInterval(() => void refreshFromServer(), pollMs);
+    return () => {
+      cancelIdle();
+      window.clearInterval(timer);
+    };
   }, [refreshFromServer]);
 
   const value = useMemo(

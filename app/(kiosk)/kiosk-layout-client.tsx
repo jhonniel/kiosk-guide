@@ -10,6 +10,7 @@ import { useKiosk } from "@/hooks/use-kiosk";
 import { useKioskOfflineData } from "@/hooks/use-kiosk-offline-data";
 import { getBoolSetting, getNumberSetting, getSetting } from "@/features/settings/settings-helpers";
 import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
+import { scheduleWhenIdle } from "@/lib/kiosk-performance";
 
 interface KioskLayoutClientProps {
   children: React.ReactNode;
@@ -49,11 +50,14 @@ function KioskLayoutInner({ children }: KioskLayoutClientProps) {
       }
     }
 
-    void refreshDisplaySettings();
+    const cancelIdle = scheduleWhenIdle(() => {
+      void refreshDisplaySettings();
+    }, 2500);
     const onFocus = () => void refreshDisplaySettings();
     window.addEventListener("focus", onFocus);
     return () => {
       cancelled = true;
+      cancelIdle();
       window.removeEventListener("focus", onFocus);
     };
   }, []);

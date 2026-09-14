@@ -6,6 +6,8 @@ import { format } from "date-fns";
 import { Calendar, ChevronRight, Megaphone, X } from "lucide-react";
 import { useKiosk } from "@/hooks/use-kiosk";
 import { localized, pickLang } from "@/lib/i18n/translations";
+import { resolveKioskAssetUrl } from "@/lib/kiosk-sync-url";
+import { scheduleWhenIdle, shouldLightLoad } from "@/lib/kiosk-performance";
 import { cn } from "@/lib/utils";
 import type { Announcement } from "@prisma/client";
 
@@ -31,20 +33,26 @@ function Thumb({
   item,
   className,
   sizesHint,
+  priority = false,
+  fit = "cover",
 }: {
   item: Announcement;
   className?: string;
   sizesHint: string;
+  priority?: boolean;
+  fit?: "cover" | "contain";
 }) {
   if (item.imageUrl) {
     return (
       <Image
-        src={item.imageUrl}
+        src={resolveKioskAssetUrl(item.imageUrl)}
         alt=""
         fill
         sizes={sizesHint}
-        className={cn("object-cover", className)}
+        className={cn(fit === "contain" ? "object-contain p-2" : "object-cover", className)}
         unoptimized
+        loading={priority ? "eager" : "lazy"}
+        decoding="async"
       />
     );
   }
@@ -78,30 +86,29 @@ function FeaturedContent({
     <div className={cn("col-start-1 row-start-1 flex min-h-0 flex-col", className)}>
       <button
         type="button"
-        className="relative aspect-[16/10] w-full shrink-0 overflow-hidden text-left sm:aspect-[16/9]"
+        className="relative h-[min(22vh,180px)] w-full shrink-0 overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 text-left sm:h-[min(24vh,200px)]"
         onClick={() => onOpen(item)}
         aria-label={`${pickLang(language, "Open", "Buksan", "Ablihi")} ${title}`}
       >
-        <Thumb item={item} sizesHint="(min-width: 1024px) 45vw, 100vw" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
-        <div className="absolute right-3 bottom-3 left-3 sm:right-4 sm:bottom-4 sm:left-4">
+        <Thumb item={item} sizesHint="(min-width: 1024px) 420px, 100vw" priority fit="contain" />
+      </button>
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3.5 sm:p-5">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
           <span
             className={cn(
-              "inline-block rounded-md px-2.5 py-1 text-[10px] font-bold tracking-wider text-white",
+              "inline-block rounded-md px-2 py-0.5 text-[9px] font-bold tracking-wider text-white",
               categoryBadgeClass(item.category)
             )}
           >
             {categoryLabel(item.category)}
           </span>
-          <h3 className="mt-2 line-clamp-2 text-lg leading-snug font-bold text-white sm:text-xl lg:text-2xl">{title}</h3>
-          <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-white/90">
-            <Calendar className="h-3.5 w-3.5" />
+          <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-500">
+            <Calendar className="h-3 w-3" />
             {format(new Date(item.publishedAt), "MMMM d, yyyy")}
           </p>
         </div>
-      </button>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3.5 sm:p-5">
-        <p className="line-clamp-3 text-sm leading-relaxed text-gray-700">{content}</p>
+        <h3 className="line-clamp-2 text-base leading-snug font-bold text-kiosk-green sm:text-lg">{title}</h3>
+        <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-gray-700">{content}</p>
         <button
           type="button"
           onClick={() => onOpen(item)}
@@ -162,15 +169,22 @@ export function NewsClient({ announcements }: { announcements: Announcement[] })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
-  // Warm the browser cache so crossfades never reveal a half-loaded image
+  // Preload only the next slide — not every announcement image at once.
   useEffect(() => {
-    for (const item of announcements) {
-      if (item.imageUrl) {
-        const img = new window.Image();
-        img.src = item.imageUrl;
-      }
+    if (announcements.length < 2) return;
+    const next = announcements[(safeIndex + 1) % announcements.length];
+    if (!next?.imageUrl) return;
+
+    const preload = () => {
+      const img = new window.Image();
+      img.src = resolveKioskAssetUrl(next.imageUrl!);
+    };
+
+    if (shouldLightLoad()) {
+      return scheduleWhenIdle(preload, 4000);
     }
-  }, [announcements]);
+    preload();
+  }, [announcements, safeIndex]);
 
   useEffect(() => {
     if (announcements.length < 2) return;
@@ -314,9 +328,10 @@ function NewsDetailModal({
         )}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="relative aspect-[16/7] min-h-36 w-full shrink-0 overflow-hidden sm:min-h-44 lg:min-h-52">
-          <Thumb item={item} sizesHint="896px" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10" />
+        <div className="relative shrink-0 border-b border-gray-100">
+          <div className="relative h-[min(28vh,220px)] w-full overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 sm:h-[min(30vh,240px)]">
+            <Thumb item={item} sizesHint="768px" priority fit="contain" />
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -325,7 +340,9 @@ function NewsDetailModal({
           >
             <X className="h-5 w-5" />
           </button>
-          <div className="absolute right-5 bottom-5 left-5 sm:right-7 sm:bottom-7 sm:left-7">
+        </div>
+        <div className="overflow-y-auto p-5 sm:p-7">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
             <span
               className={cn(
                 "inline-block rounded-md px-2.5 py-1 text-[10px] font-bold tracking-wider text-white",
@@ -334,20 +351,18 @@ function NewsDetailModal({
             >
               {categoryLabel(item.category)}
             </span>
-            <h2
-              id="news-detail-title"
-              className="mt-2 max-w-3xl line-clamp-3 text-lg leading-tight font-bold text-white sm:text-xl lg:text-3xl"
-            >
-              {title}
-            </h2>
-            <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-white/90">
+            <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
               <Calendar className="h-3.5 w-3.5" />
               {format(new Date(item.publishedAt), "MMMM d, yyyy")}
             </p>
           </div>
-        </div>
-        <div className="overflow-y-auto p-5 sm:p-7">
-          <p className="whitespace-pre-line text-base leading-8 text-gray-700">{content}</p>
+          <h2
+            id="news-detail-title"
+            className="max-w-3xl text-xl leading-tight font-bold text-kiosk-green sm:text-2xl"
+          >
+            {title}
+          </h2>
+          <p className="mt-5 whitespace-pre-line text-base leading-8 text-gray-700">{content}</p>
         </div>
       </article>
     </div>

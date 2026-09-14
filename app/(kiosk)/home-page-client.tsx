@@ -1,17 +1,19 @@
 "use client";
 
-import { SmartSearch } from "@/components/kiosk/smart-search";
+import { SmartSearchLazy } from "@/components/kiosk/smart-search-lazy";
 import { ServiceCard } from "@/components/kiosk/service-card";
 import { QuickAccess } from "@/components/kiosk/quick-access";
 import { PageHeader } from "@/components/kiosk/page-header";
 import { useKiosk } from "@/hooks/use-kiosk";
 import { useKioskOfflineData } from "@/hooks/use-kiosk-offline-data";
+import { shouldLightLoad } from "@/lib/kiosk-performance";
 import { t, localized } from "@/lib/i18n/translations";
 
 export default function HomePage() {
   const { language } = useKiosk();
   const data = useKioskOfflineData();
   const cards = data.homepageCards;
+  const lightLoad = shouldLightLoad();
 
   return (
     <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
@@ -31,7 +33,7 @@ export default function HomePage() {
         </div>
 
         <div className="mb-3 shrink-0">
-          <SmartSearch />
+          <SmartSearchLazy />
         </div>
 
         <div className="kiosk-home-cards">
@@ -44,7 +46,7 @@ export default function HomePage() {
               iconUrl={card.iconUrl}
               color={card.color}
               href={card.href}
-              priority={index < 4}
+              priority={!lightLoad && index < 4}
             />
           ))}
         </div>

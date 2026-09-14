@@ -8,6 +8,7 @@ import { isQuickStartEligiblePage } from "@/features/kiosk/quick-start-catalog";
 import { normalizeVisitPage } from "@/features/kiosk/quick-start";
 import { getKioskSessionId } from "@/features/kiosk/visit-tracking";
 import { useQuickStartVisits } from "@/components/kiosk/quick-start-visit-provider";
+import { scheduleWhenIdle } from "@/lib/kiosk-performance";
 
 let lastPageLogged: string | null = null;
 let lastLoggedAt = 0;
@@ -31,7 +32,11 @@ export function KioskVisitLogger() {
       recordVisit(page);
     }
 
-    void logVisitor(page, language, getKioskSessionId()).catch(() => undefined);
+    const cancelIdle = scheduleWhenIdle(() => {
+      void logVisitor(page, language, getKioskSessionId()).catch(() => undefined);
+    }, 2000);
+
+    return cancelIdle;
   }, [pathname, language, recordVisit]);
 
   return null;
