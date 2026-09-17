@@ -13,6 +13,7 @@
     "build:next": "next build",
     "build:server": "prisma generate && next build",
     "offline:generate": "tsx scripts/generate-offline-data.ts",
+    "assets:normalize": "tsx scripts/normalize-asset-urls.ts",
     "start": "next start -H 0.0.0.0 -p 3000",
     "start:server": "npm run offline:generate && next start -H 0.0.0.0 -p 3000",
     "lint": "eslint",

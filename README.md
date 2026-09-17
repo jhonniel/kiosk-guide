@@ -149,6 +149,7 @@ Change the password after first login in production.
 | `npm run start` | Run production server on `0.0.0.0:3000` |
 | `npm run start:server` | Regenerate offline JSON, then start production server |
 | `npm run offline:generate` | Export kiosk offline JSON from PostgreSQL |
+| `npm run assets:normalize` | Rewrite Spaces URLs in DB to local `/public` paths |
 | `npm run db:migrate` | Apply migrations (local dev, interactive) |
 | `npm run db:deploy` | Apply migrations (production / CI) |
 | `npm run db:seed` | Seed sample data and default admin |
@@ -576,6 +577,44 @@ Ensure **Download email enabled** is on in Admin → Settings → Downloads.
 **Gmail:** use an [App Password](https://support.google.com/accounts/answer/185833). Host `smtp.gmail.com`, port `587`, `SMTP_SECURE=false`.
 
 **Port 465 (SSL):** set `SMTP_PORT=465` and `SMTP_SECURE=true`.
+
+---
+
+## Static assets (images, PDFs, videos)
+
+All kiosk images and downloads live in **`public/`** and are tracked in Git (73+ image files, 23 PDFs, promo videos).
+
+| Folder | Contents |
+|--------|----------|
+| `public/images/home-icons/` | Home screen service icons |
+| `public/images/tourism/` | Tourism attraction photos |
+| `public/images/news/` | News announcement images |
+| `public/images/branding/` | Logo, Caring Camiguin, sidebar footer |
+| `public/images/cami/` | Cami assistant mascot assets |
+| `public/downloads/` | Download Center PDF forms |
+| `public/videos/promo/` | Idle attract promo videos |
+
+After `git pull` on production, files are included automatically — **no separate image upload needed**.
+
+### Broken images on production
+
+If images work locally but break on production, the database often still points to **DigitalOcean Spaces URLs** from admin uploads on your dev PC. Fix:
+
+```bash
+git pull origin dev
+npm ci
+npm run assets:normalize    # rewrites Spaces URLs → local /images/ or /downloads/ paths
+npm run offline:generate
+npm run build
+pm2 restart kiosk-guide    # or npm run start
+```
+
+Or re-seed (resets content to defaults — use only on a fresh server):
+
+```bash
+npm run db:seed
+npm run offline:generate
+```
 
 ---
 
