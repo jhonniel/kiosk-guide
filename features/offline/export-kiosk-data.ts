@@ -19,6 +19,10 @@ import {
   getSystemVisitCounts,
 } from "@/features/kiosk/get-dynamic-quick-start";
 import {
+  normalizeKioskAssetPath,
+  normalizeKioskSettings,
+} from "@/lib/local-asset-url";
+import {
   KIOSK_OFFLINE_DATA_VERSION,
   type CitizensCharterOfflineBundle,
   type KioskOfflineData,
@@ -118,14 +122,20 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
       }
     : guideContext;
 
+  const normalizedSettings = normalizeKioskSettings(settings);
+  const normalizedHomepageCards = homepageCards.map((card) => ({
+    ...card,
+    iconUrl: normalizeKioskAssetPath(card.iconUrl, { slug: card.slug }),
+  }));
+
   return {
     version: KIOSK_OFFLINE_DATA_VERSION,
     exportedAt: new Date().toISOString(),
-    settings,
+    settings: normalizedSettings,
     quickLinks,
     pageVisitCounts,
     serviceVisitCounts: pageVisitCounts,
-    homepageCards,
+    homepageCards: normalizedHomepageCards,
     services,
     directories,
     downloads,

@@ -1,13 +1,21 @@
 import { buildBuildingUiConfig } from "@/features/settings/building-config";
 import { SETTING_DEFAULTS } from "@/features/settings/defaults";
+import {
+  normalizeKioskAssetPath,
+  normalizeKioskSettings,
+} from "@/lib/local-asset-url";
 import { normalizeBuildingDirectoryOffline } from "./normalize-building-directory";
 import { KIOSK_OFFLINE_DATA_VERSION, type KioskOfflineData } from "./types";
 
 export function normalizeOfflineData(data: KioskOfflineData): KioskOfflineData {
   // Fill missing keys from defaults, but never overwrite explicit saved values
   // (important for booleans like kiosk_auto_zoom_enabled = "false").
-  const settings = { ...SETTING_DEFAULTS, ...(data.settings ?? {}) };
-  const buildingDirectory = normalizeBuildingDirectoryOffline({ ...data, settings });
+  const settings = normalizeKioskSettings({ ...SETTING_DEFAULTS, ...(data.settings ?? {}) });
+  const homepageCards = (data.homepageCards ?? []).map((card) => ({
+    ...card,
+    iconUrl: normalizeKioskAssetPath(card.iconUrl, { slug: card.slug }),
+  }));
+  const buildingDirectory = normalizeBuildingDirectoryOffline({ ...data, settings, homepageCards });
   const mergedSettings = buildingDirectory.settings;
   const uiConfigBis =
     buildingDirectory.uiConfigBis ?? buildBuildingUiConfig(mergedSettings, "bis");
@@ -16,6 +24,7 @@ export function normalizeOfflineData(data: KioskOfflineData): KioskOfflineData {
     ...data,
     ...buildingDirectory,
     version: KIOSK_OFFLINE_DATA_VERSION,
+    homepageCards,
     settings: mergedSettings,
     downloads: data.downloads.map((download) => ({
       ...download,

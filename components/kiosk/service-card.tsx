@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { getIcon } from "@/utils/icon-map";
@@ -32,10 +33,16 @@ export function ServiceCard({
   className,
   priority = false,
 }: ServiceCardProps) {
+  const [imageFailed, setImageFailed] = useState(false);
   const Icon = getIcon(icon);
   const colorKey = (color in KIOSK_COLORS.card ? color : "blue") as CardColor;
   const palette = KIOSK_COLORS.card[colorKey];
   const { recordVisit } = useQuickStartVisits();
+  const showImage = Boolean(iconUrl) && !imageFailed;
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [iconUrl]);
 
   const onOpen = () => {
     const page = normalizeVisitPage(href);
@@ -58,13 +65,13 @@ export function ServiceCard({
         className
       )}
     >
-      {iconUrl ? (
+      {showImage ? (
         <div
           className="aspect-square w-[clamp(3.25rem,52%,6.25rem)] shrink-0 overflow-hidden rounded-full transition-transform duration-200 group-hover:scale-105"
           style={{ boxShadow: `0 8px 20px -6px ${palette.icon}66` }}
         >
           <Image
-            src={resolveKioskAssetUrl(iconUrl)}
+            src={resolveKioskAssetUrl(iconUrl!)}
             alt=""
             width={160}
             height={160}
@@ -72,6 +79,7 @@ export function ServiceCard({
             unoptimized
             loading="eager"
             decoding="async"
+            onError={() => setImageFailed(true)}
           />
         </div>
       ) : (
