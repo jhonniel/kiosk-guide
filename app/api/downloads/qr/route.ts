@@ -21,7 +21,8 @@ export async function POST(request: NextRequest) {
 
     const link = await createQrDownloadLink(
       parsed.data.downloadId,
-      getRequestOrigin(request)
+      getRequestOrigin(request),
+      parsed.data.publicOrigin
     );
 
     return NextResponse.json({

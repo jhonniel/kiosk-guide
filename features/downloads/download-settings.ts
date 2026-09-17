@@ -40,9 +40,10 @@ export function buildDownloadDeliverySettings(
 
 export function interpolateDownloadTemplate(
   template: string,
-  vars: { title: string; fileName: string }
+  vars: { title: string; fileName: string; downloadUrl?: string }
 ) {
   return template
     .replaceAll("{{title}}", vars.title)
-    .replaceAll("{{fileName}}", vars.fileName);
+    .replaceAll("{{fileName}}", vars.fileName)
+    .replaceAll("{{downloadUrl}}", vars.downloadUrl ?? "");
 }

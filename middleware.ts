@@ -7,6 +7,7 @@ const KIOSK_SYNC_PATHS = [
   "/api/cami/",
   "/api/search",
   "/api/downloads/",
+  "/api/citizens-charter/pdf",
   "/kiosk-offline-data.json",
   "/kiosk-citizens-charter.json",
 ];
@@ -40,6 +41,7 @@ export const config = {
     "/api/cami/:path*",
     "/api/search",
     "/api/downloads/:path*",
+    "/api/citizens-charter/pdf",
     "/kiosk-offline-data.json",
     "/kiosk-citizens-charter.json",
   ],

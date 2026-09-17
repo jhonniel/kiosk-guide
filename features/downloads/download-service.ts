@@ -8,7 +8,8 @@ import {
   assertDownloadFileAvailable,
   resolveDownloadFileContent,
 } from "@/features/downloads/file-resolver";
-import { getBoolSetting, getNumberSetting, getResolvedSettings, getSetting } from "@/features/settings/resolve-settings";
+import { getBoolSetting, getNumberSetting, getResolvedSettings } from "@/features/settings/resolve-settings";
+import { buildPublicAppUrl, resolvePublicAppBaseUrl } from "@/lib/public-app-url";
 import { localized } from "@/lib/i18n/translations";
 import type { Language } from "@/lib/i18n/translations";
 import type { Download } from "@prisma/client";
@@ -17,15 +18,18 @@ function generateToken(): string {
   return createHash("sha256").update(randomBytes(32)).digest("hex").slice(0, 48);
 }
 
-export function resolvePublicBaseUrl(settings: Record<string, string>, requestOrigin?: string) {
-  const configured = getSetting(settings, "download_public_base_url").trim();
-  if (configured) return configured.replace(/\/$/, "");
-  return requestOrigin?.replace(/\/$/, "") ?? "";
+export function resolvePublicBaseUrl(
+  settings: Record<string, string>,
+  requestOrigin?: string,
+  clientOrigin?: string
+) {
+  return resolvePublicAppBaseUrl({ settings, requestOrigin, clientOrigin });
 }
 
 export async function createQrDownloadLink(
   downloadId: string,
-  requestOrigin?: string
+  requestOrigin?: string,
+  clientOrigin?: string
 ): Promise<{ token: string; url: string; expiresAt: Date }> {
   const settings = await getResolvedSettings();
   if (!getBoolSetting(settings, "download_qr_enabled")) {
@@ -45,8 +49,12 @@ export async function createQrDownloadLink(
   );
   const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
   const token = generateToken();
-  const baseUrl = resolvePublicBaseUrl(settings, requestOrigin);
-  if (!baseUrl) throw new Error("Public kiosk URL is not configured.");
+  const baseUrl = resolvePublicBaseUrl(settings, requestOrigin, clientOrigin);
+  if (!baseUrl) {
+    throw new Error(
+      "Public kiosk URL is not configured. Set Admin → Downloads → Public kiosk base URL or AUTH_URL in .env."
+    );
+  }
 
   await db.$transaction(async (tx) => {
     const createdToken = await tx.downloadToken.create({
@@ -69,7 +77,7 @@ export async function createQrDownloadLink(
 
   return {
     token,
-    url: `${baseUrl}/api/downloads/file/${token}`,
+    url: buildPublicAppUrl(baseUrl, `/api/downloads/file/${token}`),
     expiresAt,
   };
 }
@@ -111,7 +119,9 @@ export async function validateDownloadToken(token: string) {
 export async function sendDownloadByEmail(
   downloadId: string,
   email: string,
-  lang: Language = "en"
+  lang: Language = "en",
+  requestOrigin?: string,
+  clientOrigin?: string
 ) {
   const settings = await getResolvedSettings();
   if (!getBoolSetting(settings, "download_email_enabled")) {
@@ -130,8 +140,28 @@ export async function sendDownloadByEmail(
     throw new Error("SMTP is not configured. Please contact the administrator.");
   }
 
+  const expiryMinutes = Math.max(
+    5,
+    getNumberSetting(settings, "download_qr_expiry_minutes", 60)
+  );
+  const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
+  const token = generateToken();
+  const baseUrl = resolvePublicBaseUrl(settings, requestOrigin, clientOrigin);
+  const downloadUrl = baseUrl
+    ? buildPublicAppUrl(baseUrl, `/api/downloads/file/${token}`)
+    : "";
+
   const { sendDownloadEmail } = await import("@/features/downloads/email-service");
   const title = localized(download, lang, "title");
+
+  let body = interpolateDownloadTemplate(delivery.emailBody, {
+    title,
+    fileName: download.fileName,
+    downloadUrl,
+  });
+  if (downloadUrl && !delivery.emailBody.includes("{{downloadUrl}}")) {
+    body += `\n\nDownload link (valid ${expiryMinutes} minutes):\n${downloadUrl}`;
+  }
 
   await sendDownloadEmail({
     settings,
@@ -139,29 +169,22 @@ export async function sendDownloadByEmail(
     subject: interpolateDownloadTemplate(delivery.emailSubject, {
       title,
       fileName: download.fileName,
+      downloadUrl,
     }),
-    body: interpolateDownloadTemplate(delivery.emailBody, {
-      title,
-      fileName: download.fileName,
-    }),
+    body,
     attachmentBuffer: file.buffer,
     attachmentName: download.fileName,
     attachmentContentType: file.contentType,
   });
 
-  const expiryMinutes = Math.max(
-    5,
-    getNumberSetting(settings, "download_qr_expiry_minutes", 60)
-  );
-
   await db.$transaction(async (tx) => {
-    const token = await tx.downloadToken.create({
+    const createdToken = await tx.downloadToken.create({
       data: {
-        token: generateToken(),
+        token,
         downloadId: download.id,
         method: "email",
         recipientEmail: email,
-        expiresAt: new Date(Date.now() + expiryMinutes * 60 * 1000),
+        expiresAt,
       },
     });
 
@@ -173,7 +196,7 @@ export async function sendDownloadByEmail(
     await tx.downloadActivity.create({
       data: {
         downloadId: download.id,
-        tokenId: token.id,
+        tokenId: createdToken.id,
         type: "EMAIL_SENT",
         recipientEmail: email,
       },

@@ -32,17 +32,20 @@ export const searchSchema = z.object({
 export const downloadQrRequestSchema = z.object({
   downloadId: z.string().min(1),
   lang: languageSchema.default("en"),
+  publicOrigin: z.string().url().optional(),
 });
 
 export const downloadEmailRequestSchema = z.object({
   downloadId: z.string().min(1),
   email: z.string().email("Please enter a valid email address"),
   lang: languageSchema.default("en"),
+  publicOrigin: z.string().url().optional(),
 });
 
 export const charterPdfEmailRequestSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   lang: languageSchema.default("en"),
+  publicOrigin: z.string().url().optional(),
 });
 
 export type FeedbackInput = z.infer<typeof feedbackSchema>;

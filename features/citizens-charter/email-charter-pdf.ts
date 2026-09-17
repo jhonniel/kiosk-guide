@@ -6,8 +6,14 @@ import { assertDownloadFileAvailable } from "@/features/downloads/file-resolver"
 import { getBoolSetting, getResolvedSettings } from "@/features/settings/resolve-settings";
 import type { Language } from "@/lib/i18n/translations";
 import { db } from "@/lib/db";
+import { buildPublicAppUrl, resolvePublicAppBaseUrl } from "@/lib/public-app-url";
 
-export async function sendCharterPdfByEmail(email: string, lang: Language = "en") {
+export async function sendCharterPdfByEmail(
+  email: string,
+  lang: Language = "en",
+  requestOrigin?: string,
+  clientOrigin?: string
+) {
   const settings = await getResolvedSettings();
   if (!getBoolSetting(settings, "download_email_enabled")) {
     throw new Error("Email delivery is disabled.");
@@ -46,7 +52,21 @@ export async function sendCharterPdfByEmail(email: string, lang: Language = "en"
     `${edition.title || "Citizens' Charter"} ${edition.year}` +
     (edition.editionLabel ? ` (${edition.editionLabel})` : "");
 
+  const baseUrl = resolvePublicAppBaseUrl({ settings, requestOrigin, clientOrigin });
+  const downloadUrl = baseUrl
+    ? buildPublicAppUrl(baseUrl, "/api/citizens-charter/pdf")
+    : "";
+
   const { sendDownloadEmail } = await import("@/features/downloads/email-service");
+
+  let body = interpolateDownloadTemplate(delivery.emailBody, {
+    title,
+    fileName,
+    downloadUrl,
+  });
+  if (downloadUrl && !delivery.emailBody.includes("{{downloadUrl}}")) {
+    body += `\n\nView or download online:\n${downloadUrl}`;
+  }
 
   await sendDownloadEmail({
     settings,
@@ -54,11 +74,9 @@ export async function sendCharterPdfByEmail(email: string, lang: Language = "en"
     subject: interpolateDownloadTemplate(delivery.emailSubject, {
       title,
       fileName,
+      downloadUrl,
     }),
-    body: interpolateDownloadTemplate(delivery.emailBody, {
-      title,
-      fileName,
-    }),
+    body,
     attachmentBuffer: file.buffer,
     attachmentName: file.fileName,
     attachmentContentType: file.contentType,

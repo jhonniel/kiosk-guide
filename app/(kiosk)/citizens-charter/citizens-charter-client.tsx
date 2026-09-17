@@ -51,6 +51,7 @@ import { useQuickStartVisits } from "@/components/kiosk/quick-start-visit-provid
 import { pickLang, t } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
 import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
+import { getKioskPublicOrigin, resolveKioskPublicFileUrl } from "@/lib/kiosk-sync-url";
 import type {
   CharterEditionView,
   CharterOfficeView,
@@ -110,23 +111,22 @@ function serviceMatches(service: CharterServiceView, query: string) {
   );
 }
 
-function absolutePdfUrl(pdfUrl: string) {
-  if (!pdfUrl) return "";
-  if (/^https?:\/\//i.test(pdfUrl)) return pdfUrl;
-  if (typeof window === "undefined") return pdfUrl;
-  return new URL(pdfUrl, window.location.origin).toString();
+const CHARTER_PDF_PUBLIC_PATH = "/api/citizens-charter/pdf";
+
+function charterPdfPublicUrl() {
+  return resolveKioskPublicFileUrl(CHARTER_PDF_PUBLIC_PATH);
 }
 
-function usePdfQr(pdfUrl?: string | null) {
+function usePdfQr(pdfAvailable?: boolean | null) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!pdfUrl) {
+    if (!pdfAvailable) {
       setQrDataUrl(null);
       return;
     }
     let cancelled = false;
-    void QRCode.toDataURL(absolutePdfUrl(pdfUrl), {
+    void QRCode.toDataURL(charterPdfPublicUrl(), {
       width: 220,
       margin: 1,
       color: { dark: "#111827", light: "#ffffff" },
@@ -140,7 +140,7 @@ function usePdfQr(pdfUrl?: string | null) {
     return () => {
       cancelled = true;
     };
-  }, [pdfUrl]);
+  }, [pdfAvailable]);
 
   return qrDataUrl;
 }
@@ -161,7 +161,7 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
   const serviceCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const didApplyUrlParams = useRef(false);
-  const qrDataUrl = usePdfQr(edition?.pdfUrl);
+  const qrDataUrl = usePdfQr(Boolean(edition?.pdfUrl));
 
   useEffect(() => {
     if (didApplyUrlParams.current || !edition) return;
@@ -499,7 +499,11 @@ function OverviewView({
       const res = await kioskSyncFetch("/api/kiosk/citizens-charter/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, lang: language }),
+        body: JSON.stringify({
+          email,
+          lang: language,
+          publicOrigin: getKioskPublicOrigin() || undefined,
+        }),
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "Failed to send email");
@@ -1618,7 +1622,7 @@ function OfficeModal({
   const whoMayAvail =
     services.find((service) => service.whoMayAvail)?.whoMayAvail || "Clients and citizens";
   const [pdfOpen, setPdfOpen] = useState(false);
-  const pdfSrc = edition.pdfUrl ? absolutePdfUrl(edition.pdfUrl) : "";
+  const pdfSrc = edition.pdfUrl ? charterPdfPublicUrl() : "";
 
   return (
     <div

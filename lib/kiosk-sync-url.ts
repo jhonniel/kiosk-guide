@@ -36,3 +36,25 @@ export function resolveKioskAssetUrl(path: string | null | undefined): string {
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
   return resolveKioskSyncUrl(trimmed.startsWith("/") ? trimmed : `/${trimmed}`);
 }
+
+/**
+ * Public app file URL for QR codes and share links.
+ * Uses the sync server when the kiosk runs locally without a database.
+ */
+export function resolveKioskPublicFileUrl(appPath: string): string {
+  const normalized = appPath.startsWith("/") ? appPath : `/${appPath}`;
+  const resolved = resolveKioskSyncUrl(normalized);
+  if (/^https?:\/\//i.test(resolved)) return resolved;
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}${resolved}`;
+  }
+  return resolved;
+}
+
+/** Origin phones should use when opening QR download links from this kiosk session. */
+export function getKioskPublicOrigin(): string {
+  const sync = getKioskSyncOrigin();
+  if (sync) return sync;
+  if (typeof window !== "undefined") return window.location.origin;
+  return "";
+}

@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendDownloadByEmail } from "@/features/downloads/download-service";
 import { downloadEmailRequestSchema } from "@/lib/validations";
 
+function getRequestOrigin(request: NextRequest) {
+  const proto = request.headers.get("x-forwarded-proto") ?? "http";
+  const host = request.headers.get("host");
+  return host ? `${proto}://${host}` : undefined;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -16,7 +22,9 @@ export async function POST(request: NextRequest) {
     await sendDownloadByEmail(
       parsed.data.downloadId,
       parsed.data.email,
-      parsed.data.lang
+      parsed.data.lang,
+      getRequestOrigin(request),
+      parsed.data.publicOrigin
     );
 
     return NextResponse.json({ success: true });

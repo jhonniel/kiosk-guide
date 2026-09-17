@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
+import { getKioskPublicOrigin } from "@/lib/kiosk-sync-url";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useKiosk } from "@/hooks/use-kiosk";
@@ -140,7 +141,11 @@ export function DownloadDeliveryDialog({
       const res = await kioskSyncFetch("/api/downloads/qr", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ downloadId: download.id, lang: language }),
+        body: JSON.stringify({
+          downloadId: download.id,
+          lang: language,
+          publicOrigin: getKioskPublicOrigin() || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to create QR code");
@@ -185,7 +190,12 @@ export function DownloadDeliveryDialog({
       const res = await kioskSyncFetch("/api/downloads/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ downloadId: download.id, email, lang: language }),
+        body: JSON.stringify({
+          downloadId: download.id,
+          email,
+          lang: language,
+          publicOrigin: getKioskPublicOrigin() || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to send email");
