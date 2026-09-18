@@ -1,5 +1,5 @@
 "use client";
-import type { ImgHTMLAttributes, ReactNode, SVGProps } from "react";
+import type { ReactNode, SVGProps } from "react";
 
 type IconProps = SVGProps<SVGSVGElement> & {
   circleColor?: string;
@@ -81,19 +81,7 @@ export function BusinessProcurementIcon({ circleColor = "#ea580c", ...props }: I
   );
 }
 
-export function TourismServicesIcon({
-  className,
-  circleColor: _circleColor,
-  ...props
-}: IconProps) {
-  const {
-    stroke: _stroke,
-    strokeWidth: _strokeWidth,
-    fill: _fill,
-    viewBox: _viewBox,
-    xmlns: _xmlns,
-    ...imgProps
-  } = props;
+export function TourismServicesIcon({ className }: Pick<IconProps, "className">) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -101,7 +89,6 @@ export function TourismServicesIcon({
       alt=""
       className={className}
       draggable={false}
-      {...(imgProps as ImgHTMLAttributes<HTMLImageElement>)}
     />
   );
 }

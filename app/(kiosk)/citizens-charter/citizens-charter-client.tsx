@@ -245,11 +245,6 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
     [expandedCategoryId]
   );
 
-  const activeCategoryOffices = useMemo(() => {
-    if (!expandedCategoryId) return [];
-    return officesInCategory(groups, expandedCategoryId);
-  }, [expandedCategoryId, groups]);
-
   const activeService = useMemo(() => {
     if (!activeGroup || !expandedServiceId) return null;
     for (const category of activeGroup.categories) {
@@ -1566,28 +1561,6 @@ function officeBlurb(office: CharterOfficeView) {
   return "Official services, published fees, processing time, and charter source pages.";
 }
 
-function themeForOffice(name: string) {
-  const category = categoryForOffice(name);
-  if (category) {
-    return {
-      icon: category.icon,
-      iconSrc: category.iconSrc,
-      accent: category.accent,
-      soft: category.soft,
-      badge: `${category.titleColor} ${category.soft}`,
-      titleColor: category.titleColor,
-    };
-  }
-  return {
-    icon: Building2,
-    iconSrc: null as string | null,
-    accent: "bg-kiosk-navy",
-    soft: "bg-[#f1f5f9]",
-    badge: "text-kiosk-navy bg-[#e2e8f0]",
-    titleColor: "text-kiosk-navy",
-  };
-}
-
 function OfficeModal({
   group,
   relatedOffices,
@@ -1615,7 +1588,6 @@ function OfficeModal({
   onOpenService: (serviceId: string) => void;
   onCloseService: () => void;
 }) {
-  const theme = themeForOffice(group.name);
   const serviceCount = countServices(group);
   const services = group.categories.flatMap((item) => item.services);
   const initials = officeInitials(group.name);

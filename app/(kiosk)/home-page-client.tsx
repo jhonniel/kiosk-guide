@@ -44,7 +44,6 @@ export default function HomePage() {
               iconUrl={card.iconUrl}
               color={card.color}
               href={card.href}
-              priority
             />
           ))}
         </div>

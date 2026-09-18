@@ -751,7 +751,6 @@ export function MapAdminClient({
   );
 
   const [pendingPlace, setPendingPlace] = useState<{ x: number; y: number } | null>(null);
-  const [dragId, setDragId] = useState<string | null>(null);
   const [draftPos, setDraftPos] = useState<{ id: string; x: number; y: number } | null>(null);
   const [dragWaypointIndex, setDragWaypointIndex] = useState<number | null>(null);
 
@@ -815,7 +814,6 @@ export function MapAdminClient({
 
   const clearDragState = useCallback(() => {
     dragIdRef.current = null;
-    setDragId(null);
     setDraftPos(null);
     dragMoved.current = false;
     dragOrigin.current = null;
@@ -954,7 +952,6 @@ export function MapAdminClient({
       dragMoved.current = false;
       dragOrigin.current = { x: e.clientX, y: e.clientY };
       dragIdRef.current = id;
-      setDragId(id);
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     },
     []

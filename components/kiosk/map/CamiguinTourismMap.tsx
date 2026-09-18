@@ -142,6 +142,8 @@ type Props = {
   data: MapEnginePayload;
 };
 
+const EMPTY_ANNOTATIONS: MapEnginePayload["annotations"] = [];
+
 export function CamiguinTourismMap({ data }: Props) {
   const { language } = useKiosk();
   const attractions = data.attractions;
@@ -149,7 +151,7 @@ export function CamiguinTourismMap({ data }: Props) {
   const dbRoutes = data.routes;
   const hotels = data.hotels ?? [];
   const restaurants = data.restaurants ?? [];
-  const annotations = data.annotations ?? [];
+  const annotations = data.annotations ?? EMPTY_ANNOTATIONS;
   const categories = data.categories ?? [];
 
   // Painted mountains follow active peak labels only — deleting a volcano/peak removes its art.

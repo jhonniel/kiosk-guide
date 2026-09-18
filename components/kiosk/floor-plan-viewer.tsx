@@ -64,12 +64,13 @@ export function FloorPlanViewer({
     : route
       ? graph.nodes.find((n) => n.id === route.toNodeId)
       : null;
+  const destFloor = destNode?.floor;
 
   useEffect(() => {
-    if (browseMode && destNode) {
-      onFloorChange(destNode.floor);
+    if (browseMode && destFloor != null) {
+      onFloorChange(destFloor);
     }
-  }, [browseMode, destNode?.id, destNode?.floor, onFloorChange]);
+  }, [browseMode, destFloor, onFloorChange]);
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {

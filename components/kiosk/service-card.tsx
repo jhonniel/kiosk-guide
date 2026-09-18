@@ -19,8 +19,6 @@ interface ServiceCardProps {
   color: string;
   href: string;
   className?: string;
-  /** When false, defer the icon PNG until near viewport (saves RAM on home grid). */
-  priority?: boolean;
 }
 
 export function ServiceCard({
@@ -31,7 +29,6 @@ export function ServiceCard({
   color,
   href,
   className,
-  priority = false,
 }: ServiceCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const Icon = getIcon(icon);

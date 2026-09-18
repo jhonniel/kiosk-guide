@@ -20,7 +20,7 @@ export function IndoorMapAdminHome({ buildings: initialBuildings, floors: initia
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [buildings, setBuildings] = useState(initialBuildings);
-  const [floors, setFloors] = useState(initialFloors);
+  const [floors] = useState(initialFloors);
   const [buildingName, setBuildingName] = useState("");
   const [floorBuildingId, setFloorBuildingId] = useState(initialBuildings[0]?.id ?? "");
   const [floorLabel, setFloorLabel] = useState("Ground Floor");

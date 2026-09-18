@@ -66,21 +66,23 @@ export function DownloadDeliveryDialog({
       return;
     }
 
-    let cancelled = false;
+    const controller = new AbortController();
     async function refreshDeliverySettings() {
       try {
         const res = await kioskSyncFetch(`/api/downloads/delivery-settings?lang=${language}&t=${Date.now()}`, {
           cache: "no-store",
+          signal: controller.signal,
         });
         if (!res.ok) return;
         const json = (await res.json()) as DownloadDeliverySettings;
-        if (!cancelled) setLiveSettings(json);
+        if (!controller.signal.aborted) setLiveSettings(json);
       } catch {
         // keep offline/bundle settings
       }
     }
 
     void refreshDeliverySettings();
+    return () => controller.abort();
   }, [open, language]);
 
   useEffect(() => {
