@@ -21,7 +21,7 @@ import {
 import {
   normalizeKioskAssetPath,
   normalizeKioskSettings,
-} from "@/lib/local-asset-url";
+} from "@/lib/local-asset-url.server";
 import {
   KIOSK_OFFLINE_DATA_VERSION,
   type CitizensCharterOfflineBundle,

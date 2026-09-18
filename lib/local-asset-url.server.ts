@@ -1,30 +1,13 @@
+import { existsSync } from "fs";
+import path from "path";
 import { SETTING_DEFAULTS } from "@/features/settings/defaults";
+import {
+  LOCAL_SEARCH_DIRS,
+  SEED_HOMEPAGE_ICON_BY_SLUG,
+} from "@/lib/local-asset-url";
 import { isStorageCdnUrl } from "@/lib/public-app-url";
 
-/** Bundled home screen icons — used when DB/Spaces URLs are missing or broken. */
-export const SEED_HOMEPAGE_ICON_BY_SLUG: Record<string, string> = {
-  "citizens-charter": "/images/home-icons/icon-citizens-charter.png",
-  "building-directory": "/images/home-icons/icon-building-directory.png",
-  map: "/images/home-icons/icon-map.png",
-  "government-directory": "/images/home-icons/icon-government-directory.png",
-  news: "/images/home-icons/icon-news.png",
-  "download-center": "/images/home-icons/icon-download-center.png",
-  tourism: "/images/home-icons/icon-tourism.png",
-  emergency: "/images/home-icons/icon-emergency.png",
-  events: "/images/home-icons/icon-events.png",
-  faq: "/images/home-icons/icon-faq.png",
-};
-
-export const LOCAL_SEARCH_DIRS = [
-  "images/home-icons",
-  "images/homepage-cards",
-  "images/branding",
-  "images/news",
-  "images/tourism",
-  "images/cami",
-  "images/citizens-charter",
-  "downloads",
-];
+export { SEED_HOMEPAGE_ICON_BY_SLUG };
 
 function stripQuery(url: string): string {
   return url.split("?")[0] ?? url;
@@ -46,15 +29,20 @@ function fileNameFromUrl(url: string): string | null {
   }
 }
 
-function findLocalPublicPathByFileName(fileName: string): string | null {
-  const dir = LOCAL_SEARCH_DIRS[0];
-  return dir ? `/${dir}/${fileName}` : null;
+function publicFileExists(publicPath: string): boolean {
+  const rel = stripQuery(publicPath).replace(/^\//, "");
+  return existsSync(path.join(process.cwd(), "public", rel));
 }
 
-/**
- * Rewrites Spaces/external/missing paths to a bundled file under /public when possible.
- * Returns null when no reliable local path exists (caller should use Lucide icon fallback).
- */
+function findLocalPublicPathByFileName(fileName: string): string | null {
+  for (const dir of LOCAL_SEARCH_DIRS) {
+    const publicPath = `/${dir}/${fileName}`;
+    if (publicFileExists(publicPath)) return publicPath;
+  }
+  return null;
+}
+
+/** Server-only variant that checks /public on disk before rewriting URLs. */
 export function normalizeKioskAssetPath(
   raw: string | null | undefined,
   options?: { slug?: string }
@@ -68,7 +56,14 @@ export function normalizeKioskAssetPath(
   const trimmed = raw.trim();
 
   if (trimmed.startsWith("/")) {
-    return stripQuery(trimmed);
+    const pathOnly = stripQuery(trimmed);
+    if (publicFileExists(pathOnly)) return pathOnly;
+
+    const fileName = basenameFromPath(pathOnly);
+    const byName = fileName ? findLocalPublicPathByFileName(fileName) : null;
+    if (byName) return byName;
+
+    return slugFallback;
   }
 
   if (isStorageCdnUrl(trimmed) || /^https?:\/\//i.test(trimmed)) {

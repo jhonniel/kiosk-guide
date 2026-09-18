@@ -11,7 +11,7 @@ import {
   normalizeKioskAssetPath,
   normalizeKioskSettings,
   SEED_HOMEPAGE_ICON_BY_SLUG,
-} from "../lib/local-asset-url";
+} from "../lib/local-asset-url.server";
 
 loadEnv({ path: path.resolve(process.cwd(), ".env") });
 loadEnv({ path: path.resolve(process.cwd(), ".env.local"), override: true });
