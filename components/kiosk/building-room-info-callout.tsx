@@ -11,6 +11,7 @@ import {
 import {
   FLOOR_LAYERS,
   graphHasFloorPlanImages,
+  imagePlanRoomColumn,
   map2DToFloorPlan3D,
   nodeSize,
 } from "@/features/building-directory/navigation/building-3d";
@@ -24,15 +25,18 @@ export function getRoomAnchorPosition(
   graph: NavigationGraph,
   navigationMapMode: boolean
 ): [number, number, number] {
-  const pos = map2DToFloorPlan3D(node.x, node.y, graph, node.floor);
+  const column = graphHasFloorPlanImages(graph) ? imagePlanRoomColumn(node, graph) : null;
+  const anchor = column
+    ? map2DToFloorPlan3D(column.x, column.y, graph, node.floor)
+    : map2DToFloorPlan3D(node.x, node.y, graph, node.floor);
   if (graphHasFloorPlanImages(graph)) {
-    return [pos.x, 0.22, pos.z];
+    return [anchor.x, (column?.h ?? 0.22) + 0.2, anchor.z];
   }
   const { h } = nodeSize(node);
   const anchorY = navigationMapMode
     ? FLOOR_LAYERS.roomFloorY + ISO_WALL_H + 0.22
     : FLOOR_LAYERS.roomFloorY + h + 0.28;
-  return [pos.x, anchorY, pos.z];
+  return [anchor.x, anchorY, anchor.z];
 }
 
 interface BuildingRoomInfoCardProps {
@@ -50,7 +54,7 @@ export function BuildingRoomInfoCard({
 }: BuildingRoomInfoCardProps) {
   const { language } = useKiosk();
 
-  const location = findLocationById(locations, node.locationId);
+  const location = node.id.includes("__f") ? undefined : findLocationById(locations, node.locationId);
   const display = location
     ? getLocationDisplay(location, language)
     : getNodeFallbackDisplay(node, language);
@@ -105,39 +109,5 @@ export function BuildingRoomInfoCard({
         )}
       </div>
     </div>
-  );
-}
-
-interface BuildingRoomSelectionPulseProps {
-  node: NavNode;
-  graph: NavigationGraph;
-  navigationMapMode?: boolean;
-}
-
-export function BuildingRoomSelectionPulse({
-  node,
-  graph,
-  navigationMapMode = false,
-}: BuildingRoomSelectionPulseProps) {
-  const pos = map2DToFloorPlan3D(node.x, node.y, graph, node.floor);
-  const imageBased = graphHasFloorPlanImages(graph);
-  const { w, d } = nodeSize(node);
-  const ringY = imageBased ? 0.05 : FLOOR_LAYERS.roomFloorY + 0.05;
-  const rx = imageBased ? 0.85 : w * 0.48;
-  const rz = imageBased ? 0.85 : d * 0.48;
-
-  return (
-    <group position={[pos.x, ringY, pos.z]}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} renderOrder={12}>
-        <ringGeometry args={[Math.min(rx, rz) * 0.82, Math.min(rx, rz) * 0.98, 32]} />
-        <meshBasicMaterial color="#22c55e" transparent opacity={0.55} depthWrite={false} />
-      </mesh>
-      {!navigationMapMode && !imageBased && (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]} renderOrder={12}>
-          <planeGeometry args={[w - 0.1, d - 0.1]} />
-          <meshBasicMaterial color="#fef08a" transparent opacity={0.25} depthWrite={false} />
-        </mesh>
-      )}
-    </group>
   );
 }

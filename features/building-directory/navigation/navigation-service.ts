@@ -41,7 +41,8 @@ export async function navigateBuilding(
   const context = await getGuideContext();
 
   const destination = context.locations.find((l) => l.id === request.toLocationId);
-  if (!destination) {
+  const mappedNode = graph ? getNodeByLocationId(graph, request.toLocationId) : undefined;
+  if (!destination && !mappedNode) {
     return {
       success: false,
       isDemoMode,
@@ -50,10 +51,11 @@ export async function navigateBuilding(
     };
   }
 
-  const { name: destinationName, directions: textDirections } = getLocationDisplay(
-    destination,
-    request.lang ?? "en"
-  );
+  const display = destination
+    ? getLocationDisplay(destination, request.lang ?? "en")
+    : null;
+  const destinationName = display?.name ?? mappedNode?.label ?? "your destination";
+  const textDirections = display?.directions ?? [];
 
   if (!graph) {
     return {

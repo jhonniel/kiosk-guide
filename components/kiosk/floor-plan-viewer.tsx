@@ -7,7 +7,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { NavigationGraph, NavigationRoute } from "@/features/building-directory/navigation/types";
-import { interpolateAlongPath } from "@/features/building-directory/navigation/routing-engine";
+import {
+  interpolateAlongPath,
+  resolveFloorRouteProgress,
+} from "@/features/building-directory/navigation/routing-engine";
 import { getLandmarkNodesForFloor, getRoomNodesForFloor } from "@/features/building-directory/navigation/demo-graph";
 
 interface FloorPlanViewerProps {
@@ -51,13 +54,10 @@ export function FloorPlanViewer({
     : "";
 
   const indicatorPos = useMemo(() => {
-    if (!activeSegment || !isNavigating) return null;
-    const floorIdx = route?.segments.indexOf(activeSegment) ?? 0;
-    const localProgress = route
-      ? Math.max(0, Math.min(1, progress * route.segments.length - floorIdx))
-      : 0;
+    if (!activeSegment || !isNavigating || !route) return null;
+    const localProgress = resolveFloorRouteProgress(route, progress, currentFloor);
     return interpolateAlongPath(activeSegment.points, localProgress);
-  }, [activeSegment, isNavigating, progress, route]);
+  }, [activeSegment, currentFloor, isNavigating, progress, route]);
 
   const destNode = destinationNodeId
     ? graph.nodes.find((n) => n.id === destinationNodeId || n.locationId === destinationNodeId)

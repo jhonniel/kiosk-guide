@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactZoomPanPinchRef } from "react-zoom-pan-pinch";
 import { TransformComponent, TransformWrapper, useControls } from "react-zoom-pan-pinch";
 import { Minus, Plus, RotateCcw, Route, Moon, Sun, Maximize2, Bed, UtensilsCrossed, X } from "lucide-react";
@@ -14,15 +14,14 @@ import { useKiosk } from "@/hooks/use-kiosk";
 import { useMapCamera } from "@/hooks/use-map-camera";
 import { useMapSearch } from "@/hooks/use-map-search";
 import { pickLang } from "@/lib/i18n/translations";
+import { shouldLightLoad } from "@/lib/kiosk-performance";
 import { cn } from "@/lib/utils";
+import { MapStatusBar, type MapStatusBarHandle } from "./MapStatusBar";
 import { AmbientEffects } from "./AmbientEffects";
 import { Compass } from "./Compass";
 import { MapFilters } from "./Filters";
 import { Legend } from "./Legend";
-import {
-  AttractionHitRegions,
-  renderAttractionObject,
-} from "./AttractionObjects";
+import { renderAttractionObject } from "./AttractionObjects";
 import {
   AttractionBottomSheet,
   AttractionPopup,
@@ -178,9 +177,10 @@ export function CamiguinTourismMap({ data }: Props) {
   const [activeRoute, setActiveRoute] = useState<MapRoute | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [nightMode, setNightMode] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [cursorPercent, setCursorPercent] = useState({ x: 50, y: 50 });
+  const [isPanning, setIsPanning] = useState(false);
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
+  const statusBarRef = useRef<MapStatusBarHandle>(null);
+  const reducedEffects = useMemo(() => shouldLightLoad(), []);
 
   useEffect(() => {
     setFavorites(loadFavorites());
@@ -394,12 +394,32 @@ export function CamiguinTourismMap({ data }: Props) {
     }
   }, [rootEl]);
 
+  const municipalityStatusLabel = selectedMunicipality
+    ? [
+        language === "fil"
+          ? selectedMunicipality.nameFil
+          : language === "bis"
+            ? selectedMunicipality.nameBis || selectedMunicipality.nameEn
+            : selectedMunicipality.nameEn,
+        selectedMunicipality.description ? ` · ${selectedMunicipality.description}` : "",
+      ].join("")
+    : "";
+
+  const islandStatusLabel = pickLang(
+    language,
+    "Camiguin Island",
+    "Isla ng Camiguin",
+    "Isla sa Camiguin"
+  );
+
   return (
     <div
       ref={setRootEl}
       className={cn(
         "relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-sky-900/15 shadow-xl",
-        nightMode ? "bg-[#0a4a66]" : "bg-[#5eb0cc]"
+        nightMode ? "bg-[#0a4a66]" : "bg-[#5eb0cc]",
+        reducedEffects && "map-performance-mode",
+        isPanning && "map-is-panning"
       )}
     >
       <TransformWrapper
@@ -412,8 +432,10 @@ export function CamiguinTourismMap({ data }: Props) {
         panning={{ velocityDisabled: false }}
         limitToBounds
         onInit={(ref) => onApiReady(ref)}
+        onPanningStart={() => setIsPanning(true)}
+        onPanningStop={() => setIsPanning(false)}
         onTransform={(_, state) => {
-          setZoomLevel(state.scale);
+          statusBarRef.current?.setZoom(state.scale);
         }}
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col gap-2 p-3">
@@ -533,10 +555,10 @@ export function CamiguinTourismMap({ data }: Props) {
                 className="map-watercolor-art relative aspect-[1024/721] h-full max-h-full w-auto max-w-full"
                 onMouseMove={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
-                  setCursorPercent({
-                    x: ((e.clientX - rect.left) / rect.width) * 100,
-                    y: ((e.clientY - rect.top) / rect.height) * 100,
-                  });
+                  statusBarRef.current?.setCursor(
+                    ((e.clientX - rect.left) / rect.width) * 100,
+                    ((e.clientY - rect.top) / rect.height) * 100
+                  );
                 }}
               >
                 <VectorTerrain
@@ -545,25 +567,20 @@ export function CamiguinTourismMap({ data }: Props) {
                   nightMode={nightMode}
                   language={language}
                   hideOcean
+                  reducedEffects={reducedEffects}
                 />
                 <WatercolorMapDecor
                   nightMode={nightMode}
                   hoveredAttractionId={hoveredId}
                   peakPositions={peakPositions}
+                  reducedEffects={reducedEffects}
                 />
-                <AmbientEffects nightMode={nightMode} />
+                <AmbientEffects nightMode={nightMode} reducedEffects={reducedEffects} />
                 <MapTerrainLabels
                   selectedMunicipalitySlug={selectedMunicipality?.slug ?? null}
                   nightMode={nightMode}
                   annotations={terrainAnnotations}
                   municipalityLabels={municipalityLabels}
-                />
-                <AttractionHitRegions
-                  attractions={visible}
-                  selectedId={selectedId}
-                  hoveredId={hoveredId}
-                  onHover={setHoveredId}
-                  onSelect={selectAttraction}
                 />
                 <RouteLayer route={activeRoute} />
                 {visible.map((a) =>
@@ -575,6 +592,7 @@ export function CamiguinTourismMap({ data }: Props) {
                     labelVisible: true,
                     onHover: setHoveredId,
                     onSelect: selectAttraction,
+                    reducedMotion: reducedEffects,
                   })
                 )}
                 {showHotels &&
@@ -672,28 +690,11 @@ export function CamiguinTourismMap({ data }: Props) {
           </div>
         )}
 
-        {/* Status bar */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-center justify-between gap-2 bg-slate-950/55 px-3 py-1.5 text-[10px] font-medium tracking-wide text-white/90 backdrop-blur-md">
-          <span>
-            {selectedMunicipality
-              ? [
-                  language === "fil"
-                    ? selectedMunicipality.nameFil
-                    : language === "bis"
-                      ? selectedMunicipality.nameBis || selectedMunicipality.nameEn
-                      : selectedMunicipality.nameEn,
-                  selectedMunicipality.description
-                    ? ` · ${selectedMunicipality.description}`
-                    : "",
-                ].join("")
-              : pickLang(language, "Camiguin Island", "Isla ng Camiguin", "Isla sa Camiguin")}
-          </span>
-          <span>
-            X {cursorPercent.x.toFixed(1)} · Y {cursorPercent.y.toFixed(1)}
-          </span>
-          <span>Zoom {zoomLevel.toFixed(2)}×</span>
-          <span>Scale ~{(12 / zoomLevel).toFixed(1)} km</span>
-        </div>
+        <MapStatusBar
+          ref={statusBarRef}
+          municipalityLabel={municipalityStatusLabel}
+          islandLabel={islandStatusLabel}
+        />
 
         <AttractionPopup
           attraction={selected}

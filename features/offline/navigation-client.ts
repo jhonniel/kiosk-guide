@@ -16,7 +16,8 @@ export function navigateBuildingOffline(
   const isDemoMode = false;
 
   const destination = context.locations.find((l) => l.id === request.toLocationId);
-  if (!destination) {
+  const mappedNode = graph ? getNodeByLocationId(graph, request.toLocationId) : undefined;
+  if (!destination && !mappedNode) {
     return {
       success: false,
       isDemoMode,
@@ -25,10 +26,11 @@ export function navigateBuildingOffline(
     };
   }
 
-  const { name: destinationName, directions: textDirections } = getLocationDisplay(
-    destination,
-    request.lang ?? "en"
-  );
+  const display = destination
+    ? getLocationDisplay(destination, request.lang ?? "en")
+    : null;
+  const destinationName = display?.name ?? mappedNode?.label ?? "your destination";
+  const textDirections = display?.directions ?? [];
 
   if (!graph) {
     return {

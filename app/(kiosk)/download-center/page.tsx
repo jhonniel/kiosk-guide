@@ -14,6 +14,7 @@ export default function DownloadCenterPage() {
 
   return (
     <ModulePageClient
+      fit
       icon="Download"
       titleEn="Download Center"
       titleFil="Sentro ng Pag-download"

@@ -59,6 +59,8 @@ export interface NavigationRoute {
   totalDistanceMeters: number;
   estimatedMinutes: number;
   voiceInstructions: string[];
+  /** Progress (0–1) along the route when each voice instruction should appear. */
+  instructionProgress: number[];
   floorChanges: number[];
   isDemoMode: boolean;
   usesGraph: boolean;

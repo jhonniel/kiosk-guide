@@ -234,6 +234,45 @@ html.kiosk-large-text {
   flex: 1 1 0%;
 }
 
+/*
+ * Home tiles: phone launch / unlock — soft settle onto the grid.
+ */
+@keyframes kiosk-home-card-launch {
+  0% {
+    opacity: 0;
+    transform: scale(1.28) translateY(-20px);
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.kiosk-home-cards {
+  overflow: visible;
+}
+
+/* "backwards" so the tiles drop their transform (and GPU layer) once they land. */
+.kiosk-home-cards > * {
+  transform-origin: center center;
+  animation: kiosk-home-card-launch 780ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.kiosk-home-cards > *:nth-child(1) { animation-delay: 40ms; }
+.kiosk-home-cards > *:nth-child(2) { animation-delay: 70ms; }
+.kiosk-home-cards > *:nth-child(3) { animation-delay: 100ms; }
+.kiosk-home-cards > *:nth-child(4) { animation-delay: 130ms; }
+.kiosk-home-cards > *:nth-child(5) { animation-delay: 160ms; }
+.kiosk-home-cards > *:nth-child(6) { animation-delay: 200ms; }
+.kiosk-home-cards > *:nth-child(7) { animation-delay: 230ms; }
+.kiosk-home-cards > *:nth-child(8) { animation-delay: 260ms; }
+.kiosk-home-cards > *:nth-child(9) { animation-delay: 290ms; }
+.kiosk-home-cards > *:nth-child(10) { animation-delay: 320ms; }
+.kiosk-home-cards > *:nth-child(n + 11) { animation-delay: 350ms; }
+
 /* Kiosk lockdown: no text selection / copy / image drag */
 .kiosk-lock-select,
 .kiosk-lock-select * {
@@ -318,6 +357,55 @@ html.kiosk-screen-reader *:focus-visible {
   }
 }
 
+@keyframes you-are-here-dot {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.28);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(22, 163, 74, 0);
+  }
+}
+
+.you-are-here-pin {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 6px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.16);
+}
+
+.you-are-here-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 999px;
+  background: #16a34a;
+  animation: you-are-here-dot 1.6s ease-in-out infinite;
+}
+
+.you-are-here-caret {
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  transform: translateX(-50%) rotate(45deg);
+}
+
 .room-info-callout-enter {
   animation: room-callout-in 0.4s cubic-bezier(0.34, 1.45, 0.64, 1) both;
 }
@@ -349,6 +437,47 @@ html.kiosk-screen-reader *:focus-visible {
   to {
     opacity: 0;
     backdrop-filter: blur(0);
+  }
+}
+
+@keyframes guide-panel-in {
+  from {
+    opacity: 0;
+    transform: translate(calc(-50% + 88px), -50%) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.guide-panel-in {
+  transform-origin: right center;
+  animation: guide-panel-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes guide-panel-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(calc(-50% + 88px), -50%) scale(0.94);
+  }
+}
+
+.guide-panel-out {
+  transform-origin: right center;
+  animation: guide-panel-out 0.28s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-panel-in,
+  .guide-panel-out {
+    animation: none;
+    transform: translate(-50%, -50%);
   }
 }
 
@@ -853,6 +982,60 @@ a:active,
   will-change: opacity;
 }
 
+/* Idle screen strip: events <-> news. Old slide lifts away while the new cards rise in one by one. */
+@keyframes idle-strip-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-14px);
+    filter: blur(3px);
+  }
+}
+
+@keyframes idle-strip-heading-in {
+  from {
+    opacity: 0;
+    letter-spacing: 0.32em;
+  }
+  to {
+    opacity: 1;
+    letter-spacing: 0.22em;
+  }
+}
+
+@keyframes idle-strip-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.idle-strip-out {
+  animation: idle-strip-out 650ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.idle-strip-heading-in {
+  animation: idle-strip-heading-in 800ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.idle-strip-in > * {
+  animation: idle-strip-card-in 750ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.idle-strip-in > *:nth-child(1) { animation-delay: 120ms; }
+.idle-strip-in > *:nth-child(2) { animation-delay: 190ms; }
+.idle-strip-in > *:nth-child(3) { animation-delay: 260ms; }
+.idle-strip-in > *:nth-child(4) { animation-delay: 330ms; }
+.idle-strip-in > *:nth-child(5) { animation-delay: 400ms; }
+
 /* Smooth in-page scrolling */
 html {
   scroll-behavior: smooth;
@@ -1266,6 +1449,44 @@ html.kiosk-no-swipe-back body {
   }
 }
 
+/* Kiosk low-power / light-load mode — same as reduced motion for map decor */
+.map-performance-mode .map-ocean-sheen,
+.map-performance-mode .map-cloud-a,
+.map-performance-mode .map-cloud-b,
+.map-performance-mode .map-cloud-c,
+.map-performance-mode .map-marker-pulse,
+.map-performance-mode .map-ripple,
+.map-performance-mode .map-wave-layer,
+.map-performance-mode .map-boat-a,
+.map-performance-mode .map-boat-b,
+.map-performance-mode .map-forest-sway,
+.map-performance-mode .map-mountain-peak,
+.map-performance-mode .map-mountain-peak-delay-1,
+.map-performance-mode .map-mountain-peak-delay-2,
+.map-performance-mode .map-mountain-peak-delay-3,
+.map-performance-mode .map-mountain-smoke,
+.map-performance-mode .map-mountain-smoke-delay,
+.map-performance-mode .map-mountain-peak-active,
+.map-performance-mode .map-spot-hover-bounce,
+.map-performance-mode .map-reef-pulse,
+.map-performance-mode .map-sun-rays,
+.map-performance-mode .map-birds,
+.map-performance-mode .map-fog,
+.map-performance-mode .map-road-illuminate,
+.map-performance-mode .map-watercolor-bleed {
+  animation: none !important;
+}
+
+.map-is-panning .map-mountain-peak,
+.map-is-panning .map-boat-a,
+.map-is-panning .map-boat-b,
+.map-is-panning .map-reef-pulse,
+.map-is-panning .map-sun-rays,
+.map-is-panning .map-marker-pulse,
+.map-is-panning .map-ripple {
+  animation: none !important;
+}
+
 /* Keep kiosk chrome tight in browser fullscreen */
 :fullscreen,
 ::backdrop {
@@ -1303,8 +1524,12 @@ html.kiosk-zoom-locked [data-kiosk-zoom-surface] {
   .cami-typing-dot,
   .kiosk-page-transition,
   .kiosk-stagger > *,
+  .kiosk-home-cards > *,
   .news-xfade-in,
-  .news-xfade-out {
+  .news-xfade-out,
+  .idle-strip-out,
+  .idle-strip-heading-in,
+  .idle-strip-in > * {
     animation-duration: 1ms;
     animation-delay: 0ms;
   }

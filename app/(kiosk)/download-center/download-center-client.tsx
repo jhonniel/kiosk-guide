@@ -108,8 +108,8 @@ export function DownloadCenterClient({
   }
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-5">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="shrink-0 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -156,6 +156,7 @@ export function DownloadCenterClient({
         </div>
       </div>
 
+      <div className="kiosk-main-scroll min-h-0 flex-1 overflow-y-auto">
       <div className="kiosk-stagger grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
         {visible.map((item, index) => {
           const style = categoryStyle(item.category);
@@ -252,6 +253,7 @@ export function DownloadCenterClient({
           </p>
         </div>
       )}
+      </div>
 
       <DownloadDeliveryDialog
         download={selected}

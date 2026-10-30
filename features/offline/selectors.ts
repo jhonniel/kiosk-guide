@@ -62,6 +62,28 @@ export function getSortedEvents(data: KioskOfflineData) {
   );
 }
 
+/** Soonest events still on the calendar: happening now, then the ones coming up. */
+export function getOngoingCalendarEvents(events: KioskOfflineData["events"], now = new Date(), limit = 5) {
+  return events
+    .filter((event) => event.isActive)
+    .filter((event) => new Date(event.endDate ?? event.startDate).getTime() >= now.getTime())
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+    .slice(0, limit);
+}
+
+/** Newest published announcements, skipping ones scheduled for later. */
+export function getLatestAnnouncements(
+  announcements: KioskOfflineData["announcements"],
+  now = new Date(),
+  limit = 5
+) {
+  return announcements
+    .filter((item) => item.isPublished)
+    .filter((item) => new Date(item.publishedAt).getTime() <= now.getTime())
+    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    .slice(0, limit);
+}
+
 export function getSortedServices(data: KioskOfflineData) {
   return [...data.services].sort((a, b) => a.sortOrder - b.sortOrder);
 }

@@ -163,13 +163,13 @@ export function TourismClient({ items }: { items: Tourism[] }) {
             className="w-[min(760px,calc(100%-2rem))] max-w-none gap-0 overflow-visible border-0 bg-transparent p-0 shadow-none ring-0 sm:max-w-[760px]"
             showCloseButton={false}
           >
-            <div className="h-[min(78vh,560px)] max-h-[calc(100vh-6rem)] [perspective:1600px]">
+            <div className="max-h-[calc(100vh-2.5rem)] [perspective:1600px]">
               <div
-                className="relative h-full w-full transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] [transform-style:preserve-3d]"
+                className="relative w-full transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] [transform-style:preserve-3d]"
                 style={{ transform: showPhoto ? "rotateY(180deg)" : "rotateY(0deg)" }}
               >
                 {/* Front: info only */}
-                <div className="absolute inset-0 flex flex-col overflow-hidden rounded-3xl bg-white shadow-2xl [backface-visibility:hidden]">
+                <div className="relative flex max-h-[calc(100vh-2.5rem)] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl [backface-visibility:hidden]">
                   <div className="relative flex flex-col items-center border-b border-gray-100 px-6 pt-5 pb-4 text-center sm:px-10 sm:pt-6 sm:pb-5 lg:px-14 lg:pt-7">
                     {CATEGORY_STYLES[selected.category ?? ""] && (
                       <span
@@ -199,13 +199,13 @@ export function TourismClient({ items }: { items: Tourism[] }) {
                       ✕
                     </button>
                   </div>
-                  <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-4 sm:px-7 sm:py-6">
-                    <DialogDescription className="text-center text-sm leading-7 text-gray-600 sm:text-[16px] sm:leading-8">
+                  <div className="flex flex-col overflow-hidden px-5 py-4 sm:px-7 sm:py-5">
+                    <DialogDescription className="text-center text-sm leading-6 text-gray-600 sm:text-[16px] sm:leading-7">
                       {localized(selected, language, "description")}
                     </DialogDescription>
                     <TourismSiteRules
                       language={language}
-                      className="mt-5 shrink-0 border-t border-gray-100 pt-4"
+                      className="mt-4 shrink-0 border-t border-gray-100 pt-4"
                     />
                   </div>
                   <div className="flex justify-center border-t border-gray-100 p-4">

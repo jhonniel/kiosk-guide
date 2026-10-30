@@ -1,14 +1,17 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, type RefObject } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useTexture } from "@react-three/drei";
-import { Minus, Plus } from "lucide-react";
+import { Check, Layers, Minus, Plus } from "lucide-react";
+import { BuildingArrivalModal, BuildingNavigationHud } from "@/components/kiosk/building-navigation-panel";
+import { BuildingOfficeRail } from "@/components/kiosk/building-directory-guide";
 import { Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { cn } from "@/lib/utils";
 import { Building3DScene } from "@/components/kiosk/building-3d-scene";
 import { BuildingOrbitCameraFit } from "@/components/kiosk/building-orbit-camera-fit";
+import { IsometricNavigationCamera } from "@/components/kiosk/building-isometric-camera";
 import { getFloorExtents, graphHasFloorPlanImages } from "@/features/building-directory/navigation/building-3d";
 import {
   BuildingRoomInfoCard,
@@ -22,6 +25,9 @@ import { calculateRoute } from "@/features/building-directory/navigation/routing
 import { useKiosk } from "@/hooks/use-kiosk";
 import { pickLang } from "@/lib/i18n/translations";
 import { uiText } from "@/lib/i18n/kiosk-ui";
+import { isLowPowerKiosk } from "@/lib/kiosk-performance";
+
+const lowPower = isLowPowerKiosk();
 
 interface Building3DViewerProps {
   graph: NavigationGraph;
@@ -36,15 +42,17 @@ interface Building3DViewerProps {
   isDemoMode?: boolean;
   onFloorChange?: (floor: number) => void;
   autoFollowFloor?: boolean;
-  onLocationClick?: (locationId: string) => void;
+  onLocationClick?: (locationId: string, floor?: number, label?: string) => void;
   selectedNode?: NavNode | null;
   locations?: BuildingLocationData[];
   onCloseRoomInfo?: () => void;
   onStartNavigation?: (locationId: string, name: string) => void;
+  onStopNavigation?: () => void;
   className?: string;
   height?: number;
   /** Fill the parent container height instead of using a fixed viewport cap. */
   fill?: boolean;
+  railExtra?: ReactNode;
 }
 
 function SceneLoader() {
@@ -56,21 +64,40 @@ function SceneLoader() {
   );
 }
 
+const zoomAnimRef = { id: 0 as number };
+
 function zoomOrbitControls(controls: OrbitControlsImpl | null, factor: number) {
   if (!controls) return;
   const cam = controls.object;
-  const offset = new Vector3().subVectors(cam.position, controls.target);
-  const distance = offset.length();
-  if (!Number.isFinite(distance) || distance <= 0) return;
+  const startOffset = new Vector3().subVectors(cam.position, controls.target);
+  const startDistance = startOffset.length();
+  if (!Number.isFinite(startDistance) || startDistance <= 0) return;
 
-  const next = Math.min(
+  const endDistance = Math.min(
     controls.maxDistance,
-    Math.max(controls.minDistance, distance * factor)
+    Math.max(controls.minDistance, startDistance * factor)
   );
-  offset.setLength(next);
-  cam.position.copy(controls.target).add(offset);
-  cam.updateProjectionMatrix();
-  controls.update();
+  if (Math.abs(endDistance - startDistance) < 0.001) return;
+
+  if (zoomAnimRef.id) window.cancelAnimationFrame(zoomAnimRef.id);
+  const direction = startOffset.clone().normalize();
+  const durationMs = 320;
+  const startedAt = performance.now();
+
+  const tick = (now: number) => {
+    const t = Math.min(1, (now - startedAt) / durationMs);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const distance = startDistance + (endDistance - startDistance) * eased;
+    cam.position.copy(controls.target).addScaledVector(direction, distance);
+    cam.updateProjectionMatrix();
+    controls.update();
+    if (t < 1) {
+      zoomAnimRef.id = window.requestAnimationFrame(tick);
+    } else {
+      zoomAnimRef.id = 0;
+    }
+  };
+  zoomAnimRef.id = window.requestAnimationFrame(tick);
 }
 
 export function Building3DViewer({
@@ -91,16 +118,18 @@ export function Building3DViewer({
   locations,
   onCloseRoomInfo,
   onStartNavigation,
+  onStopNavigation,
   className,
   height = 0,
   fill = false,
+  railExtra,
 }: Building3DViewerProps) {
   const { language } = useKiosk();
   const focusFloor = currentFloor;
   const kioskLocation = kioskLocationProp ?? {
     floor: 1,
-    x: 468,
-    y: 455,
+    x: 500,
+    y: 360,
     locationId: "gf-kiosk",
     nodeId: "gf_kiosk",
     labelEn: "You are here",
@@ -140,18 +169,41 @@ export function Building3DViewer({
 
   const roomOverlayRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
+  const floorGroupRef = useRef<HTMLDivElement>(null);
+  const [floorIndicator, setFloorIndicator] = useState({ x: 0, width: 0 });
+  const [floorSlideReady, setFloorSlideReady] = useState(false);
+
+  useLayoutEffect(() => {
+    const group = floorGroupRef.current;
+    if (!group) return;
+    const measure = () => {
+      const selected = group.querySelector<HTMLElement>('[aria-checked="true"]');
+      if (!selected) return;
+      const next = { x: selected.offsetLeft, width: selected.offsetWidth };
+      setFloorIndicator((current) => (current.x === next.x && current.width === next.width ? current : next));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(group);
+    return () => observer.disconnect();
+  }, [currentFloor, language, isNavigating]);
+
+  useEffect(() => {
+    setFloorSlideReady(true);
+  }, []);
 
   const roomAnchorPosition = useMemo(() => {
     if (!selectedNode || isNavigating || selectedNode.floor !== focusFloor) return null;
     return getRoomAnchorPosition(selectedNode, graph, navigationMapMode);
   }, [selectedNode, isNavigating, focusFloor, graph, navigationMapMode]);
 
-  const handleLocationClick = (locationId: string) => {
+  const handleLocationClick = (locationId: string, floor?: number, label?: string) => {
     const node = getNodeByLocationId(graph, locationId);
-    if (node && onFloorChange) {
-      onFloorChange(node.floor);
+    const nextFloor = floor ?? node?.floor;
+    if (nextFloor != null && onFloorChange) {
+      onFloorChange(nextFloor);
     }
-    onLocationClick?.(locationId);
+    onLocationClick?.(locationId, floor, label);
   };
 
   useEffect(() => {
@@ -168,6 +220,7 @@ export function Building3DViewer({
   const floorLabel = graph.floorPlans.find((f) => f.floor === focusFloor)?.label ?? `Floor ${focusFloor}`;
   const imageBased = graphHasFloorPlanImages(graph);
   const imageIsoMode = imageBased;
+  const destinationName = route?.destinationName ?? previewRoute?.destinationName ?? "";
   const kioskLabel = pickLang(
     language,
     kioskLocation.labelEn,
@@ -208,54 +261,14 @@ export function Building3DViewer({
         className
       )}
     >
-      <div className="flex shrink-0 items-center justify-between border-b bg-kiosk-bg px-4 py-2">
-        <div className="flex gap-1">
-          {graph.floorPlans.map((f) => (
-            <button
-              key={f.floor}
-              type="button"
-              disabled={autoFollowFloor}
-              onClick={() => onFloorChange?.(f.floor)}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
-                currentFloor === f.floor
-                  ? "bg-kiosk-navy text-white"
-                  : "bg-white text-kiosk-navy hover:bg-gray-100",
-                autoFollowFloor && "cursor-default opacity-80"
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-        <p className="hidden text-[10px] text-gray-500 sm:block">
-          {autoFollowFloor
-            ? pickLang(language, "Following route…", "Sinusundan ang ruta…", "Ginasunod ang ruta…")
-            : navigationMapMode
-              ? pickLang(language, "Navigation map", "Mapa ng navigation", "Mapa sa navigation")
-              : pickLang(
-                  language,
-                  imageIsoMode
-                    ? "Pinch or +/− to zoom · Drag to pan · Tap an office · Navigate for pink path"
-                    : "Drag to rotate · Pinch or buttons to zoom",
-                  imageIsoMode
-                    ? "I-pinch o +/− para mag-zoom · I-drag para mag-pan · Pindutin ang opisina"
-                    : "I-drag para i-rotate · I-pinch o gumamit ng buttons para mag-zoom",
-                  imageIsoMode
-                    ? "I-pinch o +/− aron mag-zoom · I-drag aron mag-pan · Pindota ang opisina"
-                    : "I-drag aron i-rotate · I-pinch o gamita ang buttons aron mag-zoom"
-                )}
-        </p>
-      </div>
-
-      {isDemoMode && (
+      {isDemoMode && !isNavigating && (
         <div className="shrink-0 bg-amber-50 px-4 py-1.5 text-center text-xs text-amber-700">
           {imageBased
             ? pickLang(
                 language,
-                `Viewing ${floorLabel} — uploaded floor plan in 3D. Switch floors above.`,
-                `Tinitingnan ang ${floorLabel} — naka-upload na floor plan sa 3D. Palitan ang palapag sa itaas.`,
-                `Tan-awon ang ${floorLabel} — naka-upload nga floor plan sa 3D. Ilisan ang andana sa ibabaw.`
+                `Viewing ${floorLabel} — uploaded floor plan in 3D. Switch floors on the right.`,
+                `Tinitingnan ang ${floorLabel} — naka-upload na floor plan sa 3D. Palitan ang palapag sa kanan.`,
+                `Tan-awon ang ${floorLabel} — naka-upload nga floor plan sa 3D. Ilisan ang andana sa tuo.`
               )
             : isNavigating
               ? pickLang(
@@ -280,21 +293,30 @@ export function Building3DViewer({
         </div>
       )}
 
+      <div className="flex min-h-0 flex-1">
       <div
         style={!fill && height > 0 ? { height } : undefined}
         className={cn(
-          "relative min-h-0",
-          imageBased ? "bg-[#ebe4d8]" : "bg-[#f0f4f8]",
+          "relative min-h-0 min-w-0 flex-1",
+          imageBased ? "bg-[#ebe4d8]" : isNavigating ? "bg-gradient-to-b from-[#f0fdf4] to-[#f8fafc]" : "bg-[#f0f4f8]",
           fill
-            ? "min-h-[320px] flex-1"
+            ? "min-h-[320px]"
             : height <= 0 && (imageBased ? "h-[min(70vh,900px)]" : "h-[min(55vh,720px)]")
         )}
         data-kiosk-zoom-surface
       >
+        {locations && locations.length > 0 ? (
+          <BuildingOfficeRail
+            locations={locations}
+            currentFloor={focusFloor}
+            activeLocationId={selectedNode?.locationId ?? highlightLocationId}
+            onSelectOffice={(locationId, name) => handleLocationClick(locationId, undefined, name)}
+          />
+        ) : null}
         {selectedNode && !isNavigating && (
           <div
             ref={roomOverlayRef}
-            className="pointer-events-auto absolute left-0 top-0 z-20"
+            className="pointer-events-auto absolute left-0 top-0 z-[80]"
             style={{ visibility: "hidden" }}
           >
             <BuildingRoomInfoCard
@@ -308,8 +330,8 @@ export function Building3DViewer({
 
         <Canvas
           shadows={false}
-          dpr={[1, 1.5]}
-          frameloop={isNavigating || imageBased ? "always" : "demand"}
+          dpr={lowPower ? 1 : [1, 1.5]}
+          frameloop={isNavigating ? "always" : "demand"}
           camera={
             imageIsoMode
               ? { position: [55, 65, 55], fov: 32, near: 0.1, far: 500 }
@@ -343,23 +365,52 @@ export function Building3DViewer({
               roomOverlayRef={roomOverlayRef}
               roomAnchorPosition={roomAnchorPosition}
             />
-            <OrbitControls
-              ref={controlsRef}
-              makeDefault
-              target={[0, 0, 0]}
-              enablePan
-              enableRotate={!imageIsoMode}
-              enableZoom
-              zoomSpeed={0.85}
-              minDistance={imageIsoMode ? floorSpan * 0.35 : floorSpan * 0.28}
-              maxDistance={imageIsoMode ? floorSpan * 1.85 : floorSpan * 1.55}
-              minPolarAngle={imageIsoMode ? Math.atan(1.05) : 0.3}
-              maxPolarAngle={imageIsoMode ? Math.atan(1.05) : Math.PI / 2.1}
-              enableDamping={false}
-            />
-            <BuildingOrbitCameraFit graph={graph} viewFloor={focusFloor} />
+            {navigationMapMode && !imageIsoMode ? (
+              <IsometricNavigationCamera graph={graph} viewFloor={focusFloor} />
+            ) : (
+              <>
+                <OrbitControls
+                  ref={controlsRef}
+                  makeDefault
+                  target={[0, 0, 0]}
+                  enablePan
+                  enableRotate={!imageIsoMode && !navigationMapMode}
+                  enableZoom
+                  zoomSpeed={0.55}
+                  minDistance={imageIsoMode ? floorSpan * 0.32 : floorSpan * 0.34}
+                  maxDistance={imageIsoMode ? floorSpan * 1.85 : floorSpan * 1.55}
+                  minPolarAngle={imageIsoMode || navigationMapMode ? Math.atan(1.05) : 0.3}
+                  maxPolarAngle={imageIsoMode || navigationMapMode ? Math.atan(1.05) : Math.PI / 2.1}
+                  enableDamping
+                  dampingFactor={0.12}
+                  panSpeed={0.7}
+                />
+                <BuildingOrbitCameraFit graph={graph} viewFloor={focusFloor} />
+              </>
+            )}
           </Suspense>
         </Canvas>
+
+        {isNavigating && onStopNavigation && destinationName && (
+          <BuildingNavigationHud
+            lang={language}
+            destinationName={destinationName}
+            floorLabel={floorLabel}
+            progress={progress}
+            distanceMeters={route?.totalDistanceMeters}
+            estimatedMinutes={route?.estimatedMinutes}
+            onStop={onStopNavigation}
+          />
+        )}
+
+        {hasArrived && onStopNavigation && destinationName && (
+          <BuildingArrivalModal
+            lang={language}
+            destinationName={destinationName}
+            floorLabel={floorLabel}
+            onDone={onStopNavigation}
+          />
+        )}
 
         {(!navigationMapMode || imageIsoMode) && (
           <div className="absolute right-3 bottom-3 z-20 flex flex-col gap-2">
@@ -382,31 +433,107 @@ export function Building3DViewer({
           </div>
         )}
 
-        <div className="pointer-events-none absolute bottom-3 left-3 flex flex-wrap gap-2 text-[10px] text-gray-500">
-          {navigationMapMode ? (
-            <>
-              <span className="flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 shadow-sm">
-                <span className="inline-block h-2 w-2 rounded-full bg-[#2563eb]" />
-                {pickLang(language, "Start", "Simula", "Sugod")}
-              </span>
-              <span className="flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 shadow-sm">
-                <span className="inline-block h-2 w-2 rounded-full bg-[#eab308]" />
-                {pickLang(language, "End", "Destinasyon", "Katapusan")}
-              </span>
-              {isNavigating && (
-                <span className="flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 shadow-sm">
-                  <span className="inline-block h-2 w-2 rounded-full bg-[#ec4899]" />
-                  {pickLang(language, "You", "Ikaw", "Ikaw")}
+        {!isNavigating && (
+          <div className="pointer-events-none absolute top-3 left-64 z-20 flex h-9 w-max items-center gap-2 text-sm text-gray-500">
+            {navigationMapMode ? (
+              <>
+                <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-slate-200 bg-white px-2.5 py-0.5 font-semibold shadow-[0_1px_2px_rgba(15,26,46,0.16)]">
+                  <span className="inline-block h-2 w-2 rounded-full bg-[#22c55e]" />
+                  {pickLang(language, "Start", "Simula", "Sugod")}
                 </span>
-              )}
-            </>
-          ) : (
-            <span className="flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 shadow-sm">
-              <span className="inline-block h-2 w-2 rounded-full bg-[#2563eb]" />
-              {kioskLabel}
-            </span>
-          )}
-        </div>
+                <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-slate-200 bg-white px-2.5 py-0.5 font-semibold shadow-[0_1px_2px_rgba(15,26,46,0.16)]">
+                  <span className="inline-block h-2 w-2 rounded-full bg-[#f59e0b]" />
+                  {pickLang(language, "Destination", "Destinasyon", "Destinasyon")}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-slate-200 bg-white px-2.5 py-0.5 font-semibold shadow-[0_1px_2px_rgba(15,26,46,0.16)]">
+                  <span className="you-are-here-dot inline-block h-2 w-2" />
+                  {kioskLabel}
+                </span>
+                <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-slate-200 bg-white px-2.5 py-0.5 font-semibold shadow-[0_1px_2px_rgba(15,26,46,0.16)]">
+                  <span className="inline-block h-2 w-2 rounded-full bg-[#f59e0b]" />
+                  {pickLang(language, "Destination", "Destinasyon", "Destinasyon")}
+                </span>
+              </>
+            )}
+          </div>
+        )}
+        <aside className="pointer-events-auto absolute right-3 top-3 z-30 flex items-center gap-2">
+          {railExtra ? <div className="w-64 shrink-0">{railExtra}</div> : null}
+          <div className="flex shrink-0 items-center gap-1 rounded-xl bg-white px-2 py-2 shadow-[0_8px_24px_rgba(26,39,68,0.10)] ring-1 ring-slate-200/90">
+            <div className="flex items-center gap-1.5 px-1.5">
+              <Layers className="h-3.5 w-3.5 text-blue-600" />
+              <p className="text-[11px] font-semibold tracking-[0.14em] text-slate-400">
+                {pickLang(language, "FLOORS", "PALAPAG", "ANDANA")}
+              </p>
+            </div>
+            <div className="mx-1 h-6 w-px bg-slate-200" />
+            <div ref={floorGroupRef} className="relative flex items-center gap-0.5" role="radiogroup" aria-label={pickLang(language, "Floors", "Palapag", "Andana")}>
+              <div
+                aria-hidden
+                className={cn(
+                  "pointer-events-none absolute inset-y-0 left-0 rounded-lg motion-reduce:transition-none",
+                  isNavigating ? "bg-emerald-50" : "bg-blue-50"
+                )}
+                style={{
+                  width: floorIndicator.width,
+                  transform: `translateX(${floorIndicator.x}px)`,
+                  transition: floorSlideReady
+                    ? "transform 420ms cubic-bezier(0.42, 0, 0.58, 1), width 420ms cubic-bezier(0.42, 0, 0.58, 1), background-color 420ms ease"
+                    : "none",
+                }}
+              />
+              {[...graph.floorPlans]
+                .sort((a, b) => a.floor - b.floor)
+                .map((f) => {
+                const selected = currentFloor === f.floor;
+                const mark = f.floor === 1 ? "G" : String(f.floor);
+                return (
+                  <button
+                    key={f.floor}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    disabled={autoFollowFloor}
+                    onClick={() => onFloorChange?.(f.floor)}
+                    className={cn(
+                      "relative z-10 flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-left",
+                      !selected && "hover:bg-slate-50",
+                      autoFollowFloor && "cursor-default opacity-80"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors duration-500",
+                        selected
+                          ? isNavigating
+                            ? "bg-kiosk-green text-white"
+                            : "bg-blue-600 text-white"
+                          : "bg-slate-100 text-slate-500"
+                      )}
+                    >
+                      {mark}
+                    </span>
+                    <span className={cn("whitespace-nowrap text-sm font-semibold transition-colors duration-500", selected ? "text-kiosk-navy" : "text-slate-600")}>{f.label}</span>
+                    <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                      <Check
+                        className={cn(
+                          "h-4 w-4 transition-all duration-500",
+                          selected
+                            ? cn("scale-100 opacity-100", isNavigating ? "text-kiosk-green" : "text-blue-600")
+                            : "scale-75 opacity-0"
+                        )}
+                      />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </aside>
+      </div>
       </div>
     </div>
   );

@@ -4,10 +4,28 @@ import { memo } from "react";
 
 type Props = {
   nightMode?: boolean;
+  reducedEffects?: boolean;
 };
 
 /** Paper grain, sun rays, and soft watercolor shimmer — map stage only. */
-export const AmbientEffects = memo(function AmbientEffects({ nightMode = false }: Props) {
+export const AmbientEffects = memo(function AmbientEffects({
+  nightMode = false,
+  reducedEffects = false,
+}: Props) {
+  if (reducedEffects) {
+    return (
+      <div className="pointer-events-none absolute inset-0 z-[2] overflow-hidden" aria-hidden>
+        <div
+          className={`absolute inset-0 ${nightMode ? "opacity-40" : "opacity-25"}`}
+          style={{
+            background:
+              "radial-gradient(ellipse at 50% 48%, transparent 55%, rgba(12, 74, 110, 0.12) 100%)",
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="pointer-events-none absolute inset-0 z-[2] overflow-hidden" aria-hidden>
       <div

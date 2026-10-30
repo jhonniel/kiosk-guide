@@ -18,6 +18,8 @@ type Props = {
   language?: "en" | "fil" | "bis";
   /** When true, skip the ocean fill so a full-bleed sea can sit behind the stage. */
   hideOcean?: boolean;
+  /** Flat fills only — skips expensive SVG turbulence filters on kiosk hardware. */
+  reducedEffects?: boolean;
 };
 
 /**
@@ -28,8 +30,10 @@ export const VectorTerrain = memo(function VectorTerrain({
   routeRoadActive = false,
   nightMode = false,
   hideOcean = false,
+  reducedEffects = false,
 }: Props) {
   const { width: W, height: H } = MAP_NATIVE;
+  const fx = (id: string) => (reducedEffects ? undefined : `url(#${id})`);
 
   return (
     <svg
@@ -115,13 +119,13 @@ export const VectorTerrain = memo(function VectorTerrain({
           <rect width={W} height={H} fill="url(#ocean-grad)" />
           <rect width={W} height={H} fill="url(#ocean-shallow)" className="pointer-events-none" />
           <rect width={W} height={H} fill="url(#ocean-glow)" className="pointer-events-none" />
-          <rect width={W} height={H} filter="url(#ocean-texture)" className="pointer-events-none" opacity={nightMode ? 0.35 : 0.55} />
-          <rect width={W} height={H} filter="url(#paper)" className="pointer-events-none" opacity={nightMode ? 0.35 : 0.55} />
+          <rect width={W} height={H} filter={fx("ocean-texture")} className="pointer-events-none" opacity={nightMode ? 0.35 : 0.55} />
+          <rect width={W} height={H} filter={fx("paper")} className="pointer-events-none" opacity={nightMode ? 0.35 : 0.55} />
         </g>
       ) : null}
 
       {/* Layer 2 — Island (traced coastline) */}
-      <g id="layer-island" filter="url(#land-depth)">
+      <g id="layer-island" filter={fx("land-depth")}>
         {TRACED_MAIN_ISLAND ? (
           <>
             <path
@@ -131,7 +135,7 @@ export const VectorTerrain = memo(function VectorTerrain({
               strokeWidth={10}
               strokeLinejoin="round"
               opacity={nightMode ? 0.2 : 0.32}
-              filter="url(#watercolor-soft)"
+              filter={fx("watercolor-soft")}
             />
             <path
               d={TRACED_MAIN_ISLAND}
@@ -139,7 +143,7 @@ export const VectorTerrain = memo(function VectorTerrain({
               stroke={nightMode ? "#c4a35a" : "#e8c56a"}
               strokeWidth={4.5}
               strokeLinejoin="round"
-              filter="url(#watercolor-soft)"
+              filter={fx("watercolor-soft")}
             />
           </>
         ) : null}
@@ -160,12 +164,12 @@ export const VectorTerrain = memo(function VectorTerrain({
                     : "#5a8f5e"
               }
               opacity={0.32 + (i % 4) * 0.09}
-              filter="url(#watercolor)"
+              filter={fx("watercolor")}
             />
           ))}
-          <ellipse cx={348} cy={267} rx={95} ry={72} fill={nightMode ? "#1e3328" : "#3d6b48"} opacity={0.28} filter="url(#watercolor-soft)" />
+          <ellipse cx={348} cy={267} rx={95} ry={72} fill={nightMode ? "#1e3328" : "#3d6b48"} opacity={0.28} filter={fx("watercolor-soft")} />
           <ellipse cx={400} cy={290} rx={200} ry={140} fill={nightMode ? "#1e3328" : "#3d6b48"} opacity={0.22} />
-          <ellipse cx={512} cy={310} rx={150} ry={105} fill={nightMode ? "#243d30" : "#458552"} opacity={0.2} filter="url(#watercolor-soft)" />
+          <ellipse cx={512} cy={310} rx={150} ry={105} fill={nightMode ? "#243d30" : "#458552"} opacity={0.2} filter={fx("watercolor-soft")} />
           <ellipse cx={540} cy={370} rx={170} ry={120} fill={nightMode ? "#1e3328" : "#3d6b48"} opacity={0.18} />
           <ellipse cx={280} cy={380} rx={120} ry={90} fill={nightMode ? "#1a2e22" : "#356840"} opacity={0.16} />
           <ellipse cx={620} cy={420} rx={130} ry={95} fill={nightMode ? "#1e3328" : "#3d6b48"} opacity={0.17} />
@@ -185,7 +189,7 @@ export const VectorTerrain = memo(function VectorTerrain({
             strokeLinecap="round"
             strokeLinejoin="round"
             opacity={0.95}
-            filter="url(#watercolor-soft)"
+            filter={fx("watercolor-soft")}
           />
         ))}
         {TRACED_ROADS.map((d, i) => {
@@ -200,15 +204,15 @@ export const VectorTerrain = memo(function VectorTerrain({
               strokeLinecap="round"
               strokeLinejoin="round"
               opacity={1}
-              filter="url(#watercolor-soft)"
-              className={routeRoadActive ? "map-road-illuminate" : undefined}
+              filter={fx("watercolor-soft")}
+              className={routeRoadActive && !reducedEffects ? "map-road-illuminate" : undefined}
             />
           );
         })}
       </g>
 
       {/* Layer 5 — Satellite islands */}
-      <g id="layer-islands" filter="url(#land-depth)">
+      <g id="layer-islands" filter={fx("land-depth")}>
         {TRACED_WHITE_ISLAND.map((d, i) => (
           <path
             key={`wi-${i}`}
@@ -216,7 +220,7 @@ export const VectorTerrain = memo(function VectorTerrain({
             fill={nightMode ? "#d4cdb8" : "#f8f3e6"}
             stroke={nightMode ? "#b8ae96" : "#e5d9bc"}
             strokeWidth={2.5}
-            filter="url(#watercolor-soft)"
+            filter={fx("watercolor-soft")}
           />
         ))}
         {TRACED_MANTIGUE.map((d, i) => (
@@ -226,7 +230,7 @@ export const VectorTerrain = memo(function VectorTerrain({
             fill={nightMode ? "#3f6b48" : "#6faf6a"}
             stroke={nightMode ? "#c4a35a" : "#e8c56a"}
             strokeWidth={3}
-            filter="url(#watercolor-soft)"
+            filter={fx("watercolor-soft")}
           />
         ))}
       </g>

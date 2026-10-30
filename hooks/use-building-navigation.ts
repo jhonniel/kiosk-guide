@@ -10,7 +10,10 @@ import type {
   NavigationRoute,
   NavigationStatus,
 } from "@/features/building-directory/navigation/types";
-import { interpolateAlongPath } from "@/features/building-directory/navigation/routing-engine";
+import {
+  interpolateAlongPath,
+  resolveRouteProgress,
+} from "@/features/building-directory/navigation/routing-engine";
 
 interface UseBuildingNavigationOptions {
   graph: NavigationGraph | null;
@@ -135,7 +138,7 @@ export function useBuildingNavigation({
       const currentRoute = routeRef.current;
       if (statusRef.current !== "navigating" || !currentRoute) return;
 
-      const durationMs = Math.max(currentRoute.estimatedMinutes * 60 * 1000, 8000);
+      const durationMs = Math.max(currentRoute.estimatedMinutes * 60 * 1000, 8000) / 4;
       const elapsed = timestamp - startTimeRef.current;
       const newProgress = Math.min(pausedProgressRef.current + elapsed / durationMs, 1);
       progressRef.current = newProgress;
@@ -146,22 +149,17 @@ export function useBuildingNavigation({
         setProgress(newProgress);
       }
 
-      const segProgress = newProgress * currentRoute.segments.length;
-      const segIdx = Math.min(Math.floor(segProgress), currentRoute.segments.length - 1);
-      const segment = currentRoute.segments[segIdx];
+      const progressState = resolveRouteProgress(currentRoute, newProgress);
+      const segment = currentRoute.segments[progressState.segmentIndex];
+
       if (segment && segment.floor !== floorRef.current) {
         floorRef.current = segment.floor;
         setCurrentFloor(segment.floor);
       }
 
-      const instructionCount = currentRoute.voiceInstructions.length;
-      const nextInstruction = Math.min(
-        Math.floor(newProgress * instructionCount),
-        instructionCount - 1
-      );
-      if (nextInstruction !== instructionRef.current) {
-        instructionRef.current = nextInstruction;
-        setInstructionIndex(nextInstruction);
+      if (progressState.instructionIndex !== instructionRef.current) {
+        instructionRef.current = progressState.instructionIndex;
+        setInstructionIndex(progressState.instructionIndex);
       }
 
       if (newProgress >= 1) {
@@ -216,16 +214,10 @@ export function useBuildingNavigation({
   const getCurrentPosition = useCallback(() => {
     const currentRoute = routeRef.current;
     if (!currentRoute || !graph) return null;
-    const segment =
-      currentRoute.segments.find((s) => s.floor === floorRef.current) ??
-      currentRoute.segments[0];
+    const progressState = resolveRouteProgress(currentRoute, progressRef.current);
+    const segment = currentRoute.segments[progressState.segmentIndex];
     if (!segment) return null;
-    const floorIdx = currentRoute.segments.indexOf(segment);
-    const localProgress = Math.max(
-      0,
-      Math.min(1, progressRef.current * currentRoute.segments.length - floorIdx)
-    );
-    return interpolateAlongPath(segment.points, localProgress);
+    return interpolateAlongPath(segment.points, progressState.segmentLocalProgress);
   }, [graph]);
 
   return {
@@ -235,6 +227,7 @@ export function useBuildingNavigation({
     progressRef,
     currentFloor,
     currentInstruction: route?.voiceInstructions[instructionIndex] ?? null,
+    nextInstruction: route?.voiceInstructions[instructionIndex + 1] ?? null,
     instructionIndex,
     error,
     isDemoMode,

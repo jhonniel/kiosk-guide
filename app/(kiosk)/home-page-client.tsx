@@ -34,7 +34,7 @@ export default function HomePage() {
           <SmartSearch />
         </div>
 
-        <div className="kiosk-home-cards">
+        <div className="kiosk-home-cards min-h-0 flex-1 overflow-visible">
           {cards.map((card) => (
             <ServiceCard
               key={card.id}

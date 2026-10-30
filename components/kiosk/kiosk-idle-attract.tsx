@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { pickLang, t, type Language } from "@/lib/i18n/translations";
+import type { Announcement, Event } from "@prisma/client";
+import { pickLang, t, localized, type Language } from "@/lib/i18n/translations";
+import { getLatestAnnouncements, getOngoingCalendarEvents } from "@/features/offline/selectors";
+import { NewsDetailModal, NewsThumb } from "@/components/kiosk/news-detail-modal";
 import { useKiosk } from "@/hooks/use-kiosk";
 import { cn } from "@/lib/utils";
 
@@ -119,12 +122,223 @@ function TapToStartCycle({ active }: { active: boolean }) {
   );
 }
 
+function eventWhen(event: Event) {
+  const start = new Date(event.startDate);
+  const end = event.endDate ? new Date(event.endDate) : null;
+  if (!end || format(start, "yyyy-MM-dd") === format(end, "yyyy-MM-dd")) {
+    return format(start, "MMM d");
+  }
+  if (format(start, "MMM yyyy") === format(end, "MMM yyyy")) {
+    return `${format(start, "MMM d")}–${format(end, "d")}`;
+  }
+  return `${format(start, "MMM d")}–${format(end, "MMM d")}`;
+}
+
+const STRIP_ROTATE_MS = 20_000;
+const STRIP_OUT_MS = 650;
+const NEWS_MODAL_CLOSE_MS = 200;
+/** A news story left open on an unattended kiosk closes itself and the idle video resumes. */
+const NEWS_MODAL_IDLE_MS = 60_000;
+
+type StripCard = {
+  id: string;
+  when: string;
+  title: string;
+  detail?: string | null;
+  announcement?: Announcement;
+};
+type StripSlide = { key: "events" | "news"; heading: string; cards: StripCard[] };
+
+function StripCards({
+  slide,
+  language,
+  onOpenNews,
+  entering,
+}: {
+  slide: StripSlide;
+  language: Language;
+  onOpenNews?: (item: Announcement) => void;
+  entering: boolean;
+}) {
+  return (
+    <>
+      <p
+        className={cn(
+          "mb-3 text-center text-sm font-semibold uppercase tracking-[0.22em] text-white/75 drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]",
+          entering && "idle-strip-heading-in"
+        )}
+      >
+        {slide.heading}
+      </p>
+      <div className={cn("grid grid-cols-5 gap-3", entering && "idle-strip-in")}>
+        {slide.cards.map((card) => {
+          const news = card.announcement;
+          const open = news && onOpenNews ? () => onOpenNews(news) : undefined;
+          return (
+            <div
+              key={card.id}
+              role={open ? "button" : undefined}
+              tabIndex={open ? 0 : undefined}
+              aria-label={
+                open ? `${pickLang(language, "Open", "Buksan", "Ablihi")} ${card.title}` : undefined
+              }
+              onClick={
+                open
+                  ? (event) => {
+                      // The idle video is one big "tap to start" button; reading news is not leaving it.
+                      event.stopPropagation();
+                      open();
+                    }
+                  : undefined
+              }
+              onKeyDown={
+                open
+                  ? (event) => {
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      event.stopPropagation();
+                      open();
+                    }
+                  : undefined
+              }
+              className={cn(
+                "flex min-w-0 items-center gap-3 rounded-2xl bg-white/10 px-3 py-3 text-left text-white shadow-lg backdrop-blur-sm",
+                open &&
+                  "pointer-events-auto cursor-pointer transition-[background-color,transform] duration-200 hover:bg-white/20 active:scale-[0.98]"
+              )}
+            >
+              {news ? (
+                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl ring-1 ring-white/25">
+                  <NewsThumb item={news} sizesHint="56px" />
+                </div>
+              ) : null}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-semibold uppercase tracking-wide text-[#bbf7d0] drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]">
+                  {card.when}
+                </p>
+                <p className="mt-1 line-clamp-2 text-sm font-bold leading-snug drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]">
+                  {card.title}
+                </p>
+                {card.detail ? (
+                  <p className="mt-1 line-clamp-1 text-xs text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]">
+                    {card.detail}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+/** Bottom strip on the idle video: ongoing events and latest news take turns every 20 seconds. */
+function IdleInfoStrip({
+  events,
+  announcements,
+  language,
+  shown,
+  paused,
+  onOpenNews,
+}: {
+  events: Event[];
+  announcements: Announcement[];
+  language: Language;
+  shown: boolean;
+  paused: boolean;
+  onOpenNews: (item: Announcement) => void;
+}) {
+  const slides: StripSlide[] = [];
+  if (events.length > 0) {
+    slides.push({
+      key: "events",
+      heading: pickLang(language, "Ongoing events", "Mga kasalukuyang kaganapan", "Mga kasamtangang kalihokan"),
+      cards: events.map((event) => ({
+        id: event.id,
+        when: eventWhen(event),
+        title: localized(event, language, "title"),
+        detail: event.location,
+      })),
+    });
+  }
+  if (announcements.length > 0) {
+    slides.push({
+      key: "news",
+      heading: pickLang(language, "News and announcements", "Balita at anunsyo", "Balita ug anunsyo"),
+      cards: announcements.map((item) => ({
+        id: item.id,
+        when: `${format(new Date(item.publishedAt), "MMM d")} · ${item.category?.trim() || "Announcement"}`,
+        title: localized(item, language, "title"),
+        announcement: item,
+      })),
+    });
+  }
+
+  const [index, setIndex] = useState(0);
+  const indexRef = useRef(0);
+  const [leavingIndex, setLeavingIndex] = useState<number | null>(null);
+  const [swapCount, setSwapCount] = useState(0);
+  const slideCount = slides.length;
+
+  useEffect(() => {
+    if (!shown || paused || slideCount < 2) return;
+    let clearLeaving = 0;
+    const rotateTimer = window.setInterval(() => {
+      const current = indexRef.current % slideCount;
+      const next = (current + 1) % slideCount;
+      indexRef.current = next;
+      setLeavingIndex(current);
+      setIndex(next);
+      setSwapCount((count) => count + 1);
+      window.clearTimeout(clearLeaving);
+      clearLeaving = window.setTimeout(() => setLeavingIndex(null), STRIP_OUT_MS);
+    }, STRIP_ROTATE_MS);
+    return () => {
+      window.clearInterval(rotateTimer);
+      window.clearTimeout(clearLeaving);
+    };
+  }, [shown, paused, slideCount]);
+
+  if (slideCount === 0) return null;
+  const slide = slides[index % slideCount];
+  const leaving = leavingIndex !== null && slideCount > 1 ? slides[leavingIndex % slideCount] : null;
+
+  return (
+    <div
+      className={cn(
+        "pointer-events-none absolute inset-x-0 bottom-6 z-10 px-6 transition-[opacity,transform] ease-[cubic-bezier(0.22,1,0.36,1)] sm:px-10",
+        shown ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
+      )}
+    >
+      {/* Both slides share one grid cell so the outgoing one fades over the incoming one without a gap. */}
+      <div className="grid">
+        {leaving && leaving.key !== slide.key ? (
+          <div key={`out-${leaving.key}-${swapCount}`} className="idle-strip-out col-start-1 row-start-1 self-end">
+            <StripCards slide={leaving} language={language} entering={false} />
+          </div>
+        ) : null}
+        <div key={`in-${slide.key}-${swapCount}`} className="col-start-1 row-start-1 self-end">
+          <StripCards
+            slide={slide}
+            language={language}
+            onOpenNews={onOpenNews}
+            entering={swapCount > 0}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 type Props = {
   language: Language;
   enabled: boolean;
   videoUrl: string;
   idleSeconds: number;
   countdownSeconds: number;
+  events: Event[];
+  announcements: Announcement[];
 };
 
 export function KioskIdleAttract({
@@ -133,6 +347,8 @@ export function KioskIdleAttract({
   videoUrl,
   idleSeconds,
   countdownSeconds,
+  events,
+  announcements,
 }: Props) {
   const { language: liveLanguage } = useKiosk();
   const language = liveLanguage || languageProp;
@@ -143,6 +359,10 @@ export function KioskIdleAttract({
   const [videoShown, setVideoShown] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [now, setNow] = useState<Date | null>(null);
+  const [openNews, setOpenNews] = useState<Announcement | null>(null);
+  const [newsClosing, setNewsClosing] = useState(false);
+  const newsIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const newsCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -382,26 +602,81 @@ export function KioskIdleAttract({
       setNow(null);
       return;
     }
-    const minute = () => {
-      const d = new Date();
-      d.setSeconds(0, 0);
-      return d;
-    };
-    setNow(minute());
-    const msToNextMinute = 60_000 - (Date.now() % 60_000) + 50;
-    let intervalId = 0;
-    const timeoutId = window.setTimeout(() => {
-      setNow(minute());
-      intervalId = window.setInterval(() => setNow(minute()), 60_000);
-    }, msToNextMinute);
-    return () => {
-      window.clearTimeout(timeoutId);
-      if (intervalId) window.clearInterval(intervalId);
-    };
+    const tick = () => setNow(new Date());
+    tick();
+    const intervalId = window.setInterval(tick, 1000);
+    return () => window.clearInterval(intervalId);
   }, [phase]);
+
+  const clearNewsIdleTimer = useCallback(() => {
+    if (newsIdleTimerRef.current) {
+      clearTimeout(newsIdleTimerRef.current);
+      newsIdleTimerRef.current = null;
+    }
+  }, []);
+
+  const closeNewsStory = useCallback(() => {
+    clearNewsIdleTimer();
+    if (newsCloseTimerRef.current) return;
+    setNewsClosing(true);
+    newsCloseTimerRef.current = setTimeout(() => {
+      newsCloseTimerRef.current = null;
+      setOpenNews(null);
+      setNewsClosing(false);
+    }, NEWS_MODAL_CLOSE_MS);
+  }, [clearNewsIdleTimer]);
+
+  const armNewsIdleTimer = useCallback(() => {
+    clearNewsIdleTimer();
+    newsIdleTimerRef.current = setTimeout(closeNewsStory, NEWS_MODAL_IDLE_MS);
+  }, [clearNewsIdleTimer, closeNewsStory]);
+
+  const openNewsStory = useCallback(
+    (item: Announcement) => {
+      if (newsCloseTimerRef.current) {
+        clearTimeout(newsCloseTimerRef.current);
+        newsCloseTimerRef.current = null;
+      }
+      setNewsClosing(false);
+      setOpenNews(item);
+      armNewsIdleTimer();
+    },
+    [armNewsIdleTimer]
+  );
+
+  useEffect(() => {
+    if (phase === "video") return;
+    clearNewsIdleTimer();
+    if (newsCloseTimerRef.current) {
+      clearTimeout(newsCloseTimerRef.current);
+      newsCloseTimerRef.current = null;
+    }
+    setOpenNews(null);
+    setNewsClosing(false);
+  }, [phase, clearNewsIdleTimer]);
+
+  useEffect(() => {
+    if (!openNews) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeNewsStory();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [openNews, closeNewsStory]);
+
+  useEffect(
+    () => () => {
+      clearNewsIdleTimer();
+      if (newsCloseTimerRef.current) clearTimeout(newsCloseTimerRef.current);
+    },
+    [clearNewsIdleTimer]
+  );
 
   if (!enabled || !videoUrl) return null;
   if (phase === "watching") return null;
+
+  const ongoingEvents = getOngoingCalendarEvents(events, now ?? new Date());
+  const latestNews = getLatestAnnouncements(announcements, now ?? new Date());
 
   const total = Math.max(1, countdownSeconds);
   const ringSize = 120;
@@ -549,10 +824,10 @@ export function KioskIdleAttract({
                 transitionDelay: videoShown && !isExiting ? "80ms" : "0ms",
               }}
             >
-              <p className="text-4xl font-light tracking-tight tabular-nums sm:text-5xl md:text-6xl">
-                {format(now, "h:mm a")}
+              <p className="text-8xl font-medium tracking-tight text-white tabular-nums drop-shadow-[0_2px_16px_rgba(0,0,0,0.45)]">
+                {format(now, "h:mm:ss a")}
               </p>
-              <p className="mt-1 text-sm font-medium uppercase tracking-[0.22em] text-white/75 sm:text-base md:text-lg">
+              <p className="mt-4 text-3xl font-medium uppercase tracking-[0.14em] text-white/80 drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]">
                 {format(now, "EEEE, MMMM d, yyyy")}
               </p>
             </div>
@@ -571,7 +846,26 @@ export function KioskIdleAttract({
           >
             <TapToStartCycle active={videoShown && !isExiting} />
           </div>
+          <IdleInfoStrip
+            events={ongoingEvents}
+            announcements={latestNews}
+            language={language}
+            shown={videoShown && !isExiting}
+            paused={Boolean(openNews)}
+            onOpenNews={openNewsStory}
+          />
         </button>
+      )}
+
+      {phase === "video" && openNews && (
+        <div className="contents" onPointerDownCapture={armNewsIdleTimer} onWheelCapture={armNewsIdleTimer}>
+          <NewsDetailModal
+            item={openNews}
+            language={language}
+            isClosing={newsClosing}
+            onClose={closeNewsStory}
+          />
+        </div>
       )}
     </div>
   );

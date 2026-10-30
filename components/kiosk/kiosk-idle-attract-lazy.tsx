@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { Announcement, Event } from "@prisma/client";
 import type { Language } from "@/lib/i18n/translations";
 
 const KioskIdleAttract = dynamic(
@@ -14,6 +15,8 @@ type Props = {
   videoUrl: string;
   idleSeconds: number;
   countdownSeconds: number;
+  events: Event[];
+  announcements: Announcement[];
 };
 
 /** Defer idle-attract JS until after first paint so home stays responsive. */

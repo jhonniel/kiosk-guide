@@ -11,6 +11,7 @@ import { useKioskOfflineData } from "@/hooks/use-kiosk-offline-data";
 import { getBoolSetting, getNumberSetting, getSetting } from "@/features/settings/settings-helpers";
 import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
 import { scheduleWhenIdle } from "@/lib/kiosk-performance";
+import { preloadMapChunk } from "@/lib/map-preload";
 
 interface KioskLayoutClientProps {
   children: React.ReactNode;
@@ -31,6 +32,10 @@ function KioskLayoutInner({ children }: KioskLayoutClientProps) {
   useEffect(() => {
     setAutoZoomEnabled(offlineAutoZoom);
   }, [offlineAutoZoom]);
+
+  useEffect(() => {
+    return scheduleWhenIdle(() => preloadMapChunk(), 5000);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,6 +90,8 @@ function KioskLayoutInner({ children }: KioskLayoutClientProps) {
         videoUrl={promoVideoUrl}
         idleSeconds={idleSeconds > 0 ? idleSeconds : 60}
         countdownSeconds={countdownSeconds > 0 ? countdownSeconds : 10}
+        events={data.events ?? []}
+        announcements={data.announcements ?? []}
       />
     </QuickStartVisitProvider>
   );

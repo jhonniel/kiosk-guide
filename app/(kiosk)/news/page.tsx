@@ -15,6 +15,7 @@ export default function NewsPage() {
       titleFil="Balita at Anunsyo"
       descriptionEn="Latest advisories, programs, and public notices."
       descriptionFil="Pinakabagong mga abiso, programa, at pampublikong paunawa."
+      fit
     >
       <NewsClient announcements={getSortedAnnouncements(data)} />
     </ModulePageClient>

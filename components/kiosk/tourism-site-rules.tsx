@@ -77,19 +77,19 @@ export function TourismSiteRules({ language, className }: TourismSiteRulesProps)
       {RULES.map((rule) => (
         <div
           key={rule.id}
-          className="flex w-[5.5rem] shrink-0 flex-col items-center gap-2 sm:w-24"
+          className="flex w-[6.5rem] shrink-0 flex-col items-center gap-1.5"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={rule.src}
             alt={getRuleAlt(rule, language)}
-            width={72}
-            height={72}
-            className="h-[4.5rem] w-[4.5rem] object-contain sm:h-20 sm:w-20"
+            width={64}
+            height={64}
+            className="h-16 w-16 object-contain"
             loading="eager"
             decoding="async"
           />
-          <div className="flex flex-col items-center text-center text-[10px] font-semibold leading-tight text-kiosk-navy sm:text-[11px]">
+          <div className="flex flex-col items-center text-center text-xs font-semibold leading-tight text-kiosk-navy">
             {labels[rule.id].map((line, index) => (
               <span key={`${rule.id}-${index}`}>{line}</span>
             ))}

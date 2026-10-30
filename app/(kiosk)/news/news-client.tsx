@@ -1,69 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { format } from "date-fns";
-import { Calendar, ChevronRight, Megaphone, X } from "lucide-react";
+import { Calendar, ChevronRight } from "lucide-react";
 import { useKiosk } from "@/hooks/use-kiosk";
 import { localized, pickLang } from "@/lib/i18n/translations";
-import { resolveKioskAssetUrl } from "@/lib/kiosk-sync-url";
 import { cn } from "@/lib/utils";
 import type { Announcement } from "@prisma/client";
-
-const CATEGORY_BADGES: Record<string, string> = {
-  advisory: "bg-blue-600",
-  program: "bg-kiosk-green",
-  "public notice": "bg-purple-600",
-  announcement: "bg-orange-500",
-};
+import {
+  NewsDetailModal,
+  NewsThumb as Thumb,
+  newsCategoryBadgeClass as categoryBadgeClass,
+  newsCategoryLabel as categoryLabel,
+} from "@/components/kiosk/news-detail-modal";
 
 const ROTATE_MS = 20_000;
 const FADE_MS = 900;
-
-function categoryBadgeClass(category: string | null) {
-  return CATEGORY_BADGES[(category ?? "announcement").toLowerCase()] ?? "bg-orange-500";
-}
-
-function categoryLabel(category: string | null) {
-  return (category?.trim() || "Announcement").toUpperCase();
-}
-
-function Thumb({
-  item,
-  className,
-  sizesHint,
-  fit = "cover",
-}: {
-  item: Announcement;
-  className?: string;
-  sizesHint: string;
-  fit?: "cover" | "contain";
-}) {
-  if (item.imageUrl) {
-    return (
-      <Image
-        src={resolveKioskAssetUrl(item.imageUrl)}
-        alt=""
-        fill
-        sizes={sizesHint}
-        className={cn(fit === "contain" ? "object-contain p-2" : "object-cover", className)}
-        unoptimized
-        loading="eager"
-        decoding="async"
-      />
-    );
-  }
-  return (
-    <div
-      className={cn(
-        "flex h-full w-full items-center justify-center bg-gradient-to-br from-kiosk-navy to-blue-600",
-        className
-      )}
-    >
-      <Megaphone className="h-8 w-8 text-white/60" />
-    </div>
-  );
-}
 
 function FeaturedContent({
   item,
@@ -80,42 +32,44 @@ function FeaturedContent({
   const content = localized(item, language, "content");
 
   return (
-    <div className={cn("col-start-1 row-start-1 flex min-h-0 flex-col", className)}>
-      <button
-        type="button"
-        className="relative h-[min(22vh,180px)] w-full shrink-0 overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 text-left sm:h-[min(24vh,200px)]"
-        onClick={() => onOpen(item)}
-        aria-label={`${pickLang(language, "Open", "Buksan", "Ablihi")} ${title}`}
-      >
-        <Thumb item={item} sizesHint="(min-width: 1024px) 420px, 100vw" fit="contain" />
-      </button>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3.5 sm:p-5">
-        <div className="mb-2 flex flex-wrap items-center gap-2">
+    <button
+      type="button"
+      onClick={() => onOpen(item)}
+      aria-label={`${pickLang(language, "Open", "Buksan", "Ablihi")} ${title}`}
+      className={cn(
+        "group relative col-start-1 row-start-1 flex h-full min-h-0 w-full overflow-hidden text-left",
+        className
+      )}
+    >
+      <Thumb
+        item={item}
+        sizesHint="(min-width: 1024px) 640px, 100vw"
+        className="absolute inset-0 transition duration-500 group-hover:scale-[1.03]"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-kiosk-navy via-kiosk-navy/75 to-kiosk-navy/10" />
+      <div className="relative mt-auto flex w-full flex-col p-5 sm:p-7">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
           <span
             className={cn(
-              "inline-block rounded-md px-2 py-0.5 text-[9px] font-bold tracking-wider text-white",
+              "inline-block rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wider text-white",
               categoryBadgeClass(item.category)
             )}
           >
             {categoryLabel(item.category)}
           </span>
-          <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-gray-500">
-            <Calendar className="h-3 w-3" />
+          <p className="flex items-center gap-1.5 text-xs font-medium text-white/80">
+            <Calendar className="h-3.5 w-3.5" />
             {format(new Date(item.publishedAt), "MMMM d, yyyy")}
           </p>
         </div>
-        <h3 className="line-clamp-2 text-base leading-snug font-bold text-kiosk-green sm:text-lg">{title}</h3>
-        <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-gray-700">{content}</p>
-        <button
-          type="button"
-          onClick={() => onOpen(item)}
-          className="mt-3 inline-flex items-center gap-1 self-start text-sm font-bold text-blue-700 hover:text-kiosk-navy"
-        >
+        <h3 className="line-clamp-3 text-2xl leading-tight font-bold text-white sm:text-3xl">{title}</h3>
+        <p className="mt-3 line-clamp-3 max-w-xl text-sm leading-relaxed text-white/85 sm:text-base">{content}</p>
+        <span className="mt-5 inline-flex w-fit items-center gap-1 rounded-full bg-white px-4 py-2 text-sm font-bold text-kiosk-navy">
           {pickLang(language, "Read More", "Magbasa Pa", "Basaha Pa")}
           <ChevronRight className="h-4 w-4" />
-        </button>
+        </span>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -200,9 +154,14 @@ export function NewsClient({ announcements }: { announcements: Announcement[] })
 
   return (
     <>
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+      <div
+        className={cn(
+          "grid min-h-0 flex-1 gap-4",
+          rest.length > 0 && "lg:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.9fr)]"
+        )}
+      >
         {/* Card shell stays put; old and new content crossfade in the same grid cell */}
-        <article className="kiosk-hover-lift grid min-h-0 overflow-hidden rounded-2xl bg-white shadow-md">
+        <article className="grid h-full min-h-0 overflow-hidden rounded-3xl bg-kiosk-navy shadow-md">
           {previous && previous.id !== featured.id && (
             <FeaturedContent
               key={`out-${previous.id}`}
@@ -221,47 +180,46 @@ export function NewsClient({ announcements }: { announcements: Announcement[] })
           />
         </article>
 
-        <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain pr-1">
-          {rest.map((item) => {
-            const title = localized(item, language, "title");
-            const content = localized(item, language, "content");
+        {rest.length > 0 && (
+          <div className="kiosk-main-scroll flex h-full min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain">
+            {rest.map((item) => {
+              const title = localized(item, language, "title");
+              const content = localized(item, language, "content");
 
-            return (
-              <article
-                key={item.id}
-                className="kiosk-hover-lift flex shrink-0 cursor-pointer gap-4 overflow-hidden rounded-2xl bg-white p-3 shadow-md"
-                onClick={() => openNews(item)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") openNews(item);
-                }}
-              >
-                <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-xl sm:h-20 sm:w-28 lg:h-24 lg:w-32">
-                  <Thumb item={item} sizesHint="128px" />
-                </div>
-                <div className="flex min-w-0 flex-1 flex-col justify-center py-1">
-                  <div className="flex items-start justify-between gap-3">
-                    <span
-                      className={cn(
-                        "inline-block shrink-0 rounded-md px-2 py-0.5 text-[9px] font-bold tracking-wider text-white",
-                        categoryBadgeClass(item.category)
-                      )}
-                    >
-                      {categoryLabel(item.category)}
-                    </span>
-                    <span className="flex shrink-0 items-center gap-1 text-[11px] font-medium text-gray-500">
-                      <Calendar className="h-3 w-3" />
-                      {format(new Date(item.publishedAt), "MMMM d, yyyy")}
-                    </span>
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => openNews(item)}
+                  className="flex w-full shrink-0 items-start gap-3.5 rounded-2xl bg-white p-3.5 text-left shadow-sm ring-1 ring-slate-200/80 transition hover:ring-slate-300"
+                >
+                  <div className="relative h-[4.75rem] w-[4.75rem] shrink-0 overflow-hidden rounded-xl">
+                    <Thumb item={item} sizesHint="76px" />
                   </div>
-                  <h3 className="mt-1.5 line-clamp-2 text-sm leading-snug font-bold text-kiosk-navy">{title}</h3>
-                  <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-600">{content}</p>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "inline-block shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide text-white",
+                          categoryBadgeClass(item.category)
+                        )}
+                      >
+                        {categoryLabel(item.category)}
+                      </span>
+                      <span className="truncate text-xs font-medium text-slate-500">
+                        {format(new Date(item.publishedAt), "MMM d, yyyy")}
+                      </span>
+                    </div>
+                    <h3 className="mt-1.5 line-clamp-2 text-[15px] leading-snug font-semibold text-kiosk-navy">
+                      {title}
+                    </h3>
+                    <p className="mt-1 line-clamp-2 text-sm leading-snug text-slate-500">{content}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {selected && (
@@ -273,78 +231,5 @@ export function NewsClient({ announcements }: { announcements: Announcement[] })
         />
       )}
     </>
-  );
-}
-
-function NewsDetailModal({
-  item,
-  language,
-  isClosing,
-  onClose,
-}: {
-  item: Announcement;
-  language: ReturnType<typeof useKiosk>["language"];
-  isClosing: boolean;
-  onClose: () => void;
-}) {
-  const title = localized(item, language, "title");
-  const content = localized(item, language, "content");
-
-  return (
-    <div
-      className={cn(
-        "fixed inset-0 z-[70] flex items-center justify-center bg-kiosk-navy/80 p-4 backdrop-blur-sm sm:p-6",
-        isClosing ? "charter-modal-backdrop-out" : "charter-modal-backdrop-in"
-      )}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="news-detail-title"
-      onClick={onClose}
-    >
-      <article
-        className={cn(
-          "flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl",
-          isClosing ? "charter-modal-panel-out" : "charter-modal-panel-in"
-        )}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="relative shrink-0 border-b border-gray-100">
-          <div className="relative h-[min(28vh,220px)] w-full overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 sm:h-[min(30vh,240px)]">
-            <Thumb item={item} sizesHint="768px" fit="contain" />
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-kiosk-navy shadow-lg hover:bg-white"
-            aria-label={pickLang(language, "Close news", "Isara ang balita", "Isira ang balita")}
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="overflow-y-auto p-5 sm:p-7">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span
-              className={cn(
-                "inline-block rounded-md px-2.5 py-1 text-[10px] font-bold tracking-wider text-white",
-                categoryBadgeClass(item.category)
-              )}
-            >
-              {categoryLabel(item.category)}
-            </span>
-            <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
-              <Calendar className="h-3.5 w-3.5" />
-              {format(new Date(item.publishedAt), "MMMM d, yyyy")}
-            </p>
-          </div>
-          <h2
-            id="news-detail-title"
-            className="max-w-3xl text-xl leading-tight font-bold text-kiosk-green sm:text-2xl"
-          >
-            {title}
-          </h2>
-          <p className="mt-5 whitespace-pre-line text-base leading-8 text-gray-700">{content}</p>
-        </div>
-      </article>
-    </div>
   );
 }

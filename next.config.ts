@@ -11,6 +11,8 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Dev assets must load when the kiosk is opened from another device on the LAN.
+  allowedDevOrigins: ["10.0.254.56", "10.*.*.*", "192.168.*.*", "172.*.*.*"],
   images: {
     unoptimized: true,
   },

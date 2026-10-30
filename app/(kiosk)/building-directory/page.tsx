@@ -21,6 +21,7 @@ export default function BuildingDirectoryPage() {
       descriptionBis={pageData.uiConfigBis.pageDescription}
       fit
       hideBanner
+      bleed
     >
       <Suspense fallback={null}>
         <BuildingDirectoryPageClient

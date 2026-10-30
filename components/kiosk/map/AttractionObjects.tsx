@@ -15,6 +15,7 @@ type ObjectProps = {
   labelVisible: boolean;
   onHover: (id: string | null) => void;
   onSelect: (id: string) => void;
+  reducedMotion?: boolean;
 };
 
 /**
@@ -116,6 +117,7 @@ export const AttractionMapObject = memo(function AttractionMapObject({
   labelVisible,
   onHover,
   onSelect,
+  reducedMotion = false,
 }: ObjectProps) {
   const active = selected || hovered;
   const spot = MAP_SPOT_LABELS[attraction.id];
@@ -149,40 +151,55 @@ export const AttractionMapObject = memo(function AttractionMapObject({
         onSelect(attraction.id);
       }}
     >
-      <motion.span
-        className={cn(
-          "relative drop-shadow-md",
-          selected && "map-marker-pulse",
-          hovered && !selected && "map-spot-hover-bounce"
-        )}
-        animate={{
-          scale: selected ? 1.28 : hovered ? 1.18 : 1,
-          y: hovered && !selected ? -2 : 0,
-        }}
-        transition={{ type: "spring", stiffness: 460, damping: 20 }}
-        style={{
-          filter: hovered
-            ? isVolcano
-              ? "drop-shadow(0 0 12px rgba(132,204,22,0.9))"
-              : "drop-shadow(0 0 10px rgba(249,115,22,0.85))"
-            : selected
-              ? "drop-shadow(0 0 8px rgba(249,115,22,0.75))"
-              : undefined,
-        }}
-      >
-        <MapSpotIcon
-          category={attraction.category}
-          active={selected}
-          hovered={hovered}
-        />
-        {hovered && !selected && (
-          <span
-            className="map-ripple absolute inset-[-4px] rounded-full"
-            style={{ animationDuration: "1s" }}
+      {reducedMotion ? (
+        <span
+          className={cn("relative drop-shadow-md", selected && "scale-110")}
+          style={{
+            transform: selected ? "scale(1.15)" : hovered ? "scale(1.08)" : undefined,
+          }}
+        >
+          <MapSpotIcon
+            category={attraction.category}
+            active={selected}
+            hovered={hovered}
           />
-        )}
-        {selected && <span className="map-ripple absolute inset-0 rounded-full" />}
-      </motion.span>
+        </span>
+      ) : (
+        <motion.span
+          className={cn(
+            "relative drop-shadow-md",
+            selected && "map-marker-pulse",
+            hovered && !selected && "map-spot-hover-bounce"
+          )}
+          animate={{
+            scale: selected ? 1.28 : hovered ? 1.18 : 1,
+            y: hovered && !selected ? -2 : 0,
+          }}
+          transition={{ type: "spring", stiffness: 460, damping: 20 }}
+          style={{
+            filter: hovered
+              ? isVolcano
+                ? "drop-shadow(0 0 12px rgba(132,204,22,0.9))"
+                : "drop-shadow(0 0 10px rgba(249,115,22,0.85))"
+              : selected
+                ? "drop-shadow(0 0 8px rgba(249,115,22,0.75))"
+                : undefined,
+          }}
+        >
+          <MapSpotIcon
+            category={attraction.category}
+            active={selected}
+            hovered={hovered}
+          />
+          {hovered && !selected && (
+            <span
+              className="map-ripple absolute inset-[-4px] rounded-full"
+              style={{ animationDuration: "1s" }}
+            />
+          )}
+          {selected && <span className="map-ripple absolute inset-0 rounded-full" />}
+        </motion.span>
+      )}
       {labelVisible && <SpotLabel text={displayLabel} active={active} side={side} />}
     </button>
   );

@@ -18,6 +18,7 @@ type Props = {
   hoveredAttractionId?: string | null;
   /** Admin/DB peak positions (percent) — moves painted volcanoes with labels. */
   peakPositions?: PeakPositionOverride[] | null;
+  reducedEffects?: boolean;
 };
 
 /** Hand-painted volcano mound — watercolor-style peak illustration. */
@@ -29,6 +30,7 @@ function VolcanoPeak({
   nightMode,
   delayClass,
   active = false,
+  reducedEffects = false,
 }: {
   cx: number;
   cy: number;
@@ -37,6 +39,7 @@ function VolcanoPeak({
   nightMode: boolean;
   delayClass?: string;
   active?: boolean;
+  reducedEffects?: boolean;
 }) {
   const w = 38 * scale;
   const h = 28 * scale;
@@ -44,13 +47,13 @@ function VolcanoPeak({
   return (
     <g
       transform={`translate(${cx}, ${base})`}
-      filter="url(#wc-peak-shadow)"
-      className={cn(
-        "map-mountain-peak",
-        delayClass,
-        active && "map-mountain-peak-active"
-      )}
-      style={active ? { transformOrigin: "0px 0px" } : undefined}
+      filter={reducedEffects ? undefined : "url(#wc-peak-shadow)"}
+      className={
+        reducedEffects
+          ? undefined
+          : cn("map-mountain-peak", delayClass, active && "map-mountain-peak-active")
+      }
+      style={active && !reducedEffects ? { transformOrigin: "0px 0px" } : undefined}
     >
       <ellipse
         cx={0}
@@ -65,14 +68,14 @@ function VolcanoPeak({
         fill={nightMode ? "#3d6b4a" : active ? "#6bb35a" : "#5a9a58"}
         stroke={nightMode ? "#6b8a5a" : active ? "#a3e635" : "#7cbc6e"}
         strokeWidth={active ? 1.8 : 1.2}
-        filter="url(#wc-peak-paint)"
+        filter={reducedEffects ? undefined : "url(#wc-peak-paint)"}
       />
       <path
         d={`M ${-w * 0.18} ${-h * 0.35} Q 0 ${-h * 0.62} ${w * 0.18} ${-h * 0.35} L ${w * 0.12} ${h * 0.05} Q 0 ${-h * 0.15} ${-w * 0.12} ${h * 0.05} Z`}
         fill={nightMode ? "#4d7a58" : "#8bc47a"}
         opacity={active ? 0.9 : 0.7}
       />
-      {(smoking || active) && (
+      {!reducedEffects && (smoking || active) && (
         <g>
           <ellipse
             className="map-mountain-smoke"
@@ -198,6 +201,7 @@ export const WatercolorMapDecor = memo(function WatercolorMapDecor({
   nightMode = false,
   hoveredAttractionId = null,
   peakPositions = null,
+  reducedEffects = false,
 }: Props) {
   const { width: W, height: H } = MAP_NATIVE;
   const peaks = resolvePeakArt(peakPositions);
@@ -224,18 +228,20 @@ export const WatercolorMapDecor = memo(function WatercolorMapDecor({
           <feGaussianBlur stdDeviation="2.5" />
         </filter>
       </defs>
-      <g id="wc-reefs">
-        <ReefWash cx={184} cy={58} rx={48} ry={22} nightMode={nightMode} />
-        <ReefWash cx={220} cy={95} rx={36} ry={18} nightMode={nightMode} />
-        <ReefWash cx={740} cy={120} rx={42} ry={20} nightMode={nightMode} />
-        <ReefWash cx={830} cy={200} rx={55} ry={28} nightMode={nightMode} />
-        <ReefWash cx={880} cy={340} rx={38} ry={22} nightMode={nightMode} />
-        <ReefWash cx={120} cy={200} rx={30} ry={16} nightMode={nightMode} />
-        <ReefWash cx={160} cy={320} rx={44} ry={24} nightMode={nightMode} />
-        <ReefWash cx={900} cy={480} rx={50} ry={26} nightMode={nightMode} />
-        <ReefWash cx={480} cy={30} rx={60} ry={18} nightMode={nightMode} />
-        <ReefWash cx={620} cy={680} rx={70} ry={20} nightMode={nightMode} />
-      </g>
+      {!reducedEffects ? (
+        <g id="wc-reefs">
+          <ReefWash cx={184} cy={58} rx={48} ry={22} nightMode={nightMode} />
+          <ReefWash cx={220} cy={95} rx={36} ry={18} nightMode={nightMode} />
+          <ReefWash cx={740} cy={120} rx={42} ry={20} nightMode={nightMode} />
+          <ReefWash cx={830} cy={200} rx={55} ry={28} nightMode={nightMode} />
+          <ReefWash cx={880} cy={340} rx={38} ry={22} nightMode={nightMode} />
+          <ReefWash cx={120} cy={200} rx={30} ry={16} nightMode={nightMode} />
+          <ReefWash cx={160} cy={320} rx={44} ry={24} nightMode={nightMode} />
+          <ReefWash cx={900} cy={480} rx={50} ry={26} nightMode={nightMode} />
+          <ReefWash cx={480} cy={30} rx={60} ry={18} nightMode={nightMode} />
+          <ReefWash cx={620} cy={680} rx={70} ry={20} nightMode={nightMode} />
+        </g>
+      ) : null}
 
       {/* Illustrated volcanic peaks — ambient breathe + smoke */}
       <g id="wc-peaks">
@@ -248,6 +254,7 @@ export const WatercolorMapDecor = memo(function WatercolorMapDecor({
             smoking={peak.smoking}
             nightMode={nightMode}
             delayClass={peak.delayClass}
+            reducedEffects={reducedEffects}
             active={Boolean(
               hoveredAttractionId && peak.attractionIds.includes(hoveredAttractionId)
             )}
@@ -255,50 +262,54 @@ export const WatercolorMapDecor = memo(function WatercolorMapDecor({
         ))}
       </g>
 
-      {/* Satellite island foam */}
-      <g id="wc-foam">
-        <IslandFoam paths={TRACED_WHITE_ISLAND} nightMode={nightMode} />
-        <IslandFoam paths={TRACED_MANTIGUE} nightMode={nightMode} />
-      </g>
+      {!reducedEffects ? (
+        <>
+          {/* Satellite island foam */}
+          <g id="wc-foam">
+            <IslandFoam paths={TRACED_WHITE_ISLAND} nightMode={nightMode} />
+            <IslandFoam paths={TRACED_MANTIGUE} nightMode={nightMode} />
+          </g>
 
-      {/* Decorative boats near ports */}
-      <g id="wc-boats">
-        <PumpBoat cx={758} cy={346} nightMode={nightMode} />
-        <PumpBoat cx={573} cy={86} flip nightMode={nightMode} />
-        <PumpBoat cx={736} cy={582} flip nightMode={nightMode} />
-        <PumpBoat cx={200} cy={520} nightMode={nightMode} />
-      </g>
+          {/* Decorative boats near ports */}
+          <g id="wc-boats">
+            <PumpBoat cx={758} cy={346} nightMode={nightMode} />
+            <PumpBoat cx={573} cy={86} flip nightMode={nightMode} />
+            <PumpBoat cx={736} cy={582} flip nightMode={nightMode} />
+            <PumpBoat cx={200} cy={520} nightMode={nightMode} />
+          </g>
 
-      {/* Tiny plane near airport */}
-      <g transform="translate(655, 159)" opacity={nightMode ? 0.5 : 0.75}>
-        <path
-          d="M -10 0 L 10 0 M 0 -3 L 0 3 M -4 -6 L 4 6 M -4 6 L 4 -6"
-          stroke={nightMode ? "#e2e8f0" : "#1e293b"}
-          strokeWidth={1.2}
-          strokeLinecap="round"
-        />
-        <ellipse
-          cx={0}
-          cy={0}
-          rx={12}
-          ry={4}
-          fill="none"
-          stroke={nightMode ? "#94a3b8" : "#475569"}
-          strokeWidth={0.8}
-        />
-      </g>
+          {/* Tiny plane near airport */}
+          <g transform="translate(655, 159)" opacity={nightMode ? 0.5 : 0.75}>
+            <path
+              d="M -10 0 L 10 0 M 0 -3 L 0 3 M -4 -6 L 4 6 M -4 6 L 4 -6"
+              stroke={nightMode ? "#e2e8f0" : "#1e293b"}
+              strokeWidth={1.2}
+              strokeLinecap="round"
+            />
+            <ellipse
+              cx={0}
+              cy={0}
+              rx={12}
+              ry={4}
+              fill="none"
+              stroke={nightMode ? "#94a3b8" : "#475569"}
+              strokeWidth={0.8}
+            />
+          </g>
 
-      {/* Snorkel mask icons near reef spots */}
-      {[
-        [184, 58],
-        [880, 340],
-        [830, 200],
-      ].map(([x, y], i) => (
-        <g key={`mask-${i}`} transform={`translate(${x}, ${y})`} opacity={nightMode ? 0.45 : 0.7}>
-          <ellipse cx={0} cy={0} rx={5} ry={4} fill="#ef4444" stroke="#fff" strokeWidth={0.8} />
-          <path d="M -5 0 H 5" stroke="#fff" strokeWidth={0.8} />
-        </g>
-      ))}
+          {/* Snorkel mask icons near reef spots */}
+          {[
+            [184, 58],
+            [880, 340],
+            [830, 200],
+          ].map(([x, y], i) => (
+            <g key={`mask-${i}`} transform={`translate(${x}, ${y})`} opacity={nightMode ? 0.45 : 0.7}>
+              <ellipse cx={0} cy={0} rx={5} ry={4} fill="#ef4444" stroke="#fff" strokeWidth={0.8} />
+              <path d="M -5 0 H 5" stroke="#fff" strokeWidth={0.8} />
+            </g>
+          ))}
+        </>
+      ) : null}
     </svg>
   );
 });

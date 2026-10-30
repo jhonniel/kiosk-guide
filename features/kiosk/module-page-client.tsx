@@ -20,6 +20,8 @@ interface ModulePageClientProps {
   hideBanner?: boolean;
   /** Hide the compact page header (back + title + date/time). */
   hideHeader?: boolean;
+  /** Let the page content run to the edges of the frame. */
+  bleed?: boolean;
   /** Optional element rendered on the right side of the gradient banner. */
   bannerAction?: React.ReactNode;
   /** Optional secondary line shown under the banner description. */
@@ -38,6 +40,7 @@ export function ModulePageClient({
   fit = false,
   hideBanner = false,
   hideHeader = false,
+  bleed = false,
   bannerAction,
   bannerMeta,
   children,
@@ -74,8 +77,8 @@ export function ModulePageClient({
       <div
         className={cn(
           "flex min-h-0 flex-1 flex-col",
-          flush ? "p-0" : "px-4 pb-4 pt-0 sm:px-6 sm:pb-6 lg:px-8 lg:pb-8",
-          fit && !flush && "pb-2"
+          flush || bleed ? "p-0" : "px-4 pb-4 pt-0 sm:px-6 sm:pb-6 lg:px-8 lg:pb-8",
+          fit && !flush && !bleed && "pb-2"
         )}
       >
       {!hideBanner && (

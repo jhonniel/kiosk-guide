@@ -41,6 +41,21 @@ const UI = {
     fil: "Pumili ng lokasyon:",
     bis: "Pilia ang lokasyon:",
   },
+  officesHeading: {
+    en: "Offices",
+    fil: "Mga Opisina",
+    bis: "Mga Opisina",
+  },
+  officesHint: {
+    en: "Tap an office for directions",
+    fil: "Pindutin ang opisina para sa direksyon",
+    bis: "Pindota ang opisina para sa lakang",
+  },
+  closeLabel: {
+    en: "Close",
+    fil: "Isara",
+    bis: "Isira",
+  },
   trySearching: {
     en: "Try searching for:",
     fil: "Subukang hanapin:",

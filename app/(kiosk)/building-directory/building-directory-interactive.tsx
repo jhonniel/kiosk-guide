@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { BuildingDirectoryGuide } from "@/components/kiosk/building-directory-guide";
 import { BuildingLayoutPanel } from "@/components/kiosk/building-layout-panel";
-import { BuildingNavigationPanel } from "@/components/kiosk/building-navigation-panel";
 import { IndoorKioskMap } from "@/components/indoor-map/indoor-kiosk-map";
 import { useBuildingNavigation } from "@/hooks/use-building-navigation";
 import { pickBuildingUiConfig } from "@/features/building-directory/page-data";
 import { getNodeByLocationId } from "@/features/building-directory/navigation/demo-graph";
+import {
+  findLocationById,
+  getLocationDisplay,
+} from "@/features/building-directory/location-display";
 import { useKiosk } from "@/hooks/use-kiosk";
 import type { BuildingUiConfig } from "@/features/settings/building-config";
 import type { BuildingLocationData } from "@/features/building-directory/types";
@@ -46,12 +48,13 @@ export function BuildingDirectoryInteractive({
   uiConfigBis,
   indoorMap = null,
   indoorMapV2 = false,
-  initialQuery,
 }: BuildingDirectoryInteractiveProps) {
   const { language } = useKiosk();
   const uiConfig = pickBuildingUiConfig(uiConfigEn, uiConfigFil, uiConfigBis, language);
   const [highlightLocationId, setHighlightLocationId] = useState<string | null>(null);
   const [pickedLocationId, setPickedLocationId] = useState<string | null>(null);
+  const [pickedFloor, setPickedFloor] = useState<number | null>(null);
+  const [pickedLabel, setPickedLabel] = useState<string | null>(null);
   const [navTarget, setNavTarget] = useState<NavTarget | null>(null);
   const navStartedRef = useRef<string | null>(null);
 
@@ -63,12 +66,15 @@ export function BuildingDirectoryInteractive({
 
   const pickedNode = useMemo(() => {
     if (!pickedLocationId) return null;
-    return getNodeByLocationId(navigationGraph, pickedLocationId) ?? null;
-  }, [pickedLocationId, navigationGraph]);
-
-  const handleLocationClick = useCallback((locationId: string) => {
-    setPickedLocationId(locationId);
-  }, []);
+    const node = getNodeByLocationId(navigationGraph, pickedLocationId) ?? null;
+    if (!node || !pickedFloor || pickedFloor === node.floor) return node;
+    return {
+      ...node,
+      id: `${node.id}__f${pickedFloor}`,
+      floor: pickedFloor,
+      label: pickedLabel ?? node.label,
+    };
+  }, [pickedLocationId, pickedFloor, pickedLabel, navigationGraph]);
 
   const nav = useBuildingNavigation({
     graph: navigationGraph,
@@ -84,6 +90,28 @@ export function BuildingDirectoryInteractive({
       setNavTarget({ locationId, name, accessible });
     },
     []
+  );
+
+  const handleLocationClick = useCallback(
+    (locationId: string, floor?: number, label?: string) => {
+      // Kiosk marker only highlights — nowhere to navigate.
+      if (locationId === uiConfig.kioskLocation.locationId || locationId === "f1-kiosk") {
+        setPickedLocationId(locationId);
+        setPickedFloor(floor ?? null);
+        setPickedLabel(label ?? null);
+        return;
+      }
+      const location = findLocationById(locations, locationId);
+      const name =
+        label?.trim() ||
+        (location ? getLocationDisplay(location, language).name : null) ||
+        locationId;
+      setPickedLocationId(null);
+      setPickedFloor(null);
+      setPickedLabel(null);
+      handleStartNavigation(locationId, name, false);
+    },
+    [handleStartNavigation, language, locations, uiConfig.kioskLocation.locationId]
   );
 
   const handleCloseNavigation = useCallback(() => {
@@ -105,19 +133,6 @@ export function BuildingDirectoryInteractive({
 
   return (
     <>
-      {!useLeafletIndoor && (
-        <div className="shrink-0">
-          <BuildingDirectoryGuide
-            isDemoMode={isDemoMode}
-            uiConfig={uiConfig}
-            initialQuery={initialQuery}
-            onLocationHighlight={setHighlightLocationId}
-            onStartNavigation={handleStartNavigation}
-            navigationActive={!!navTarget}
-          />
-        </div>
-      )}
-
       {useLeafletIndoor && indoorMap ? (
         <div className="min-h-0 flex-1">
           <IndoorKioskMap payload={indoorMap} buildingName={buildingName} />
@@ -137,6 +152,8 @@ export function BuildingDirectoryInteractive({
             onLocationClick={handleLocationClick}
             onCloseLocationInfo={() => {
               setPickedLocationId(null);
+              setPickedFloor(null);
+              setPickedLabel(null);
               if (!navTarget) setHighlightLocationId(null);
             }}
             onStartNavigation={(locationId, name) =>
@@ -150,17 +167,7 @@ export function BuildingDirectoryInteractive({
             currentFloor={currentFloor}
             onFloorChange={setCurrentFloor}
             autoFollowFloor={isNavigating}
-          />
-        </div>
-      )}
-
-      {navTarget && (
-        <div className="shrink-0">
-          <BuildingNavigationPanel
-            nav={nav}
-            destinationName={navTarget.name}
-            lang={language}
-            onClose={handleCloseNavigation}
+            onStopNavigation={isNavigating || hasArrived ? handleCloseNavigation : undefined}
           />
         </div>
       )}
