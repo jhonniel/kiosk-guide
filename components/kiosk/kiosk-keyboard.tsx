@@ -479,9 +479,9 @@ export function KioskKeyboard() {
             className="pointer-events-none absolute inset-0 -z-20"
             style={{
               clipPath: `path('${outline.d}')`,
-              // Same dark navy as the idle screen overlay (#07111f).
-              background: "linear-gradient(160deg, rgba(15,30,52,0.78), rgba(7,17,31,0.7))",
-              backdropFilter: "blur(18px) saturate(1.4)",
+              // Navy glass in the idle screen's palette, a shade lighter than its overlay.
+              background: "linear-gradient(160deg, rgba(203,213,225,0.66), rgba(148,163,184,0.56))",
+              backdropFilter: "blur(20px) saturate(1.5)",
               WebkitBackdropFilter: "blur(18px) saturate(1.4)",
             }}
           />
@@ -491,23 +491,31 @@ export function KioskKeyboard() {
             width={outline.width}
             height={outline.height}
           >
-            <path d={outline.d} fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth={1.5} />
+            <path d={outline.d} fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1.5} />
           </svg>
         </>
       ) : null}
       <div
         data-kb-part
         title={pickLang(language, "Drag to move the keyboard", "I-drag para ilipat ang keyboard", "I-drag aron ibalhin ang keyboard")}
-        className={cn(surface, "relative flex h-12 w-full items-center justify-center gap-2 text-white/60")}
+        className={cn(surface, "relative flex h-12 w-full items-center justify-center gap-2 text-slate-600")}
       >
-        <Move aria-hidden className="pointer-events-none h-5 w-5" />
+        <Move aria-hidden className="pointer-events-none h-5 w-5 shrink-0" />
+        <span className="pointer-events-none text-sm font-medium select-none">
+          {pickLang(
+            language,
+            "Drag the keyboard anywhere you want.",
+            "I-drag ang keyboard kahit saan mo gusto.",
+            "I-drag ang keyboard bisan asa nimo gusto.",
+          )}
+        </span>
         <button
           type="button"
           tabIndex={-1}
           aria-label={pickLang(language, "Close keyboard", "Isara ang keyboard", "Isira ang keyboard")}
           onPointerDown={(event) => event.preventDefault()}
           onClick={close}
-          className="absolute top-1/2 right-3 flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white active:scale-95"
+          className="absolute top-1/2 right-3 flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-white/60 text-slate-700 transition-colors hover:bg-white hover:text-kiosk-navy active:scale-95"
         >
           <X className="h-5 w-5" />
         </button>
@@ -526,9 +534,9 @@ export function KioskKeyboard() {
               className={cn(
                 keyBase,
                 rowIndex === 0
-                  ? "bg-white/[0.06] text-white/75 ring-1 ring-white/15"
-                  : "bg-white/[0.12] text-white",
-                pressed === key && "scale-95 bg-white text-kiosk-navy ring-0"
+                  ? "bg-white/85 text-slate-600 shadow-[0_2px_4px_rgba(15,26,46,0.22)] ring-1 ring-slate-900/10"
+                  : "bg-white text-kiosk-navy shadow-[0_2px_4px_rgba(15,26,46,0.22)] ring-1 ring-slate-900/10",
+                pressed === key && "scale-95 bg-kiosk-navy text-white"
               )}
             >
               {key}
@@ -545,8 +553,8 @@ export function KioskKeyboard() {
               onPointerCancel={stopRepeat}
               className={cn(
                 keyBase,
-                "bg-white/20 text-white",
-                pressed === "backspace" && "scale-95 bg-white text-kiosk-navy"
+                "bg-white text-kiosk-navy shadow-[0_2px_4px_rgba(15,26,46,0.22)] ring-1 ring-slate-900/10",
+                pressed === "backspace" && "scale-95 bg-kiosk-navy text-white"
               )}
             >
               <Delete className="h-6 w-6" />
@@ -580,8 +588,8 @@ export function KioskKeyboard() {
           // As wide as five keys and their gaps.
           style={{ height: keySize, width: `calc(${keySize} * 5 + 2rem)` }}
           className={cn(
-            "flex items-center justify-center rounded-full bg-white/[0.12] text-base font-semibold text-white/70 select-none transition-[transform,background-color,color] duration-100",
-            pressed === " " && "scale-[0.98] bg-white text-kiosk-navy"
+            "flex items-center justify-center rounded-full bg-white text-base font-semibold text-slate-500 shadow-[0_2px_4px_rgba(15,26,46,0.22)] ring-1 ring-slate-900/10 select-none transition-[transform,background-color,color] duration-100",
+            pressed === " " && "scale-[0.98] bg-kiosk-navy text-white"
           )}
         >
           space
