@@ -7,6 +7,7 @@ import type { Announcement, Event } from "@prisma/client";
 import { pickLang, t, localized, type Language } from "@/lib/i18n/translations";
 import { getLatestAnnouncements, getOngoingCalendarEvents } from "@/features/offline/selectors";
 import { NewsDetailModal, NewsThumb } from "@/components/kiosk/news-detail-modal";
+import { announceIdleAttract } from "@/lib/kiosk-events";
 import { useKiosk } from "@/hooks/use-kiosk";
 import { cn } from "@/lib/utils";
 
@@ -501,6 +502,7 @@ export function KioskIdleAttract({
 
   useEffect(() => {
     phaseRef.current = phase;
+    announceIdleAttract(phase !== "watching");
   }, [phase]);
 
   useEffect(() => {

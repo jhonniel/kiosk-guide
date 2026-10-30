@@ -10,6 +10,8 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
+  // Kiosk auto-update builds into a side folder while the live app keeps serving, then swaps it in.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   output: "standalone",
   // Dev assets must load when the kiosk is opened from another device on the LAN.
   allowedDevOrigins: ["10.0.254.56", "10.*.*.*", "192.168.*.*", "172.*.*.*"],

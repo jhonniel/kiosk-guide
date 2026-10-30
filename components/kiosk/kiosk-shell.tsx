@@ -7,6 +7,7 @@ import { KioskScenicBackdrop } from "@/components/kiosk/kiosk-scenic-backdrop";
 import { OfflineBanner } from "@/components/kiosk/offline-banner";
 import { KioskTapFeedback } from "@/components/kiosk/kiosk-tap-feedback";
 import { KioskFullscreenGuard } from "@/components/kiosk/kiosk-fullscreen-guard";
+import { KioskKeyboard } from "@/components/kiosk/kiosk-keyboard";
 import { CHARTER_SCENIC_IMAGE } from "@/features/citizens-charter/ui-catalog";
 import { useKioskUiScale } from "@/hooks/use-kiosk-ui-scale";
 import { cn } from "@/lib/utils";
@@ -64,6 +65,7 @@ export function KioskShell({ sidebar, children, autoZoomEnabled = true }: KioskS
         <BottomNav />
       </div>
       <KioskTapFeedback />
+      <KioskKeyboard />
     </div>
   );
 }
