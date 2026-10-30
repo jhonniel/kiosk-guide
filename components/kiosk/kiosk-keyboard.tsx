@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { createPortal } from "react-dom";
 import { CornerDownLeft, Delete, Move, X } from "lucide-react";
 import { useKiosk } from "@/hooks/use-kiosk";
@@ -100,28 +108,67 @@ function savedPosition(): Position | null {
   }
 }
 
+type PartBox = { top: number; bottom: number; left: number; right: number };
+const OUTER_RADIUS = 28;
+
 /**
- * Curved fill just outside a row's top corners, so the step down from a wider row above
- * bends smoothly instead of meeting at a sharp inside corner.
+ * SVG path around the stacked header + key rows: rounded outer corners, and where a row is narrower
+ * than its neighbour the step bends in with a convex then a concave curve. Clockwise from top-left.
  */
-function InnerCorners({ size }: { size: number }) {
-  if (size <= 0) return null;
-  const fill = (at: string) =>
-    `radial-gradient(circle at ${at}, transparent ${size - 0.5}px, white ${size}px)`;
-  return (
-    <>
-      <span
-        aria-hidden
-        className="pointer-events-none absolute top-0"
-        style={{ width: size, height: size, left: -size, background: fill("0 100%") }}
-      />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute top-0"
-        style={{ width: size, height: size, right: -size, background: fill("100% 100%") }}
-      />
-    </>
-  );
+function outlinePath(parts: PartBox[]): string {
+  if (parts.length === 0) return "";
+  const R = OUTER_RADIUS;
+  const out: string[] = [];
+  const n = (value: number) => Math.round(value * 100) / 100;
+  const line = (x: number, y: number) => out.push(`L ${n(x)} ${n(y)}`);
+  const arc = (r: number, sweep: 0 | 1, x: number, y: number) =>
+    out.push(`A ${n(r)} ${n(r)} 0 0 ${sweep} ${n(x)} ${n(y)}`);
+  const stepRadius = (a: PartBox, b: PartBox, offset: number) =>
+    Math.min(R, Math.abs(offset) / 2, (a.bottom - a.top) / 2, (b.bottom - b.top) / 2);
+
+  const first = parts[0];
+  const last = parts[parts.length - 1];
+  out.push(`M ${n(first.left + R)} ${n(first.top)}`);
+  line(first.right - R, first.top);
+  arc(R, 1, first.right, first.top + R);
+
+  for (let i = 0; i < parts.length - 1; i += 1) {
+    const a = parts[i];
+    const b = parts[i + 1];
+    const offset = a.right - b.right;
+    if (Math.abs(offset) < 0.5) continue;
+    const y = (a.bottom + b.top) / 2;
+    const r = stepRadius(a, b, offset);
+    const inward = offset > 0;
+    line(a.right, y - r);
+    arc(r, inward ? 1 : 0, inward ? a.right - r : a.right + r, y);
+    line(inward ? b.right + r : b.right - r, y);
+    arc(r, inward ? 0 : 1, b.right, y + r);
+  }
+
+  line(last.right, last.bottom - R);
+  arc(R, 1, last.right - R, last.bottom);
+  line(last.left + R, last.bottom);
+  arc(R, 1, last.left, last.bottom - R);
+
+  for (let i = parts.length - 1; i > 0; i -= 1) {
+    const below = parts[i];
+    const above = parts[i - 1];
+    const offset = below.left - above.left;
+    if (Math.abs(offset) < 0.5) continue;
+    const y = (above.bottom + below.top) / 2;
+    const r = stepRadius(above, below, offset);
+    const inward = offset > 0;
+    line(below.left, y + r);
+    arc(r, inward ? 0 : 1, inward ? below.left - r : below.left + r, y);
+    line(inward ? above.left + r : above.left - r, y);
+    arc(r, inward ? 1 : 0, above.left, y - r);
+  }
+
+  line(first.left, first.top + R);
+  arc(R, 1, first.left + R, first.top);
+  out.push("Z");
+  return out.join(" ");
 }
 
 /**
@@ -140,6 +187,8 @@ export function KioskKeyboard() {
   const touch = useCallback(() => setActivity((count) => count + 1), []);
   // True while the idle countdown or attract video covers the kiosk.
   const idleScreenRef = useRef(false);
+  const [outline, setOutline] = useState<{ d: string; width: number; height: number } | null>(null);
+  const shapeId = useId().replace(/:/g, "");
   const panelRef = useRef<HTMLDivElement>(null);
   const targetRef = useRef<Editable | null>(null);
   const restoreInputModeRef = useRef<string | null>(null);
@@ -239,6 +288,29 @@ export function KioskKeyboard() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  // Key size follows the screen width, so the outline is traced from the rows as laid out.
+  useLayoutEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    const measure = () => {
+      const box = panel.getBoundingClientRect();
+      const parts = Array.from(panel.querySelectorAll<HTMLElement>(":scope > [data-kb-part]"), (el) => {
+        const rect = el.getBoundingClientRect();
+        return {
+          top: rect.top - box.top,
+          bottom: rect.bottom - box.top,
+          left: rect.left - box.left,
+          right: rect.right - box.left,
+        };
+      });
+      setOutline({ d: outlinePath(parts), width: box.width, height: box.height });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(panel);
+    return () => observer.disconnect();
+  }, [mounted]);
 
   // The smart search closes its results on outside mousedown; typing here is not "outside".
   useEffect(() => {
@@ -353,17 +425,10 @@ export function KioskKeyboard() {
 
   const keyBase =
     "flex aspect-square w-[clamp(2.75rem,4.6vw,3.6rem)] items-center justify-center rounded-full text-xl font-semibold select-none transition-[transform,background-color,color] duration-100";
-  // One solid white shape: header and rows touch, each row as wide as its keys, so the outline steps in
-  // instead of being a box. Only corners that stick out past the row below are rounded.
-  const surface = "pointer-events-auto cursor-grab touch-none bg-white active:cursor-grabbing";
-  // Key size scales with the screen, so row heights land on fractional pixels; overlapping by 1px
-  // keeps a hairline seam from showing where two rows meet.
-  const joined = "relative -mt-px";
-  // The number row overhangs the next row by only half a key, so its corners stay small enough to
-  // leave room for the inner curve below them.
-  const rowShape = ["rounded-b-[12px] px-2 pt-0 pb-1", "px-2 py-1", "rounded-b-[1.75rem] px-2 py-1", "rounded-b-[1.75rem] px-2 py-1"];
-  /** Inner (concave) corner size where a row is narrower than the one above it; 0 = same width. */
-  const innerCorner = [0, 12, 0, 16];
+  // Header and rows only lay out the keys; the glass behind them is one layer cut to their combined
+  // outline, so the stepped shape has no seams.
+  const surface = "pointer-events-auto cursor-grab touch-none active:cursor-grabbing";
+  const rowPadding = ["px-2 pt-0 pb-1", "px-2 py-1", "px-2 py-1", "px-2 py-1"];
   const keySize = "clamp(2.75rem,4.6vw,3.6rem)";
 
   return createPortal(
@@ -377,8 +442,8 @@ export function KioskKeyboard() {
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
       className={cn(
-        // drop-shadow follows the combined outline, so there are no shadow seams between rows.
-        "pointer-events-none fixed top-0 left-0 z-[200] flex flex-col items-center drop-shadow-[0_14px_28px_rgba(15,26,46,0.32)]",
+        // No filter/opacity on this frame while shown: either would stop the glass from blurring the page.
+        "pointer-events-none fixed top-0 left-0 z-[200] isolate flex flex-col items-center",
         "transition-[opacity,translate] duration-200 ease-out",
         visible ? "visible translate-y-0 opacity-100" : "invisible translate-y-3 opacity-0"
       )}
@@ -387,9 +452,53 @@ export function KioskKeyboard() {
         transform: position ? `translate3d(${position.x}px, ${position.y}px, 0)` : "translate3d(-9999px, 0, 0)",
       }}
     >
+      {outline ? (
+        <>
+          {/* Soft shadow, masked so it only shows outside the glass. */}
+          <svg
+            aria-hidden
+            className="pointer-events-none absolute top-0 left-0 -z-30 overflow-visible"
+            width={outline.width}
+            height={outline.height}
+          >
+            <defs>
+              <filter id={`${shapeId}-blur`} x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="14" />
+              </filter>
+              <mask id={`${shapeId}-outside`} maskUnits="userSpaceOnUse" x={-80} y={-80} width={outline.width + 160} height={outline.height + 160}>
+                <rect x={-80} y={-80} width={outline.width + 160} height={outline.height + 160} fill="white" />
+                <path d={outline.d} fill="black" />
+              </mask>
+            </defs>
+            <g mask={`url(#${shapeId}-outside)`}>
+              <path d={outline.d} transform="translate(0 12)" fill="rgba(15,26,46,0.32)" filter={`url(#${shapeId}-blur)`} />
+            </g>
+          </svg>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-20"
+            style={{
+              clipPath: `path('${outline.d}')`,
+              // Same dark navy as the idle screen overlay (#07111f).
+              background: "linear-gradient(160deg, rgba(15,30,52,0.78), rgba(7,17,31,0.7))",
+              backdropFilter: "blur(18px) saturate(1.4)",
+              WebkitBackdropFilter: "blur(18px) saturate(1.4)",
+            }}
+          />
+          <svg
+            aria-hidden
+            className="pointer-events-none absolute top-0 left-0 -z-10 overflow-visible"
+            width={outline.width}
+            height={outline.height}
+          >
+            <path d={outline.d} fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth={1.5} />
+          </svg>
+        </>
+      ) : null}
       <div
+        data-kb-part
         title={pickLang(language, "Drag to move the keyboard", "I-drag para ilipat ang keyboard", "I-drag aron ibalhin ang keyboard")}
-        className={cn(surface, "relative flex h-12 w-full items-center justify-center gap-2 rounded-t-[1.75rem] text-slate-500")}
+        className={cn(surface, "relative flex h-12 w-full items-center justify-center gap-2 text-white/60")}
       >
         <Move aria-hidden className="pointer-events-none h-5 w-5" />
         <button
@@ -398,14 +507,13 @@ export function KioskKeyboard() {
           aria-label={pickLang(language, "Close keyboard", "Isara ang keyboard", "Isira ang keyboard")}
           onPointerDown={(event) => event.preventDefault()}
           onClick={close}
-          className="absolute top-1/2 right-3 flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-kiosk-navy active:scale-95"
+          className="absolute top-1/2 right-3 flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white active:scale-95"
         >
           <X className="h-5 w-5" />
         </button>
       </div>
       {ROWS.map((row, rowIndex) => (
-        <div key={rowIndex} className={cn(surface, joined, "flex gap-2", rowShape[rowIndex])}>
-          <InnerCorners size={innerCorner[rowIndex]} />
+        <div key={rowIndex} data-kb-part className={cn(surface, "flex gap-2", rowPadding[rowIndex])}>
           {row.map((key) => (
             <button
               key={key}
@@ -417,8 +525,10 @@ export function KioskKeyboard() {
               onPointerCancel={stopRepeat}
               className={cn(
                 keyBase,
-                rowIndex === 0 ? "bg-slate-50 text-slate-600 ring-1 ring-slate-200" : "bg-slate-100 text-kiosk-navy",
-                pressed === key && "scale-95 bg-kiosk-navy text-white ring-0"
+                rowIndex === 0
+                  ? "bg-white/[0.06] text-white/75 ring-1 ring-white/15"
+                  : "bg-white/[0.12] text-white",
+                pressed === key && "scale-95 bg-white text-kiosk-navy ring-0"
               )}
             >
               {key}
@@ -435,8 +545,8 @@ export function KioskKeyboard() {
               onPointerCancel={stopRepeat}
               className={cn(
                 keyBase,
-                "bg-slate-200 text-kiosk-navy",
-                pressed === "backspace" && "scale-95 bg-kiosk-navy text-white"
+                "bg-white/20 text-white",
+                pressed === "backspace" && "scale-95 bg-white text-kiosk-navy"
               )}
             >
               <Delete className="h-6 w-6" />
@@ -458,8 +568,7 @@ export function KioskKeyboard() {
           ) : null}
         </div>
       ))}
-      <div className={cn(surface, joined, "rounded-b-[1.75rem] px-2 pt-1 pb-2")}>
-        <InnerCorners size={16} />
+      <div data-kb-part className={cn(surface, "px-2 pt-1 pb-2")}>
         <button
           type="button"
           tabIndex={-1}
@@ -471,8 +580,8 @@ export function KioskKeyboard() {
           // As wide as five keys and their gaps.
           style={{ height: keySize, width: `calc(${keySize} * 5 + 2rem)` }}
           className={cn(
-            "flex items-center justify-center rounded-full bg-slate-100 text-base font-semibold text-slate-500 select-none transition-[transform,background-color,color] duration-100",
-            pressed === " " && "scale-[0.98] bg-kiosk-navy text-white"
+            "flex items-center justify-center rounded-full bg-white/[0.12] text-base font-semibold text-white/70 select-none transition-[transform,background-color,color] duration-100",
+            pressed === " " && "scale-[0.98] bg-white text-kiosk-navy"
           )}
         >
           space
