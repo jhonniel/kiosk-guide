@@ -5,7 +5,8 @@ root = fso.GetParentFolderName(fso.GetParentFolderName(scriptDir))
 shell.CurrentDirectory = root
 
 ' Check internet and pull the get-updates branch before the kiosk question.
-shell.Run "powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File """ & scriptDir & "\check-updates.ps1""", 0, True
+' Window style 1 keeps the progress window visible. Style 0 hides it.
+shell.Run "powershell.exe -STA -NoProfile -ExecutionPolicy Bypass -File """ & scriptDir & "\check-updates.ps1""", 1, True
 
 message = "Continue to the kiosk?" & vbCrLf & vbCrLf & _
   "Yes — fullscreen kiosk. This PC shows only the kiosk." & vbCrLf & vbCrLf & _

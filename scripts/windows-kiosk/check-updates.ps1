@@ -1,5 +1,6 @@
 # Boot-time update check. Runs before the kiosk question.
-# Online devices pull the get-updates branch and install only when the new code needs it.
+# Always asks, even when the device is already on get-updates.
+# A newer update is pulled and installed only after the device agrees.
 $ErrorActionPreference = "Continue"
 
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
@@ -19,6 +20,69 @@ function Write-Log([string]$Message) {
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class KioskUpdateWindow {
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+  [DllImport("kernel32.dll")] public static extern IntPtr GetConsoleWindow();
+}
+"@
+
+# Hide the PowerShell console only. Questions and the progress window stay visible.
+$console = [KioskUpdateWindow]::GetConsoleWindow()
+if ($console -ne [IntPtr]::Zero) { [void][KioskUpdateWindow]::ShowWindow($console, 0) }
+
+function Ask-YesNo([string]$Text, [string]$YesText = "Yes", [string]$NoText = "Skip") {
+  $ask = New-Object System.Windows.Forms.Form
+  $ask.Text = "Kiosk Guide"
+  $ask.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
+  $ask.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
+  $ask.TopMost = $true
+  $ask.ControlBox = $false
+  $ask.MaximizeBox = $false
+  $ask.MinimizeBox = $false
+  $ask.ShowInTaskbar = $true
+  $ask.ClientSize = New-Object System.Drawing.Size(540, 230)
+  $ask.Font = New-Object System.Drawing.Font("Segoe UI", 11)
+  $ask.Add_Shown({
+    $ask.Activate()
+    [void][KioskUpdateWindow]::SetForegroundWindow($ask.Handle)
+  }.GetNewClosure())
+
+  $askLabel = New-Object System.Windows.Forms.Label
+  $askLabel.Left = 24
+  $askLabel.Top = 20
+  $askLabel.Width = 492
+  $askLabel.Height = 140
+  $askLabel.Text = $Text
+
+  $yesButton = New-Object System.Windows.Forms.Button
+  $yesButton.Text = $YesText
+  $yesButton.DialogResult = [System.Windows.Forms.DialogResult]::Yes
+  $yesButton.Left = 248
+  $yesButton.Top = 176
+  $yesButton.Width = 150
+  $yesButton.Height = 32
+
+  $noButton = New-Object System.Windows.Forms.Button
+  $noButton.Text = $NoText
+  $noButton.DialogResult = [System.Windows.Forms.DialogResult]::No
+  $noButton.Left = 412
+  $noButton.Top = 176
+  $noButton.Width = 100
+  $noButton.Height = 32
+
+  $ask.Controls.Add($askLabel)
+  $ask.Controls.Add($yesButton)
+  $ask.Controls.Add($noButton)
+  $ask.AcceptButton = $yesButton
+  $ask.CancelButton = $noButton
+  $answer = $ask.ShowDialog()
+  $ask.Dispose()
+  return $answer -eq [System.Windows.Forms.DialogResult]::Yes
+}
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Kiosk Guide"
@@ -50,8 +114,6 @@ $bar.Value = 5
 
 $form.Controls.Add($label)
 $form.Controls.Add($bar)
-$form.Show()
-$form.Activate()
 
 $script:Closed = $false
 
@@ -76,14 +138,18 @@ function Set-Progress([int]$Percent, [string]$Text) {
     $bar.Value = $value
   }
   $label.Text = $Text
+  $form.Visible = $true
+  $form.TopMost = $true
   $form.Refresh()
+  [void][KioskUpdateWindow]::ShowWindow($form.Handle, 5)
+  [void][KioskUpdateWindow]::SetForegroundWindow($form.Handle)
   [System.Windows.Forms.Application]::DoEvents()
 }
 
 function Close-Update([string]$Text) {
   if ($script:Closed) { return }
   Set-Progress 100 $Text
-  Wait-Ui 1600
+  Wait-Ui 4000
   $script:Closed = $true
   $form.Close()
   $form.Dispose()
@@ -163,6 +229,12 @@ function Restart-KioskServer {
 
 try {
   Write-Log "Update check started in $Root"
+  $wantsCheck = Ask-YesNo "Get the latest kiosk update from the get-updates branch?`r`n`r`nThis is asked every time the device starts, even after the kiosk is installed.`r`n`r`nSkip leaves the installed kiosk as it is. You can still open it on the next screen." "Get updates" "Skip"
+  if (-not $wantsCheck) {
+    Write-Log "Update check skipped. Continuing to the kiosk."
+    exit 0
+  }
+
   Set-Progress 10 "Checking internet..."
   $online = Test-Internet
   if (-not $online) {
@@ -203,6 +275,16 @@ try {
     Close-Update "Kiosk is up to date."
     exit 0
   }
+
+  $form.Hide()
+  $wantsInstall = Ask-YesNo "A new update is available on the get-updates branch.`r`n`r`nPull and install it now?`r`n`r`nSkip continues with the kiosk that is already installed." "Pull and install" "Skip"
+  if (-not $wantsInstall) {
+    Write-Log "Update install skipped. Local $before remote $remote"
+    $form.Dispose()
+    exit 0
+  }
+  $form.Show()
+  [void][KioskUpdateWindow]::SetForegroundWindow($form.Handle)
 
   Set-Progress 45 "Pulling updates from get-updates..."
   $checkout = Invoke-Tool $Git @("checkout", "-B", $Branch, "origin/$Branch")

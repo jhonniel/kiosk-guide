@@ -1,9 +1,28 @@
 #!/usr/bin/env bash
 # Boot-time update check. Runs before the kiosk question.
+# Always asks, even when the device is already on get-updates.
 DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$DIR/../.." && pwd)"
 BRANCH="get-updates"
 LOG="/tmp/kiosk-update.log"
+
+ask_yes_no() {
+  local ok="${2:-Get updates}"
+  local cancel="${3:-Skip}"
+  if command -v zenity >/dev/null 2>&1; then
+    zenity --question --title="Kiosk Guide" --width=520 --ok-label="$ok" --cancel-label="$cancel" --text="$1" >/dev/null
+    return $?
+  fi
+  return 0
+}
+
+if ! ask_yes_no "Get the latest kiosk update from the get-updates branch?
+
+This is asked every time the device starts, even after the kiosk is installed.
+
+Skip leaves the installed kiosk as it is. You can still open it on the next screen." "Get updates" "Skip"; then
+  exit 0
+fi
 
 run_update() {
   echo 10
@@ -49,6 +68,14 @@ run_update() {
     echo 100
     echo "# Kiosk is up to date."
     sleep 2
+    exit 0
+  fi
+
+  if ! ask_yes_no "A new update is available on the get-updates branch.
+
+Pull and install it now?
+
+Skip continues with the kiosk that is already installed." "Pull and install" "Skip"; then
     exit 0
   fi
 
