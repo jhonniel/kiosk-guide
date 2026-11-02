@@ -76,9 +76,13 @@ function Ask-YesNo([string]$Text, [string]$YesText = "Yes", [string]$NoText = "S
 
   $ask.Controls.Add($askLabel)
   $ask.Controls.Add($yesButton)
-  $ask.Controls.Add($noButton)
+  if ($NoText) {
+    $ask.Controls.Add($noButton)
+    $ask.CancelButton = $noButton
+  } else {
+    $yesButton.Left = 366
+  }
   $ask.AcceptButton = $yesButton
-  $ask.CancelButton = $noButton
   $answer = $ask.ShowDialog()
   $ask.Dispose()
   return $answer -eq [System.Windows.Forms.DialogResult]::Yes
@@ -229,22 +233,27 @@ function Restart-KioskServer {
 
 try {
   Write-Log "Update check started in $Root"
+  while ($true) {
+    Set-Progress -1 "Checking internet..."
+    $online = Test-Internet
+    $form.Hide()
+    if ($online) {
+      Write-Log "Internet is connected."
+      [void](Ask-YesNo "Internet is connected." "Continue" "")
+      break
+    }
+    Write-Log "No internet connection."
+    $tryAgain = Ask-YesNo "No internet connection.`r`n`r`nUpdates cannot be downloaded.`r`n`r`nTry again checks the connection. Skip goes on to the kiosk question." "Try again" "Skip"
+    if (-not $tryAgain) {
+      Write-Log "Internet check skipped. Continuing to the kiosk."
+      $form.Dispose()
+      exit 0
+    }
+  }
+
   $wantsCheck = Ask-YesNo "Get the latest kiosk update from the get-updates branch?`r`n`r`nThis is asked every time the device starts, even after the kiosk is installed.`r`n`r`nSkip leaves the installed kiosk as it is. You can still open it on the next screen." "Get updates" "Skip"
   if (-not $wantsCheck) {
     Write-Log "Update check skipped. Continuing to the kiosk."
-    exit 0
-  }
-
-  Set-Progress 10 "Checking internet..."
-  $online = Test-Internet
-  if (-not $online) {
-    Set-Progress 15 "Waiting for internet..."
-    Wait-Ui 4000
-    $online = Test-Internet
-  }
-  if (-not $online) {
-    Write-Log "No internet. Skipping update."
-    Close-Update "No internet connection. Continuing with the installed kiosk."
     exit 0
   }
 

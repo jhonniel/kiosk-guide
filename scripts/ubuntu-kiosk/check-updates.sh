@@ -16,6 +16,26 @@ ask_yes_no() {
   return 0
 }
 
+have_internet() {
+  curl -fsS --max-time 5 -o /dev/null https://github.com
+}
+
+while true; do
+  if have_internet; then
+    if command -v zenity >/dev/null 2>&1; then
+      zenity --info --title="Kiosk Guide" --width=420 --ok-label="Continue" --text="Internet is connected." >/dev/null || true
+    fi
+    break
+  fi
+  if ! ask_yes_no "No internet connection.
+
+Updates cannot be downloaded.
+
+Try again checks the connection. Skip goes on to the kiosk question." "Try again" "Skip"; then
+    exit 0
+  fi
+done
+
 if ! ask_yes_no "Get the latest kiosk update from the get-updates branch?
 
 This is asked every time the device starts, even after the kiosk is installed.
@@ -26,17 +46,7 @@ fi
 
 run_update() {
   echo 10
-  echo "# Checking internet..."
-  if ! curl -fsS --max-time 5 -o /dev/null https://github.com; then
-    sleep 4
-    if ! curl -fsS --max-time 5 -o /dev/null https://github.com; then
-      echo 100
-      echo "# No internet connection. Continuing with the installed kiosk."
-      sleep 2
-      exit 0
-    fi
-  fi
-
+  echo "# Checking the get-updates branch..."
   if ! command -v git >/dev/null 2>&1 || [ ! -d "$ROOT/.git" ]; then
     echo 100
     echo "# Update check is not available. Continuing with the installed kiosk."
