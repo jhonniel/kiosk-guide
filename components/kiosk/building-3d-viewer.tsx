@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useTexture } from "@react-three/drei";
 import { Check, Layers, Minus, Plus } from "lucide-react";
+import { BuildingMapLoader } from "@/components/kiosk/building-map-loader";
 import { BuildingArrivalModal, BuildingNavigationHud } from "@/components/kiosk/building-navigation-panel";
 import { BuildingOfficeRail } from "@/components/kiosk/building-directory-guide";
 import { Vector3 } from "three";
@@ -58,10 +59,17 @@ interface Building3DViewerProps {
 function SceneLoader() {
   return (
     <mesh>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="#e2e8f0" wireframe />
+      <icosahedronGeometry args={[1.15, 0]} />
+      <meshStandardMaterial color="#1a2744" wireframe />
     </mesh>
   );
+}
+
+function SceneReady({ onReady }: { onReady: () => void }) {
+  useLayoutEffect(() => {
+    onReady();
+  }, [onReady]);
+  return null;
 }
 
 const zoomAnimRef = { id: 0 as number };
@@ -125,6 +133,20 @@ export function Building3DViewer({
   railExtra,
 }: Building3DViewerProps) {
   const { language } = useKiosk();
+  const [sceneReady, setSceneReady] = useState(false);
+  const [loaderOut, setLoaderOut] = useState(false);
+  const sceneReadyOnce = useRef(false);
+  const loaderStartedAt = useRef(typeof performance !== "undefined" ? performance.now() : 0);
+  const handleSceneReady = useCallback(() => {
+    if (sceneReadyOnce.current) return;
+    sceneReadyOnce.current = true;
+    const shownFor = performance.now() - loaderStartedAt.current;
+    const hold = Math.max(0, 720 - shownFor);
+    window.setTimeout(() => {
+      setLoaderOut(true);
+      window.setTimeout(() => setSceneReady(true), 420);
+    }, hold);
+  }, []);
   const focusFloor = currentFloor;
   const kioskLocation = kioskLocationProp ?? {
     floor: 1,
@@ -347,6 +369,7 @@ export function Building3DViewer({
           <color attach="background" args={[imageBased ? "#ebe4d8" : "#f0f4f8"]} />
           {!navigationMapMode && !imageBased && <fog attach="fog" args={["#e8f0fa", 55, 130]} />}
           <Suspense fallback={<SceneLoader />}>
+            <SceneReady onReady={handleSceneReady} />
             <Building3DScene
               graph={graph}
               kioskLocation={kioskLocation}
@@ -390,6 +413,19 @@ export function Building3DViewer({
             )}
           </Suspense>
         </Canvas>
+
+        {!sceneReady ? (
+          <BuildingMapLoader
+            fading={loaderOut}
+            className="absolute inset-0 z-[70]"
+            label={pickLang(
+              language,
+              "Loading the building map",
+              "Inihahanda ang mapa ng gusali",
+              "Giandam ang mapa sa building"
+            )}
+          />
+        ) : null}
 
         {isNavigating && onStopNavigation && destinationName && (
           <BuildingNavigationHud

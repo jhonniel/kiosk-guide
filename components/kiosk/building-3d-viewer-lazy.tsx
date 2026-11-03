@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { Building3DErrorBoundary } from "@/components/kiosk/building-3d-error-boundary";
+import { BuildingMapLoader } from "@/components/kiosk/building-map-loader";
 import type { ComponentProps } from "react";
 import type { Building3DViewer } from "@/components/kiosk/building-3d-viewer";
 
@@ -10,11 +11,7 @@ const DynamicBuilding3DViewer = dynamic(
   () => import("./building-3d-viewer").then((m) => m.Building3DViewer),
   {
     ssr: false,
-    loading: () => (
-      <div className="flex h-full min-h-[320px] animate-pulse items-center justify-center rounded-2xl border border-gray-200 bg-gradient-to-b from-[#e8f0fa] to-[#f4f7fb] text-sm text-gray-500">
-        Loading 3D building…
-      </div>
-    ),
+    loading: () => <BuildingMapLoader className="h-full min-h-[320px] rounded-2xl" />,
   }
 );
 

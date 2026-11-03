@@ -1557,3 +1557,168 @@ html.kiosk-zoom-locked [data-kiosk-zoom-surface] {
     stroke-dashoffset: -22;
   }
 }
+
+/* Building map — hexagon crystal loader */
+.building-map-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.1rem;
+  background: linear-gradient(180deg, #f4f7fb 0%, #ebe4d8 100%);
+  animation: building-map-loader-in 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.building-map-loader-out {
+  animation: building-map-loader-out 420ms ease forwards;
+  pointer-events: none;
+}
+
+.building-map-loader-stage {
+  position: relative;
+  width: 5.5rem;
+  height: 5.5rem;
+}
+
+.building-map-loader-glow {
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(34, 197, 94, 0.22), transparent 68%);
+  animation: building-map-loader-glow 2.4s ease-in-out infinite;
+}
+
+.building-map-loader-gem {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.building-map-loader-spin {
+  transform-origin: 50px 50px;
+  animation: building-map-loader-spin 7.5s linear infinite;
+}
+
+.building-map-loader-faces {
+  fill: rgba(26, 39, 68, 0.05);
+}
+
+.building-map-loader-ribs {
+  fill: none;
+  stroke: #1a2744;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.building-map-loader-outline {
+  fill: none;
+  stroke: #1a2744;
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+}
+
+.building-map-loader-trace {
+  fill: none;
+  stroke: #22c55e;
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 36 180;
+  animation: building-map-loader-trace 2.1s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+}
+
+.building-map-loader-label {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #1a2744;
+}
+
+.building-map-loader-dots {
+  display: flex;
+  gap: 0.38rem;
+}
+
+.building-map-loader-dots span {
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 999px;
+  background: #1a2744;
+  animation: building-map-loader-dot 1.2s ease-in-out infinite;
+}
+
+.building-map-loader-dots span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.building-map-loader-dots span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+@keyframes building-map-loader-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes building-map-loader-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes building-map-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes building-map-loader-trace {
+  to {
+    stroke-dashoffset: -216;
+  }
+}
+
+@keyframes building-map-loader-glow {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes building-map-loader-dot {
+  0%,
+  70%,
+  100% {
+    opacity: 0.22;
+    transform: translateY(0);
+  }
+  35% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .building-map-loader-spin,
+  .building-map-loader-trace,
+  .building-map-loader-glow,
+  .building-map-loader-dots span {
+    animation: none;
+  }
+
+  .building-map-loader-trace {
+    stroke-dasharray: none;
+  }
+}

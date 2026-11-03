@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useRef, type RefObject } from "react";
-import { useFrame } from "@react-three/fiber";
-import { Html, Line, RoundedBox, Text } from "@react-three/drei";
+import { useLayoutEffect, useMemo, useRef, type RefObject } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
+import { Html, RoundedBox, Text } from "@react-three/drei";
 import * as THREE from "three";
 import {
   FLOOR_LAYERS,
@@ -33,46 +33,69 @@ const MARKER_Y = FLOOR_LAYERS.markerY + 0.06;
 const PATH_WIDTH = 0.32;
 const PATH_LIFT = 0.025;
 
-/** Rounded corners on hallway grid paths — avoids diagonal shortcuts through open floor. */
-function filletRoutePoints(points: [number, number, number][], radius = 0.65): [number, number, number][] {
+/**
+ * Round L-joins into a circular bend so the thick guide looks like one pipe,
+ * not two capsules butting at a corner.
+ */
+function filletRoutePoints(
+  points: [number, number, number][],
+  radius = 1.35,
+  steps = 16
+): [number, number, number][] {
   if (points.length < 3) return points;
 
   const out: [number, number, number][] = [points[0]];
 
   for (let i = 1; i < points.length - 1; i += 1) {
-    const prev = new THREE.Vector3(points[i - 1][0], PATH_Y, points[i - 1][2]);
-    const curr = new THREE.Vector3(points[i][0], PATH_Y, points[i][2]);
-    const next = new THREE.Vector3(points[i + 1][0], PATH_Y, points[i + 1][2]);
+    const prev = new THREE.Vector3(points[i - 1][0], points[i - 1][1], points[i - 1][2]);
+    const curr = new THREE.Vector3(points[i][0], points[i][1], points[i][2]);
+    const next = new THREE.Vector3(points[i + 1][0], points[i + 1][1], points[i + 1][2]);
 
-    const inDir = curr.clone().sub(prev);
-    const outDir = next.clone().sub(curr);
+    if (Math.abs(prev.y - curr.y) > 0.08 || Math.abs(next.y - curr.y) > 0.08) {
+      out.push(points[i]);
+      continue;
+    }
+
+    const inDir = new THREE.Vector3(curr.x - prev.x, 0, curr.z - prev.z);
+    const outDir = new THREE.Vector3(next.x - curr.x, 0, next.z - curr.z);
     const inLen = inDir.length();
     const outLen = outDir.length();
-    if (inLen < 0.05 || outLen < 0.05) {
+    if (inLen < 0.08 || outLen < 0.08) {
       out.push(points[i]);
       continue;
     }
 
     inDir.divideScalar(inLen);
     outDir.divideScalar(outLen);
-    const alignment = inDir.dot(outDir);
-    if (Math.abs(alignment) > 0.92) {
+    if (Math.abs(inDir.dot(outDir)) > 0.94) {
       out.push(points[i]);
       continue;
     }
 
-    const r = Math.min(radius, inLen * 0.42, outLen * 0.42);
-    const entry = curr.clone().sub(inDir.clone().multiplyScalar(r));
-    const exit = curr.clone().add(outDir.clone().multiplyScalar(r));
+    const r = Math.min(radius, inLen * 0.45, outLen * 0.45);
+    const y = curr.y;
+    const entry = new THREE.Vector3(curr.x - inDir.x * r, y, curr.z - inDir.z * r);
+    const exit = new THREE.Vector3(curr.x + outDir.x * r, y, curr.z + outDir.z * r);
+    const center = new THREE.Vector3(
+      curr.x - inDir.x * r + outDir.x * r,
+      y,
+      curr.z - inDir.z * r + outDir.z * r
+    );
 
-    out.push([entry.x, PATH_Y, entry.z]);
-    for (let step = 1; step <= 5; step += 1) {
-      const t = step / 5;
-      const inv = 1 - t;
-      const x = inv * inv * entry.x + 2 * inv * t * curr.x + t * t * exit.x;
-      const z = inv * inv * entry.z + 2 * inv * t * curr.z + t * t * exit.z;
-      out.push([x, PATH_Y, z]);
+    const a0 = Math.atan2(entry.z - center.z, entry.x - center.x);
+    const a1 = Math.atan2(exit.z - center.z, exit.x - center.x);
+    let delta = a1 - a0;
+    const turn = inDir.x * outDir.z - inDir.z * outDir.x;
+    if (turn > 0 && delta < 0) delta += Math.PI * 2;
+    if (turn < 0 && delta > 0) delta -= Math.PI * 2;
+    const arcR = Math.hypot(entry.x - center.x, entry.z - center.z) || r;
+
+    out.push([entry.x, y, entry.z]);
+    for (let step = 1; step < steps; step += 1) {
+      const angle = a0 + (delta * step) / steps;
+      out.push([center.x + Math.cos(angle) * arcR, y, center.z + Math.sin(angle) * arcR]);
     }
+    out.push([exit.x, y, exit.z]);
   }
 
   out.push(points[points.length - 1]);
@@ -142,105 +165,135 @@ function pointOnPolyline(points: [number, number, number][], t: number) {
   );
 }
 
-type RouteStroke = {
-  points: [number, number, number][];
-  /** Distance along the route where this stroke starts and ends (overlap pad included). */
-  d0: number;
-  d1: number;
-};
-
-/**
- * Short overlapping two-point strokes (a long colinear polyline drops the middle of the hallway),
- * tagged with where each sits along the route.
- */
-function routeStrokes(points: [number, number, number][]): { strokes: RouteStroke[]; total: number } {
-  const strokes: RouteStroke[] = [];
-  const maxLen = 3;
-  let along = 0;
-  for (let i = 1; i < points.length; i += 1) {
-    const a = points[i - 1];
-    const b = points[i];
-    const dx = b[0] - a[0];
-    const dy = b[1] - a[1];
-    const dz = b[2] - a[2];
-    const len = Math.hypot(dx, dy, dz);
-    if (len >= 0.02) {
-      const steps = Math.max(1, Math.ceil(len / maxLen));
-      const pad = 0.12 / len;
-      for (let step = 0; step < steps; step += 1) {
-        const u0 = Math.max(0, step / steps - pad);
-        const u1 = Math.min(1, (step + 1) / steps + pad);
-        strokes.push({
-          points: [
-            [a[0] + dx * u0, a[1] + dy * u0, a[2] + dz * u0],
-            [a[0] + dx * u1, a[1] + dy * u1, a[2] + dz * u1],
-          ],
-          d0: along + len * u0,
-          d1: along + len * u1,
-        });
-      }
-    }
-    along += len;
-  }
-  return { strokes, total: along };
+function xzTangent(from: THREE.Vector3, to: THREE.Vector3, fallback: THREE.Vector3) {
+  const dir = new THREE.Vector3(to.x - from.x, 0, to.z - from.z);
+  if (dir.lengthSq() < 1e-8) return fallback.clone();
+  return dir.normalize();
 }
 
-/**
- * Walked / remaining strokes at a distance along the route.
- * Whole strokes keep their point arrays, so only the stroke under the marker is rebuilt.
- */
-function splitStrokes(strokes: RouteStroke[], distance: number) {
-  const walked: { key: string; points: [number, number, number][] }[] = [];
-  const remaining: { key: string; points: [number, number, number][] }[] = [];
-  strokes.forEach((stroke, index) => {
-    if (stroke.d1 <= distance) {
-      walked.push({ key: `${index}`, points: stroke.points });
-      return;
+/** Flat floor strip — no Line2 capsules, so the guide has no oval beads. */
+function buildRibbonGeometry(points: [number, number, number][], halfWidth: number) {
+  const geometry = new THREE.BufferGeometry();
+  if (points.length < 2) return geometry;
+
+  const vecs = points.map((p) => new THREE.Vector3(p[0], p[1], p[2]));
+  const positions: number[] = [];
+  const indices: number[] = [];
+
+  for (let i = 0; i < vecs.length; i += 1) {
+    const prev = vecs[Math.max(0, i - 1)];
+    const curr = vecs[i];
+    const next = vecs[Math.min(vecs.length - 1, i + 1)];
+    const incoming = xzTangent(prev, curr, new THREE.Vector3(1, 0, 0));
+    const outgoing = xzTangent(curr, next, incoming);
+    const tangent = incoming.clone().add(outgoing);
+    if (tangent.lengthSq() < 1e-8) tangent.copy(incoming);
+    tangent.normalize();
+    const perp = new THREE.Vector3(-tangent.z, 0, tangent.x).multiplyScalar(halfWidth);
+    positions.push(curr.x + perp.x, curr.y, curr.z + perp.z);
+    positions.push(curr.x - perp.x, curr.y, curr.z - perp.z);
+  }
+
+  for (let i = 0; i < vecs.length - 1; i += 1) {
+    const a = i * 2;
+    indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+  }
+
+  const addCap = (center: THREE.Vector3, outward: THREE.Vector3) => {
+    const side = new THREE.Vector3(-outward.z, 0, outward.x).normalize();
+    const origin = positions.length / 3;
+    positions.push(center.x, center.y, center.z);
+    const steps = 12;
+    for (let i = 0; i <= steps; i += 1) {
+      const angle = -Math.PI / 2 + (Math.PI * i) / steps;
+      const p = center
+        .clone()
+        .addScaledVector(side, Math.cos(angle) * halfWidth)
+        .addScaledVector(outward, Math.sin(angle) * halfWidth);
+      positions.push(p.x, p.y, p.z);
     }
-    if (stroke.d0 >= distance) {
-      remaining.push({ key: `${index}`, points: stroke.points });
-      return;
+    for (let i = 0; i < steps; i += 1) {
+      indices.push(origin, origin + 2 + i, origin + 1 + i);
     }
-    const [a, b] = stroke.points;
-    const f = (distance - stroke.d0) / (stroke.d1 - stroke.d0 || 1);
-    const mid: [number, number, number] = [
-      a[0] + (b[0] - a[0]) * f,
-      a[1] + (b[1] - a[1]) * f,
-      a[2] + (b[2] - a[2]) * f,
-    ];
-    walked.push({ key: `${index}-part`, points: [a, mid] });
-    remaining.push({ key: `${index}-part`, points: [mid, b] });
-  });
-  return { walked, remaining };
+  };
+
+  const startOut = xzTangent(vecs[1], vecs[0], new THREE.Vector3(-1, 0, 0));
+  const endOut = xzTangent(vecs[vecs.length - 2], vecs[vecs.length - 1], new THREE.Vector3(1, 0, 0));
+  addCap(vecs[0], startOut);
+  addCap(vecs[vecs.length - 1], endOut);
+
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+function RouteRibbon({
+  points,
+  width,
+  color,
+  opacity = 1,
+  depthTest = true,
+  renderOrder = 15,
+}: {
+  points: [number, number, number][];
+  width: number;
+  color: string;
+  opacity?: number;
+  depthTest?: boolean;
+  renderOrder?: number;
+}) {
+  const geometry = useMemo(() => buildRibbonGeometry(points, width / 2), [points, width]);
+  const { invalidate } = useThree();
+  useLayoutEffect(() => {
+    invalidate();
+    return () => geometry.dispose();
+  }, [geometry, invalidate]);
+  if (points.length < 2) return null;
+  return (
+    <mesh geometry={geometry} renderOrder={renderOrder} frustumCulled={false}>
+      <meshBasicMaterial
+        color={color}
+        transparent={opacity < 1}
+        opacity={opacity}
+        depthTest={depthTest}
+        depthWrite={false}
+        toneMapped={false}
+        side={THREE.DoubleSide}
+        polygonOffset
+        polygonOffsetFactor={-2}
+        polygonOffsetUnits={-2}
+      />
+    </mesh>
+  );
+}
+
+function splitPolyline(points: [number, number, number][], distance: number) {
+  const lengths = polylineLengths(points);
+  const total = lengths[lengths.length - 1] || 1;
+  const at = Math.min(Math.max(distance, 0), total);
+  if (at <= 0.001) return { walked: [] as typeof points, remaining: points };
+  if (at >= total - 0.001) return { walked: points, remaining: [] as typeof points };
+
+  let i = 1;
+  while (i < lengths.length - 1 && lengths[i] < at) i += 1;
+  const span = lengths[i] - lengths[i - 1] || 1;
+  const u = (at - lengths[i - 1]) / span;
+  const a = points[i - 1];
+  const b = points[i];
+  const mid: [number, number, number] = [
+    a[0] + (b[0] - a[0]) * u,
+    a[1] + (b[1] - a[1]) * u,
+    a[2] + (b[2] - a[2]) * u,
+  ];
+  return {
+    walked: [...points.slice(0, i), mid],
+    remaining: [mid, ...points.slice(i)],
+  };
 }
 
 function curveToLinePoints(curve: THREE.CatmullRomCurve3, count = 72) {
   return curve.getPoints(count).map((v) => [v.x, PATH_Y + PATH_LIFT, v.z] as [number, number, number]);
-}
-
-const lineMat = {
-  depthTest: true,
-  depthWrite: false,
-  polygonOffset: true,
-  polygonOffsetFactor: -4,
-  polygonOffsetUnits: -4,
-};
-
-/** Mall guide draws on top of stairs/floors so it never sits under the mesh. */
-const mallLineMat = {
-  depthTest: false,
-  depthWrite: false,
-};
-
-function splitCurveLinePoints(curve: THREE.CatmullRomCurve3, progress: number, count = 80) {
-  const pts = curve.getPoints(count).map((v) => [v.x, PATH_Y + PATH_LIFT, v.z] as [number, number, number]);
-  if (pts.length < 2) return { walked: pts, remaining: [] as typeof pts };
-  const t = Math.max(0, Math.min(1, progress));
-  const splitIdx = Math.max(1, Math.round(t * (pts.length - 1)));
-  return {
-    walked: pts.slice(0, splitIdx + 1),
-    remaining: pts.slice(splitIdx),
-  };
 }
 
 function FlatRoutePath({
@@ -256,20 +309,17 @@ function FlatRoutePath({
   walkedProgress?: number;
   preview?: boolean;
 }) {
-  const route = useMemo(
-    () => (straightPoints && straightPoints.length >= 2 ? routeStrokes(straightPoints) : null),
-    [straightPoints]
-  );
+  const linePoints = useMemo(() => {
+    if (straightPoints && straightPoints.length >= 2) return straightPoints;
+    if (curve) return curveToLinePoints(curve, 96);
+    return [] as [number, number, number][];
+  }, [straightPoints, curve]);
   const shownProgress = preview ? 0 : Math.max(0, Math.min(1, walkedProgress));
   const { walked, remaining } = useMemo(() => {
-    if (route) return splitStrokes(route.strokes, shownProgress * route.total);
-    if (!curve) return { walked: [], remaining: [] };
-    const split = splitCurveLinePoints(curve, shownProgress);
-    return {
-      walked: split.walked.length >= 2 ? [{ key: "0", points: split.walked }] : [],
-      remaining: split.remaining.length >= 2 ? [{ key: "0", points: split.remaining }] : [],
-    };
-  }, [route, curve, shownProgress]);
+    if (linePoints.length < 2) return { walked: [] as typeof linePoints, remaining: [] as typeof linePoints };
+    const total = polylineLengths(linePoints)[linePoints.length - 1] || 1;
+    return splitPolyline(linePoints, shownProgress * total);
+  }, [linePoints, shownProgress]);
 
   const palette =
     variant === "mall"
@@ -307,58 +357,31 @@ function FlatRoutePath({
 
   const mall = variant === "mall";
   const width = PATH_WIDTH + (mall || variant === "kiosk" ? 0.08 : 0);
-  const mat = mall ? mallLineMat : lineMat;
+  const depthTest = !mall;
+  const order = mall ? 40 : 15;
 
-  if (walked.length === 0 && remaining.length === 0) return null;
+  if (walked.length < 2 && remaining.length < 2) return null;
 
   return (
-    <group renderOrder={mall ? 40 : 15}>
-      {remaining.map(({ key, points: pts }) => (
-          <group key={`remain-${key}`} renderOrder={mall ? 40 : 15}>
-            <Line
-              points={pts}
-              color={palette.shadow}
-              lineWidth={width + 0.14}
-              worldUnits
-              transparent
-              opacity={mall ? 0.2 : 0.12}
-              {...mat}
-            />
-            <Line
-              points={pts}
-              color={palette.glow}
-              lineWidth={width + 0.14}
-              worldUnits
-              transparent
-              opacity={0.92}
-              {...mat}
-            />
-            <Line points={pts} color={palette.core} lineWidth={width} worldUnits {...mat} />
-          </group>
-        ))}
-      {walked.map(({ key, points: pts }) => (
-          <group key={`walked-${key}`} renderOrder={mall ? 41 : 15}>
-            <Line
-              points={pts}
-              color={palette.walkedShadow}
-              lineWidth={width + 0.22}
-              worldUnits
-              transparent
-              opacity={mall ? 0.22 : 0.18}
-              {...mat}
-            />
-            <Line
-              points={pts}
-              color={palette.walkedGlow}
-              lineWidth={width + 0.1}
-              worldUnits
-              transparent
-              opacity={0.7}
-              {...mat}
-            />
-            <Line points={pts} color={palette.walkedCore} lineWidth={width} worldUnits {...mat} />
-          </group>
-        ))}
+    <group renderOrder={order}>
+      {remaining.length >= 2 ? (
+        <RouteRibbon
+          points={remaining}
+          width={width}
+          color={palette.core}
+          depthTest={depthTest}
+          renderOrder={order}
+        />
+      ) : null}
+      {walked.length >= 2 ? (
+        <RouteRibbon
+          points={walked}
+          width={width}
+          color={palette.walkedCore}
+          depthTest={depthTest}
+          renderOrder={order + 1}
+        />
+      ) : null}
     </group>
   );
 }
@@ -779,7 +802,7 @@ export function NavigationBluePath({
 }) {
   const straight = variant === "mall";
   const straightPoints = useMemo(
-    () => (straight ? straightRoutePoints(points) : undefined),
+    () => (straight ? filletRoutePoints(straightRoutePoints(points)) : undefined),
     [points, straight]
   );
   const curve = useMemo(() => (straight ? null : buildRouteCurve(points)), [points, straight]);
