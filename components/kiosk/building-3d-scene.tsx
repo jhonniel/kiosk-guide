@@ -640,11 +640,23 @@ export function Building3DScene({
     // Hall paths that merely pass near stairs were getting sucked into a zigzag climb.
     const floorsInRoute = new Set(activeRoute.segments.map((segment) => segment.floor));
     const multiFloor = floorsInRoute.size > 1;
-    const stairIdsOnRoute = new Set(
-      activeRoute.segments.flatMap((segment) =>
-        segment.nodeIds.filter((id) => graph.nodes.find((n) => n.id === id)?.type === "staircase")
-      )
-    );
+    // Draw the climb only where the visitor leaves by that stair. On the floor they
+    // arrive at, the guide starts at the stair opening instead of re-climbing.
+    const stairIdsOnRoute = new Set<string>();
+    activeRoute.segments.forEach((segment, index) => {
+      if (segment.floor !== viewFloor || index === activeRoute.segments.length - 1) return;
+      const lastId = segment.nodeIds[segment.nodeIds.length - 1];
+      const nextFloor = activeRoute.segments[index + 1]?.floor;
+      if (
+        lastId &&
+        nextFloor !== undefined &&
+        nextFloor !== segment.floor &&
+        segment.nodeIds.length > 1 &&
+        graph.nodes.find((n) => n.id === lastId)?.type === "staircase"
+      ) {
+        stairIdsOnRoute.add(lastId);
+      }
+    });
 
     if (!multiFloor || stairIdsOnRoute.size === 0) {
       return deduped;
@@ -997,7 +1009,9 @@ export function Building3DScene({
           {!imageBased && (
             <NavigationStartMarker position={routePoints[0]} label={kioskLabel} />
           )}
-          <DestinationCallout position={routePoints[routePoints.length - 1]} label={destinationLabel} />
+          {activeRoute?.segments[activeRoute.segments.length - 1]?.floor === viewFloor ? (
+            <DestinationCallout position={routePoints[routePoints.length - 1]} label={destinationLabel} />
+          ) : null}
         </>
       )}
 

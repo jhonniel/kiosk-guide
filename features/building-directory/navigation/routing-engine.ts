@@ -8,6 +8,7 @@ import type {
 import {
   officeDoorOnHallway,
   routeAroundUpperHallWell,
+  stairHallApproachPlanPoints,
 } from "./building-3d";
 import { prepareShortestPathGraph } from "./shortest-path-graph";
 
@@ -312,9 +313,23 @@ function buildSegment(graph: NavigationGraph, floor: number, nodeIds: string[]):
             ? next
             : sameFloorCorridor(graph, node);
       const hallY = alongHall ? alongHall.y : node.y + 44;
-      // Stay on the hall at this stair's column. Walking into the flight
-      // makes a hook around the stairs when a straight corridor is enough.
-      pushPathPoint(points, { x: node.x, y: hallY });
+      // Same-floor path that only passes the stair — stay on the hall, no zigzag into the flight.
+      const walkPast =
+        prev &&
+        next &&
+        prev.type !== "staircase" &&
+        next.type !== "staircase";
+      if (walkPast) {
+        pushPathPoint(points, { x: node.x, y: hallY });
+        continue;
+      }
+      const leavingThisFloor = Boolean(
+        prev && prev.type !== "staircase" && (!next || next.type === "staircase")
+      );
+      // Approach on the ascending-flight column (not the stairwell middle).
+      for (const point of stairHallApproachPlanPoints(node, graph, hallY, leavingThisFloor)) {
+        pushPathPoint(points, point);
+      }
       continue;
     }
 
@@ -359,6 +374,21 @@ function buildSegment(graph: NavigationGraph, floor: number, nodeIds: string[]):
     }
 
     const prev = points[points.length - 1];
+    if (prev && node.type === "intersection" && i + 1 < nodeIds.length) {
+      const nextNode = nodeMap.get(nodeIds[i + 1]);
+      const target = nextNode
+        ? officeDoorOnHallway(nextNode.locationId) ?? { x: nextNode.x, y: nextNode.y }
+        : null;
+      // A junction past the turn makes the guide overshoot and double back.
+      if (
+        target &&
+        Math.abs(node.x - prev.x) > 12 &&
+        Math.abs(node.y - prev.y) < 4 &&
+        (node.x - prev.x) * (target.x - node.x) < 0
+      ) {
+        continue;
+      }
+    }
     if (prev && (node.type === "room" || node.type === "facility")) {
       const door = officeDoorOnHallway(node.locationId);
       if (door) {
