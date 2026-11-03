@@ -6,6 +6,10 @@ $Node = "C:\Program Files\nodejs\node.exe"
 $NextBin = Join-Path $Root "node_modules\next\dist\bin\next"
 $LogDir = "C:\Kiosk\logs"
 $Log = Join-Path $LogDir "server.log"
+$Branch = "get-updates"
+$Git = "C:\Program Files\Git\cmd\git.exe"
+$Npm = "C:\Program Files\nodejs\npm.cmd"
+$RunningCommit = "C:\Kiosk\running-commit"
 
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 
@@ -27,9 +31,55 @@ function Test-Port([int]$Port) {
   }
 }
 
-if (Test-Port 3000) {
-  Write-Log "Port 3000 is already open. Leaving the existing server running."
+function Stop-KioskServer {
+  Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction SilentlyContinue | Where-Object {
+    $_.CommandLine -and $_.CommandLine -like "*\Documents\KIOSK\*" -and $_.CommandLine -like "*next*"
+  } | ForEach-Object {
+    Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+    Write-Log "Stopped server process $($_.ProcessId)"
+  }
+  Start-Sleep -Seconds 1
+}
+
+function Use-GetUpdatesBranch {
+  if (-not (Test-Path $Git) -or -not (Test-Path (Join-Path $Root ".git"))) { return }
+  $env:GIT_TERMINAL_PROMPT = "0"
+  $current = ""
+  try { $current = (& $Git -C $Root "rev-parse" "--abbrev-ref" "HEAD").Trim() } catch { $current = "" }
+  if ($current -eq $Branch) {
+    Write-Log "Boot branch is get-updates."
+    return
+  }
+  Write-Log "Boot branch is $current. Switching to get-updates."
+  & $Git -C $Root "checkout" $Branch
+  if ($LASTEXITCODE -ne 0) {
+    & $Git -C $Root "checkout" "-B" $Branch "origin/$Branch"
+  }
+  if ($LASTEXITCODE -eq 0) {
+    Write-Log "Now running from get-updates."
+  } else {
+    Write-Log "Could not switch to get-updates. Starting the current checkout."
+  }
+}
+
+function Test-BuildIsCurrent {
+  $buildId = Join-Path $Root ".next\BUILD_ID"
+  if (-not (Test-Path $buildId) -or -not (Test-Path $RunningCommit) -or -not (Test-Path $Git)) { return $false }
+  $head = (& $Git -C $Root "rev-parse" "HEAD").Trim()
+  $built = (Get-Content $RunningCommit -Raw -ErrorAction SilentlyContinue)
+  if (-not $built) { return $false }
+  return $built.Trim() -eq $head
+}
+
+Use-GetUpdatesBranch
+$buildIsCurrent = Test-BuildIsCurrent
+if ((Test-Port 3000) -and $buildIsCurrent) {
+  Write-Log "Port 3000 is already open on the get-updates build. Leaving the existing server running."
   exit 0
+}
+if (Test-Port 3000) {
+  Write-Log "Stopping the server so it can start from get-updates."
+  Stop-KioskServer
 }
 
 Write-Log "Waiting for PostgreSQL on port 5432."
@@ -52,9 +102,20 @@ if (-not (Test-Path $Node) -or -not (Test-Path $NextBin)) {
   exit 1
 }
 
-Write-Log "Starting Next.js production server."
 Set-Location $Root
-$env:Path = "C:\Program Files\nodejs;" + $env:Path
+$env:Path = "C:\Program Files\nodejs;C:\Program Files\Git\cmd;" + $env:Path
+if (-not $buildIsCurrent) {
+  Write-Log "Building the get-updates version before start."
+  & $Npm "run" "build"
+  if ($LASTEXITCODE -ne 0) {
+    Write-Log "Build failed. Starting the existing build."
+  } elseif (Test-Path $Git) {
+    (& $Git -C $Root "rev-parse" "HEAD").Trim() | Set-Content -Path $RunningCommit -Encoding ascii
+    Write-Log "Build matches get-updates."
+  }
+}
+
+Write-Log "Starting Next.js production server from get-updates."
 & $Node $NextBin start -H 0.0.0.0 -p 3000
 $code = $LASTEXITCODE
 Write-Log "Next.js exited with code $code."

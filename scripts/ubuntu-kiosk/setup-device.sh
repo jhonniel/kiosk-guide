@@ -195,7 +195,7 @@ Wants=network-online.target
 Type=simple
 User=$REAL_USER
 WorkingDirectory=$ROOT
-ExecStart=$NODE_BIN $ROOT/node_modules/next/dist/bin/next start -H 0.0.0.0 -p 3000
+ExecStart=/bin/bash $ROOT/scripts/ubuntu-kiosk/start-server.sh
 Restart=on-failure
 RestartSec=5
 
