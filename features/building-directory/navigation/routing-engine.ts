@@ -8,8 +8,8 @@ import type {
 import {
   officeDoorOnHallway,
   routeAroundUpperHallWell,
-  stairHallApproachPlanPoints,
 } from "./building-3d";
+import { prepareShortestPathGraph } from "./shortest-path-graph";
 
 const WALKING_SPEED_M_PER_MIN = 75;
 const VERTICAL_EDGE_METERS = 5;
@@ -312,23 +312,9 @@ function buildSegment(graph: NavigationGraph, floor: number, nodeIds: string[]):
             ? next
             : sameFloorCorridor(graph, node);
       const hallY = alongHall ? alongHall.y : node.y + 44;
-      // Same-floor path that only passes the stair — stay on the hall, no zigzag into the flight.
-      const walkPast =
-        prev &&
-        next &&
-        prev.type !== "staircase" &&
-        next.type !== "staircase";
-      if (walkPast) {
-        pushPathPoint(points, { x: node.x, y: hallY });
-        continue;
-      }
-      const leavingThisFloor = Boolean(
-        prev && prev.type !== "staircase" && (!next || next.type === "staircase")
-      );
-      // Approach on the ascending-flight column (not the stairwell middle).
-      for (const point of stairHallApproachPlanPoints(node, graph, hallY, leavingThisFloor)) {
-        pushPathPoint(points, point);
-      }
+      // Stay on the hall at this stair's column. Walking into the flight
+      // makes a hook around the stairs when a straight corridor is enough.
+      pushPathPoint(points, { x: node.x, y: hallY });
       continue;
     }
 
@@ -479,21 +465,22 @@ export function calculateRoute(
   options: { accessible?: boolean; isDemoMode?: boolean } = {}
 ): NavigationRoute | null {
   const accessible = options.accessible ?? false;
+  const walkGraph = prepareShortestPathGraph(graph);
 
-  let path = dijkstra(graph, fromNodeId, toNodeId, accessible);
+  let path = dijkstra(walkGraph, fromNodeId, toNodeId, accessible);
 
   if (!path && accessible) {
-    path = dijkstra(graph, fromNodeId, toNodeId, false);
+    path = dijkstra(walkGraph, fromNodeId, toNodeId, false);
   }
 
   if (!path) return null;
 
-  const segments = splitIntoSegments(graph, path.nodeIds);
+  const segments = splitIntoSegments(walkGraph, path.nodeIds);
   const floorChanges = [
-    ...new Set(path.nodeIds.map((id) => graph.nodes.find((n) => n.id === id)!.floor)),
+    ...new Set(path.nodeIds.map((id) => walkGraph.nodes.find((n) => n.id === id)!.floor)),
   ];
   const { voiceInstructions, instructionProgress } = buildVoiceInstructions(
-    graph,
+    walkGraph,
     path.nodeIds,
     destinationName,
     path.totalDistance

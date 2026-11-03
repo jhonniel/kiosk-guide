@@ -100,8 +100,11 @@ function Start-Database {
   Step "Starting the database"
   $log = Join-Path (Split-Path $data -Parent) "logfile"
   # Its own hidden console, so closing this window does not stop the database.
+  # No -Wait: it also waits for the database process itself, which never exits.
   Start-Process -FilePath $pgCtl -ArgumentList @("-D", "`"$data`"", "-l", "`"$log`"", "start") `
-    -WindowStyle Hidden -Wait
+    -WindowStyle Hidden
+  $deadline = (Get-Date).AddSeconds(30)
+  while (-not (Test-Listening 5432) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 1 }
   if (-not (Test-Listening 5432)) { Warn "The database did not start. See $log" }
 }
 
