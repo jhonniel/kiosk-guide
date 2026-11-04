@@ -1,6 +1,7 @@
 "use client";
 
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import { pickLang, type Language } from "@/lib/i18n/translations";
 
 export type MapStatusBarHandle = {
   setZoom: (scale: number) => void;
@@ -10,10 +11,11 @@ export type MapStatusBarHandle = {
 type Props = {
   municipalityLabel: string;
   islandLabel: string;
+  language?: Language;
 };
 
 export const MapStatusBar = forwardRef<MapStatusBarHandle, Props>(function MapStatusBar(
-  { municipalityLabel, islandLabel },
+  { municipalityLabel, islandLabel, language = "en" },
   ref
 ) {
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -51,8 +53,12 @@ export const MapStatusBar = forwardRef<MapStatusBarHandle, Props>(function MapSt
       <span>
         X {cursorPercent.x.toFixed(1)} · Y {cursorPercent.y.toFixed(1)}
       </span>
-      <span>Zoom {zoomLevel.toFixed(2)}×</span>
-      <span>Scale ~{(12 / zoomLevel).toFixed(1)} km</span>
+      <span>
+        {pickLang(language, "Zoom", "Zoom", "Zoom")} {zoomLevel.toFixed(2)}×
+      </span>
+      <span>
+        {pickLang(language, "Scale", "Iskala", "Iskala")} ~{(12 / zoomLevel).toFixed(1)} km
+      </span>
     </div>
   );
 });

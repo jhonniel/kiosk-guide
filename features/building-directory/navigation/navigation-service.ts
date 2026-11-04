@@ -1,11 +1,15 @@
 import { getGuideContext } from "../guide-service";
 import { CAPITOL_BUILDING_LOCATIONS } from "../capitol-building";
-import { getLocationDisplay } from "../location-display";
+import {
+  getLocationDisplay,
+  localizePlaceLabel,
+  navigationErrorMessage,
+} from "../location-display";
 import { CAPITOL_GROUND_NAVIGATION_GRAPH } from "./capitol-ground-graph";
 import { getNodeByLocationId } from "./graph-helpers";
 import { calculateRoute } from "./routing-engine";
 import { getResolvedSettings, getSetting } from "@/features/settings/resolve-settings";
-import type { Language } from "@/lib/i18n/translations";
+import { pickLang, type Language } from "@/lib/i18n/translations";
 import type {
   NavigationGraph,
   NavigationRequest,
@@ -39,6 +43,7 @@ export async function navigateBuilding(
 ): Promise<NavigationResponse> {
   const { graph, isDemoMode } = await getNavigationGraph();
   const context = await getGuideContext();
+  const lang = request.lang ?? "en";
 
   const destination = context.locations.find((l) => l.id === request.toLocationId);
   const mappedNode = graph ? getNodeByLocationId(graph, request.toLocationId) : undefined;
@@ -46,15 +51,18 @@ export async function navigateBuilding(
     return {
       success: false,
       isDemoMode,
-      error: "Destination not found in the building directory.",
+      error: navigationErrorMessage("missing_destination", lang),
       errorReason: "missing_destination",
     };
   }
 
   const display = destination
-    ? getLocationDisplay(destination, request.lang ?? "en")
+    ? getLocationDisplay(destination, lang)
     : null;
-  const destinationName = display?.name ?? mappedNode?.label ?? "your destination";
+  const destinationName =
+    display?.name ??
+    (mappedNode ? localizePlaceLabel(mappedNode.label, lang) : undefined) ??
+    pickLang(lang, "your destination", "iyong destinasyon", "imong destinasyon");
   const textDirections = display?.directions ?? [];
 
   if (!graph) {
@@ -76,7 +84,7 @@ export async function navigateBuilding(
       textOnly: true,
       textDirections,
       isDemoMode,
-      error: "No map coordinates for this destination. Showing text directions only.",
+      error: navigationErrorMessage("missing_map_node", lang),
       errorReason: "missing_map_node",
     };
   }
@@ -85,7 +93,7 @@ export async function navigateBuilding(
     return {
       success: false,
       isDemoMode,
-      error: "Starting location is not recognized. Please visit the Information Desk.",
+      error: navigationErrorMessage("missing_start", lang),
       errorReason: "missing_start",
     };
   }
@@ -96,20 +104,16 @@ export async function navigateBuilding(
     toNode.id,
     request.toLocationId,
     destinationName,
-    { accessible: request.accessible, isDemoMode }
+    { accessible: request.accessible, isDemoMode, lang }
   );
 
   if (!route) {
-    const accessibleMsg = request.accessible
-      ? "No wheelchair-accessible route is available to this destination."
-      : "No walkable route could be calculated.";
-
     return {
       success: false,
       isDemoMode,
       textOnly: true,
       textDirections,
-      error: `${accessibleMsg} Text directions are provided instead. Please visit the Information Desk for assistance.`,
+      error: navigationErrorMessage(request.accessible ? "no_accessible_route" : "no_route", lang),
       errorReason: request.accessible ? "no_accessible_route" : "no_route",
     };
   }

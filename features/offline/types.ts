@@ -64,4 +64,6 @@ export interface QueuedFeedback {
   rating?: number;
   message: string;
   category?: string;
+  /** Experience survey scores (1-5) keyed by question id. */
+  answers?: Record<string, number>;
 }

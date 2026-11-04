@@ -28,13 +28,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useKiosk } from "@/hooks/use-kiosk";
-import type { Language } from "@/lib/i18n/translations";
+import { pickLang, type Language } from "@/lib/i18n/translations";
 import { uiText } from "@/lib/i18n/kiosk-ui";
 import { useOffline } from "@/components/providers/offline-provider";
 import { resolveBuildingGuideOffline } from "@/features/offline/client-services";
 import { cn } from "@/lib/utils";
 import type { BuildingLocationData, GuideResponse } from "@/features/building-directory/types";
-import { getLocationDisplay } from "@/features/building-directory/location-display";
+import { getLocationDisplay, getRoomDisplay } from "@/features/building-directory/location-display";
 import { hasCapitolOfficeFootprint } from "@/features/building-directory/navigation/building-3d";
 import type { BuildingUiConfig } from "@/features/settings/building-config";
 
@@ -484,7 +484,7 @@ function GuideResponseCard({
             <MapPin className="h-4 w-4 text-kiosk-green" />
             {uiText(language, "locationLabel")}{" "}
             {response.location.room
-              ? `Room ${response.location.room} – ${response.location.name} (${response.location.floor})`
+              ? `${getRoomDisplay(response.location.room, language)} – ${response.location.name} (${response.location.floor})`
               : `${response.location.name} (${response.location.floor})`}
           </p>
           {response.location.nearbyLandmarks.length > 0 && (
@@ -558,7 +558,7 @@ function GuideResponseCard({
             >
               <span>
                 <span className="font-semibold text-kiosk-navy">{match.name}</span>
-                {match.room && <span className="text-gray-500"> — Room {match.room}</span>}
+                {match.room && <span className="text-gray-500"> — {getRoomDisplay(match.room, language)}</span>}
                 <span className="text-gray-400"> · {match.floor}</span>
               </span>
               <ChevronRight className="h-4 w-4 text-gray-400" />
@@ -682,7 +682,7 @@ export function BuildingOfficeRail({
   }
 
   return (
-    <aside className="pointer-events-none absolute bottom-3 left-3 top-3 z-40 flex w-56 flex-col">
+    <aside data-map-rail className="pointer-events-none absolute bottom-3 left-3 top-3 z-40 flex w-56 flex-col">
       <div className="pointer-events-auto flex items-center gap-2 px-1 py-1">
         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-kiosk-navy text-white shadow-sm">
           <Building2 className="h-3.5 w-3.5" />
@@ -778,7 +778,7 @@ export function BuildingOfficeRail({
         <button
           type="button"
           onClick={() => scrollList("up")}
-          aria-label="More offices above"
+          aria-label={pickLang(language, "More offices above", "May iba pang opisina sa itaas", "Naa pay laing opisina sa ibabaw")}
           className="absolute left-1/2 top-1 z-10 -translate-x-1/2 text-kiosk-navy drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]"
         >
           <ChevronsUp className="kiosk-scroll-hint-badge-up h-5 w-5" strokeWidth={2.5} />
@@ -788,7 +788,7 @@ export function BuildingOfficeRail({
         <button
           type="button"
           onClick={() => scrollList("down")}
-          aria-label="More offices below"
+          aria-label={pickLang(language, "More offices below", "May iba pang opisina sa ibaba", "Naa pay laing opisina sa ubos")}
           className="absolute bottom-1 left-1/2 z-10 -translate-x-1/2 text-kiosk-navy drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]"
         >
           <ChevronsDown className="kiosk-scroll-hint-badge h-5 w-5" strokeWidth={2.5} />

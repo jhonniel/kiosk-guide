@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import { FlipHorizontal2, MapPin, Palmtree } from "lucide-react";
 import { useKiosk } from "@/hooks/use-kiosk";
-import { localized } from "@/lib/i18n/translations";
+import { localized, pickLang } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
 import { resolveKioskAssetUrl } from "@/lib/kiosk-sync-url";
 import {
@@ -16,15 +16,43 @@ import {
 import { TourismSiteRules } from "@/components/kiosk/tourism-site-rules";
 import type { Tourism } from "@prisma/client";
 
-const CATEGORY_STYLES: Record<string, { label: string; badge: string }> = {
-  beach: { label: "Beach & Islands", badge: "bg-sky-100 text-sky-700" },
-  nature: { label: "Nature & Springs", badge: "bg-emerald-100 text-emerald-700" },
-  heritage: { label: "Heritage", badge: "bg-amber-100 text-amber-700" },
-  adventure: { label: "Adventure", badge: "bg-rose-100 text-rose-700" },
+const CATEGORY_STYLES: Record<
+  string,
+  { label: string; labelFil: string; labelBis: string; badge: string }
+> = {
+  beach: {
+    label: "Beach & Islands",
+    labelFil: "Dalampasigan at Isla",
+    labelBis: "Baybayon ug Isla",
+    badge: "bg-sky-100 text-sky-700",
+  },
+  nature: {
+    label: "Nature & Springs",
+    labelFil: "Kalikasan at Bukal",
+    labelBis: "Kinaiyahan ug Tubod",
+    badge: "bg-emerald-100 text-emerald-700",
+  },
+  heritage: {
+    label: "Heritage",
+    labelFil: "Pamana",
+    labelBis: "Kabilin",
+    badge: "bg-amber-100 text-amber-700",
+  },
+  adventure: {
+    label: "Adventure",
+    labelFil: "Pakikipagsapalaran",
+    labelBis: "Panimpalad",
+    badge: "bg-rose-100 text-rose-700",
+  },
 };
 
 export function TourismClient({ items }: { items: Tourism[] }) {
   const { language } = useKiosk();
+  const categoryLabel = (key: string) => {
+    const style = CATEGORY_STYLES[key];
+    return pickLang(language, style.label, style.labelFil, style.labelBis);
+  };
+  const closeLabel = pickLang(language, "Close", "Isara", "Isira");
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showPhoto, setShowPhoto] = useState(false);
@@ -38,7 +66,7 @@ export function TourismClient({ items }: { items: Tourism[] }) {
         : "View photo";
   const viewInfoLabel =
     language === "fil"
-      ? "Balik sa detalye"
+      ? "Bumalik sa detalye"
       : language === "bis"
         ? "Balik sa detalye"
         : "Back to info";
@@ -74,7 +102,7 @@ export function TourismClient({ items }: { items: Tourism[] }) {
               : "bg-white text-kiosk-navy shadow-sm hover:shadow-md"
           )}
         >
-          All Spots
+          {pickLang(language, "All Spots", "Lahat ng Pasyalan", "Tanang Destinasyon")}
         </button>
         {categories.map((key) => (
           <button
@@ -91,7 +119,7 @@ export function TourismClient({ items }: { items: Tourism[] }) {
                 : "bg-white text-kiosk-navy shadow-sm hover:shadow-md"
             )}
           >
-            {CATEGORY_STYLES[key].label}
+            {categoryLabel(key)}
           </button>
         ))}
       </div>
@@ -134,7 +162,7 @@ export function TourismClient({ items }: { items: Tourism[] }) {
                       category.badge
                     )}
                   >
-                    {category.label}
+                    {categoryLabel(item.category ?? "")}
                   </span>
                 )}
               </div>
@@ -178,7 +206,7 @@ export function TourismClient({ items }: { items: Tourism[] }) {
                           CATEGORY_STYLES[selected.category ?? ""].badge
                         )}
                       >
-                        {CATEGORY_STYLES[selected.category ?? ""].label}
+                        {categoryLabel(selected.category ?? "")}
                       </span>
                     )}
                     <DialogTitle className="line-clamp-2 text-xl font-extrabold text-kiosk-navy sm:text-2xl lg:text-3xl">
@@ -194,7 +222,7 @@ export function TourismClient({ items }: { items: Tourism[] }) {
                       type="button"
                       onClick={() => setSelectedId(null)}
                       className="absolute top-5 right-5 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-700"
-                      aria-label="Close"
+                      aria-label={closeLabel}
                     >
                       ✕
                     </button>
@@ -242,7 +270,7 @@ export function TourismClient({ items }: { items: Tourism[] }) {
                     type="button"
                     onClick={() => setSelectedId(null)}
                     className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
-                    aria-label="Close"
+                    aria-label={closeLabel}
                   >
                     ✕
                   </button>

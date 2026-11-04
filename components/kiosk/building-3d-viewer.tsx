@@ -23,6 +23,7 @@ import type { BuildingLocationData } from "@/features/building-directory/types";
 import { findNode, type KioskLocationConfig } from "@/features/building-directory/navigation/building-3d";
 import { getNodeByLocationId } from "@/features/building-directory/navigation/demo-graph";
 import { calculateRoute } from "@/features/building-directory/navigation/routing-engine";
+import { localizeFloorLabel, localizePlaceLabel } from "@/features/building-directory/location-display";
 import { useKiosk } from "@/hooks/use-kiosk";
 import { pickLang } from "@/lib/i18n/translations";
 import { uiText } from "@/lib/i18n/kiosk-ui";
@@ -33,6 +34,8 @@ const lowPower = isLowPowerKiosk();
 interface Building3DViewerProps {
   graph: NavigationGraph;
   kioskLocation?: KioskLocationConfig;
+  /** Top-down floor plan instead of the tilted 3D view. */
+  flatView?: boolean;
   currentFloor?: number;
   highlightLocationId?: string;
   route?: NavigationRoute | null;
@@ -71,6 +74,9 @@ function SceneReady({ onReady }: { onReady: () => void }) {
   }, [onReady]);
   return null;
 }
+
+/** Straight down, nudged off the pole so the orbit camera keeps north at the top. */
+const FLAT_VIEW_POLAR = 0.0001;
 
 const zoomAnimRef = { id: 0 as number };
 
@@ -111,6 +117,7 @@ function zoomOrbitControls(controls: OrbitControlsImpl | null, factor: number) {
 export function Building3DViewer({
   graph,
   kioskLocation: kioskLocationProp,
+  flatView = false,
   currentFloor = 1,
   highlightLocationId,
   route,
@@ -175,10 +182,10 @@ export function Building3DViewer({
       fromNode.id,
       toNode.id,
       highlightLocationId,
-      toNode.label,
-      { isDemoMode }
+      localizePlaceLabel(toNode.label, language),
+      { isDemoMode, lang: language }
     );
-  }, [graph, highlightLocationId, isNavigating, isDemoMode, kioskLocation.locationId, selectedNode]);
+  }, [graph, highlightLocationId, isNavigating, isDemoMode, kioskLocation.locationId, selectedNode, language]);
 
   const mapHighlightId = selectedNode?.locationId ?? highlightLocationId;
 
@@ -239,7 +246,11 @@ export function Building3DViewer({
     }
   }, [highlightNode, onFloorChange, isNavigating, autoFollowFloor]);
 
-  const floorLabel = graph.floorPlans.find((f) => f.floor === focusFloor)?.label ?? `Floor ${focusFloor}`;
+  const floorLabel = localizeFloorLabel(
+    graph.floorPlans.find((f) => f.floor === focusFloor)?.label,
+    focusFloor,
+    language
+  );
   const imageBased = graphHasFloorPlanImages(graph);
   const imageIsoMode = imageBased;
   const destinationName = route?.destinationName ?? previewRoute?.destinationName ?? "";
@@ -262,13 +273,20 @@ export function Building3DViewer({
   if (!graph.floorPlans.length) {
     return (
       <div className={cn("overflow-hidden rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-md", className)}>
-        <p className="text-sm font-semibold text-kiosk-navy">Building layout unavailable</p>
+        <p className="text-sm font-semibold text-kiosk-navy">
+          {pickLang(
+            language,
+            "Building layout unavailable",
+            "Hindi pa magagamit ang layout ng gusali",
+            "Dili pa magamit ang layout sa building"
+          )}
+        </p>
         <p className="mt-1 text-xs text-gray-500">
           {pickLang(
             language,
             "No floor plan data is configured yet.",
-            "Wala pang naka-configure na floor plan data.",
-            "Wala pa na-configure nga floor plan data."
+            "Wala pang naka-set up na floor plan.",
+            "Wala pay na-set up nga floor plan."
           )}
         </p>
       </div>
@@ -289,28 +307,28 @@ export function Building3DViewer({
             ? pickLang(
                 language,
                 `Viewing ${floorLabel} — uploaded floor plan in 3D. Switch floors on the right.`,
-                `Tinitingnan ang ${floorLabel} — naka-upload na floor plan sa 3D. Palitan ang palapag sa kanan.`,
-                `Tan-awon ang ${floorLabel} — naka-upload nga floor plan sa 3D. Ilisan ang andana sa tuo.`
+                `Tinitingnan ang ${floorLabel} — naka-upload na floor plan sa 3D. Pumili ng ibang palapag sa kanan.`,
+                `Gitan-aw ang ${floorLabel} — na-upload nga floor plan sa 3D. Pili og laing andana sa tuo.`
               )
             : isNavigating
               ? pickLang(
                   language,
                   "Follow the blue path from your location to the destination",
-                  "Sundin ang asul na linya papunta sa destinasyon",
-                  "Sunda ang asul nga linya gikan sa imong lokasyon padulong sa destinasyon"
+                  "Sundan ang asul na daan mula sa iyong kinaroroonan papunta sa destinasyon",
+                  "Sunda ang asul nga agianan gikan sa imong nahimutangan paingon sa destinasyon"
                 )
               : navigationMapMode
                 ? pickLang(
                     language,
                     "Blue path preview from the kiosk to your selected location",
-                    "Preview ng asul na ruta mula sa kiosk",
-                    "Preview sa asul nga ruta gikan sa kiosk"
+                    "Preview ng asul na ruta mula sa kiosk papunta sa napili mong lokasyon",
+                    "Preview sa asul nga ruta gikan sa kiosk paingon sa imong gipili nga lokasyon"
                   )
                 : pickLang(
                     language,
                     `Viewing ${floorLabel} — tap a room for details`,
                     `Tinitingnan ang ${floorLabel} — pindutin ang silid para sa detalye`,
-                    `Tan-awon ang ${floorLabel} — pindota ang kwarto para sa detalye`
+                    `Gitan-aw ang ${floorLabel} — pindota ang kwarto para sa detalye`
                   )}
         </div>
       )}
@@ -382,13 +400,14 @@ export function Building3DViewer({
               isNavigating={isNavigating}
               hasArrived={hasArrived}
               kioskLabel={kioskLabel}
+              language={language}
               navigationMapMode={navigationMapMode}
               onLocationClick={handleLocationClick}
               selectedNode={selectedNode}
               roomOverlayRef={roomOverlayRef}
               roomAnchorPosition={roomAnchorPosition}
             />
-            {navigationMapMode && !imageIsoMode ? (
+            {navigationMapMode && !imageIsoMode && !flatView ? (
               <IsometricNavigationCamera graph={graph} viewFloor={focusFloor} />
             ) : (
               <>
@@ -397,18 +416,26 @@ export function Building3DViewer({
                   makeDefault
                   target={[0, 0, 0]}
                   enablePan
-                  enableRotate={!imageIsoMode && !navigationMapMode}
+                  enableRotate={!flatView && !imageIsoMode && !navigationMapMode}
                   enableZoom
                   zoomSpeed={0.55}
                   minDistance={imageIsoMode ? floorSpan * 0.32 : floorSpan * 0.34}
                   maxDistance={imageIsoMode ? floorSpan * 1.85 : floorSpan * 1.55}
-                  minPolarAngle={imageIsoMode || navigationMapMode ? Math.atan(1.05) : 0.3}
-                  maxPolarAngle={imageIsoMode || navigationMapMode ? Math.atan(1.05) : Math.PI / 2.1}
+                  minPolarAngle={
+                    flatView ? FLAT_VIEW_POLAR : imageIsoMode || navigationMapMode ? Math.atan(1.05) : 0.3
+                  }
+                  maxPolarAngle={
+                    flatView
+                      ? FLAT_VIEW_POLAR
+                      : imageIsoMode || navigationMapMode
+                        ? Math.atan(1.05)
+                        : Math.PI / 2.1
+                  }
                   enableDamping
                   dampingFactor={0.12}
                   panSpeed={0.7}
                 />
-                <BuildingOrbitCameraFit graph={graph} viewFloor={focusFloor} />
+                <BuildingOrbitCameraFit graph={graph} viewFloor={focusFloor} flatView={flatView} />
               </>
             )}
           </Suspense>
@@ -502,11 +529,11 @@ export function Building3DViewer({
             <div className="flex items-center gap-1.5 px-1.5">
               <Layers className="h-3.5 w-3.5 text-blue-600" />
               <p className="text-[11px] font-semibold tracking-[0.14em] text-slate-400">
-                {pickLang(language, "FLOORS", "PALAPAG", "ANDANA")}
+                {pickLang(language, "FLOORS", "MGA PALAPAG", "MGA ANDANA")}
               </p>
             </div>
             <div className="mx-1 h-6 w-px bg-slate-200" />
-            <div ref={floorGroupRef} className="relative flex items-center gap-0.5" role="radiogroup" aria-label={pickLang(language, "Floors", "Palapag", "Andana")}>
+            <div ref={floorGroupRef} className="relative flex items-center gap-0.5" role="radiogroup" aria-label={pickLang(language, "Floors", "Mga Palapag", "Mga Andana")}>
               <div
                 aria-hidden
                 className={cn(
@@ -552,7 +579,7 @@ export function Building3DViewer({
                     >
                       {mark}
                     </span>
-                    <span className={cn("whitespace-nowrap text-sm font-semibold transition-colors duration-500", selected ? "text-kiosk-navy" : "text-slate-600")}>{f.label}</span>
+                    <span className={cn("whitespace-nowrap text-sm font-semibold transition-colors duration-500", selected ? "text-kiosk-navy" : "text-slate-600")}>{localizeFloorLabel(f.label, f.floor, language)}</span>
                     <span className="flex h-4 w-4 shrink-0 items-center justify-center">
                       <Check
                         className={cn(

@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Hand, Globe, Languages, Type, Accessibility } from "lucide-react";
-import { useKiosk } from "@/hooks/use-kiosk";
+import { useKiosk, useWheelchairMode } from "@/hooks/use-kiosk";
 import { t } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
 
 /** Fixed desktop chrome — no viewport breakpoints (those jump when browser zoom changes). */
 export function BottomNav() {
   const pathname = usePathname();
-  const { language, setLanguage, largeText, setLargeText, highContrast, setHighContrast } = useKiosk();
+  const { language, setLanguage, largeText, setLargeText } = useKiosk();
+  const { wheelchairMode, setWheelchairMode } = useWheelchairMode();
 
   return (
     <footer className="flex h-20 shrink-0 items-center justify-between gap-3 overflow-x-auto bg-kiosk-navy px-7 text-white">
@@ -84,12 +85,12 @@ export function BottomNav() {
         </button>
         <button
           type="button"
-          onClick={() => setHighContrast(!highContrast)}
+          onClick={() => setWheelchairMode(!wheelchairMode)}
           className={cn(
             "flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-base font-semibold transition-colors",
-            highContrast ? "bg-white/20 text-white" : "text-white/60 hover:text-white"
+            wheelchairMode ? "bg-kiosk-green text-white" : "text-white/60 hover:text-white"
           )}
-          aria-pressed={highContrast}
+          aria-pressed={wheelchairMode}
           title={t(language, "accessibility")}
         >
           <Accessibility className="h-5 w-5" />

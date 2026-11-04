@@ -21,6 +21,8 @@ import {
   officeDoorPlan,
 } from "@/features/building-directory/navigation/building-3d";
 import type { NavNode } from "@/features/building-directory/navigation/types";
+import { localizePlaceLabel } from "@/features/building-directory/location-display";
+import { pickLang, type Language } from "@/lib/i18n/translations";
 
 function riseDelayFor(id: string) {
   let hash = 0;
@@ -1443,6 +1445,7 @@ function ImagePlanExtrudedRoomView({
   parts,
   highlighted,
   hideLabel = false,
+  language = "en",
   onClick,
 }: {
   node: NavNode;
@@ -1451,6 +1454,7 @@ function ImagePlanExtrudedRoomView({
   parts?: { position: [number, number, number]; size: [number, number, number]; door: boolean }[];
   highlighted?: boolean;
   hideLabel?: boolean;
+  language?: Language;
   onClick?: () => void;
 }) {
   const volumes = parts ?? [{ position: [0, 0, 0] as [number, number, number], size, door: true }];
@@ -1493,8 +1497,8 @@ function ImagePlanExtrudedRoomView({
       </SelectGrow>
       {comfortLabel && !hideLabel
         ? [
-            { part: volumes[0], text: "MALE" },
-            { part: volumes[3], text: "FEMALE" },
+            { part: volumes[0], text: pickLang(language, "MALE", "LALAKI", "LALAKI") },
+            { part: volumes[3], text: pickLang(language, "FEMALE", "BABAE", "BABAYE") },
           ].map(({ part, text }) =>
             part ? (
               <Text
@@ -1529,7 +1533,7 @@ function ImagePlanExtrudedRoomView({
               textShadow: "0 1px 0 #fff, 0 0 10px rgba(255,255,255,0.98)",
             }}
           >
-            {mapOfficeName(node.label)}
+            {mapOfficeName(localizePlaceLabel(node.label, language))}
           </div>
         </Html>
       ) : null}
@@ -1605,12 +1609,14 @@ function ImagePlanStairwellView({
   position,
   size,
   highlighted,
+  language = "en",
   onClick,
 }: {
   node: NavNode;
   position: [number, number, number];
   size: [number, number, number];
   highlighted?: boolean;
+  language?: Language;
   onClick?: () => void;
 }) {
   const [w, , d] = size;
@@ -1657,7 +1663,10 @@ function ImagePlanStairwellView({
     });
   });
   const landingY = goesUp ? totalRise + 0.035 : -totalRise;
-  const nextFloorLabel = node.floor === 1 ? "2ND FLOOR" : goesUp ? "3RD FLOOR" : "2ND FLOOR";
+  const toThird = node.floor !== 1 && goesUp;
+  const nextFloorLabel = toThird
+    ? pickLang(language, "3RD FLOOR", "IKATLONG PALAPAG", "IKATULONG ANDANA")
+    : pickLang(language, "2ND FLOOR", "IKALAWANG PALAPAG", "IKADUHANG ANDANA");
 
   return (
     <group position={position}>

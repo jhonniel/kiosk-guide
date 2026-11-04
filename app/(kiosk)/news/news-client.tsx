@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { format } from "date-fns";
+import { formatLocalized } from "@/lib/i18n/date-format";
 import { Calendar, ChevronRight } from "lucide-react";
 import { useKiosk } from "@/hooks/use-kiosk";
 import { localized, pickLang } from "@/lib/i18n/translations";
@@ -55,17 +55,17 @@ function FeaturedContent({
               categoryBadgeClass(item.category)
             )}
           >
-            {categoryLabel(item.category)}
+            {categoryLabel(item.category, language)}
           </span>
           <p className="flex items-center gap-1.5 text-xs font-medium text-white/80">
             <Calendar className="h-3.5 w-3.5" />
-            {format(new Date(item.publishedAt), "MMMM d, yyyy")}
+            {formatLocalized(new Date(item.publishedAt), "MMMM d, yyyy", language)}
           </p>
         </div>
         <h3 className="line-clamp-3 text-2xl leading-tight font-bold text-white sm:text-3xl">{title}</h3>
         <p className="mt-3 line-clamp-3 max-w-xl text-sm leading-relaxed text-white/85 sm:text-base">{content}</p>
         <span className="mt-5 inline-flex w-fit items-center gap-1 rounded-full bg-white px-4 py-2 text-sm font-bold text-kiosk-navy">
-          {pickLang(language, "Read More", "Magbasa Pa", "Basaha Pa")}
+          {pickLang(language, "Read More", "Magbasa Pa", "Basaha ang Dugang")}
           <ChevronRight className="h-4 w-4" />
         </span>
       </div>
@@ -147,7 +147,7 @@ export function NewsClient({ announcements }: { announcements: Announcement[] })
   if (!featured) {
     return (
       <p className="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-sm text-gray-500">
-        {pickLang(language, "No announcements yet.", "Wala pang anunsyo.", "Wala pay anunsyo.")}
+        {pickLang(language, "No announcements yet.", "Wala pang anunsyo.", "Wala pay pahibalo.")}
       </p>
     );
   }
@@ -204,10 +204,10 @@ export function NewsClient({ announcements }: { announcements: Announcement[] })
                           categoryBadgeClass(item.category)
                         )}
                       >
-                        {categoryLabel(item.category)}
+                        {categoryLabel(item.category, language)}
                       </span>
                       <span className="truncate text-xs font-medium text-slate-500">
-                        {format(new Date(item.publishedAt), "MMM d, yyyy")}
+                        {formatLocalized(new Date(item.publishedAt), "MMM d, yyyy", language)}
                       </span>
                     </div>
                     <h3 className="mt-1.5 line-clamp-2 text-[15px] leading-snug font-semibold text-kiosk-navy">

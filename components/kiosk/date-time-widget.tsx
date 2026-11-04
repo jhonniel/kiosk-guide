@@ -3,7 +3,22 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { Calendar, Clock } from "lucide-react";
+import { useKiosk } from "@/hooks/use-kiosk";
+import type { Language } from "@/lib/i18n/translations";
+import { formatLocalized } from "@/lib/i18n/date-format";
 import { cn } from "@/lib/utils";
+
+export function formatKioskShortDate(date: Date, language: Language): string {
+  return formatLocalized(date, "MMM d", language);
+}
+
+export function formatKioskDate(date: Date, language: Language): string {
+  return formatLocalized(date, "MMMM d, yyyy", language);
+}
+
+export function formatKioskWeekday(date: Date, language: Language): string {
+  return formatLocalized(date, "EEEE", language);
+}
 
 /** Fixed top bar height — keeps back/title row aligned with the date/time widgets. */
 export const kioskTopBarHeightClass = "h-[4.75rem] min-h-[4.75rem]";
@@ -15,6 +30,7 @@ export const kioskDateTimeWidthClass = "w-[27.5rem]";
 export const kioskDateTimeReserveClass = "pr-[27.5rem]";
 
 export function DateTimeWidget() {
+  const { language } = useKiosk();
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -43,9 +59,9 @@ export function DateTimeWidget() {
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-kiosk-navy">
-            {format(now, "MMMM d, yyyy")}
+            {formatKioskDate(now, language)}
           </p>
-          <p className="text-xs text-gray-500">{format(now, "EEEE")}</p>
+          <p className="text-xs text-gray-500">{formatKioskWeekday(now, language)}</p>
         </div>
       </div>
       <div className="flex h-[4.25rem] items-center gap-3 rounded-2xl bg-white px-5 py-3 shadow-[0_8px_24px_-16px_rgba(15,35,70,0.28)]">

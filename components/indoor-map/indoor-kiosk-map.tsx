@@ -7,6 +7,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useKiosk } from "@/hooks/use-kiosk";
+import { pickLang, pickLocalizedText } from "@/lib/i18n/translations";
+import { getRoomDisplay } from "@/features/building-directory/location-display";
 import type { IndoorRouteResult, PublishedIndoorPayload } from "@/features/indoor-map/types";
 import { geometryCentroid, parseGeometry } from "@/features/indoor-map/geo";
 
@@ -33,6 +36,7 @@ type SearchHit = {
 };
 
 export function IndoorKioskMap({ payload, buildingName }: Props) {
+  const { language } = useKiosk();
   const building = payload.buildings[0];
   const floors = building?.floors ?? [];
   const [floorId, setFloorId] = useState(floors[0]?.id ?? "");
@@ -79,13 +83,27 @@ export function IndoorKioskMap({ payload, buildingName }: Props) {
 
   const pickStartNearRoom = () => {
     if (!floor?.nodes.length) {
-      toast.error("No navigation nodes on this floor yet.");
+      toast.error(
+        pickLang(
+          language,
+          "No navigation nodes on this floor yet.",
+          "Wala pang navigation point sa palapag na ito.",
+          "Wala pay navigation point niini nga andana."
+        )
+      );
       return;
     }
     // Prefer entrance, else first node
     const entrance = floor.nodes.find((n) => n.type === "entrance") ?? floor.nodes[0]!;
     setFromNodeId(entrance.id);
-    toast.success(`Start set: ${entrance.label || entrance.type}`);
+    toast.success(
+      pickLang(
+        language,
+        `Start set: ${entrance.label || entrance.type}`,
+        `Naitakda ang simula: ${entrance.label || entrance.type}`,
+        `Na-set ang sugod: ${entrance.label || entrance.type}`
+      )
+    );
   };
 
   const setDestinationFromSelection = () => {
@@ -108,16 +126,30 @@ export function IndoorKioskMap({ payload, buildingName }: Props) {
         return best;
       })();
     if (!node) {
-      toast.error("No nav node near this room. Connect a node in admin.");
+      toast.error(
+        pickLang(
+          language,
+          "No nav node near this room. Connect a node in admin.",
+          "Walang navigation point malapit sa silid na ito. Mangyaring magtanong sa Information Desk.",
+          "Walay navigation point duol niini nga kwarto. Palihug pangutana sa Information Desk."
+        )
+      );
       return;
     }
     setToNodeId(node.id);
-    toast.success("Destination set");
+    toast.success(pickLang(language, "Destination set", "Naitakda ang destinasyon", "Na-set ang destinasyon"));
   };
 
   const go = () => {
     if (!fromNodeId || !toNodeId) {
-      toast.error("Choose start and destination first.");
+      toast.error(
+        pickLang(
+          language,
+          "Choose start and destination first.",
+          "Pumili muna ng simula at destinasyon.",
+          "Pili sa ang sugod ug destinasyon."
+        )
+      );
       return;
     }
     startTransition(async () => {
@@ -128,7 +160,9 @@ export function IndoorKioskMap({ payload, buildingName }: Props) {
       });
       const json = (await res.json()) as { success?: boolean; error?: string; route?: IndoorRouteResult };
       if (!json.success || !json.route) {
-        toast.error(json.error ?? "No route found");
+        toast.error(
+          json.error ?? pickLang(language, "No route found", "Walang nakitang ruta", "Walay nakit-an nga ruta")
+        );
         return;
       }
       setRoute(json.route);
@@ -143,7 +177,12 @@ export function IndoorKioskMap({ payload, buildingName }: Props) {
   if (!building || !floor) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-300 bg-white/80 p-8 text-center text-sm text-slate-600">
-        No published indoor floor plans yet. Upload and publish a floor in Admin → Indoor Map.
+        {pickLang(
+          language,
+          "No published indoor floor plans yet. Upload and publish a floor in Admin → Indoor Map.",
+          "Wala pang nailathalang indoor floor plan. Mangyaring bumalik sa ibang pagkakataon o magtanong sa Information Desk.",
+          "Wala pay na-publish nga indoor floor plan. Palihug balik sunod o pangutana sa Information Desk."
+        )}
       </div>
     );
   }
@@ -152,8 +191,12 @@ export function IndoorKioskMap({ payload, buildingName }: Props) {
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/40 bg-slate-900/90 shadow-xl backdrop-blur">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
         <div>
-          <p className="text-xs uppercase tracking-wider text-teal-200/80">Indoor map</p>
-          <h2 className="text-lg font-semibold text-white">{buildingName || building.nameEn}</h2>
+          <p className="text-xs uppercase tracking-wider text-teal-200/80">
+            {pickLang(language, "Indoor map", "Mapa sa loob ng gusali", "Mapa sa sulod sa building")}
+          </p>
+          <h2 className="text-lg font-semibold text-white">
+            {buildingName || pickLocalizedText(language, building.nameEn, building.nameFil, building.nameBis)}
+          </h2>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {floors.map((f) => (
@@ -166,7 +209,7 @@ export function IndoorKioskMap({ payload, buildingName }: Props) {
                 f.id === floor.id ? "bg-teal-400 text-slate-900" : "bg-white/10 text-white hover:bg-white/20"
               )}
             >
-              {f.labelEn}
+              {pickLocalizedText(language, f.labelEn, f.labelFil, f.labelBis)}
             </button>
           ))}
         </div>
@@ -181,7 +224,7 @@ export function IndoorKioskMap({ payload, buildingName }: Props) {
             imageOpacity={floor.opacity}
             rooms={floor.rooms.map((r) => ({
               id: r.id,
-              name: r.nameEn,
+              name: pickLocalizedText(language, r.nameEn, r.nameFil, r.nameBis),
               geometryJson: r.geometryJson,
               selected: r.id === selectedRoomId,
               highlighted: r.id === selectedRoomId,
@@ -207,7 +250,12 @@ export function IndoorKioskMap({ payload, buildingName }: Props) {
             <Input
               value={query}
               onChange={(e) => runSearch(e.target.value)}
-              placeholder="Search rooms, offices, restrooms…"
+              placeholder={pickLang(
+                language,
+                "Search rooms, offices, restrooms…",
+                "Maghanap ng silid, opisina, comfort room…",
+                "Pangita og kwarto, opisina, comfort room…"
+              )}
               className="border-white/10 bg-white/5 pl-9 text-white placeholder:text-slate-400"
             />
             {deferredQuery && hits.length > 0 && (
@@ -234,30 +282,48 @@ export function IndoorKioskMap({ payload, buildingName }: Props) {
 
           {selectedRoom ? (
             <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white">
-              <p className="font-semibold">{selectedRoom.nameEn}</p>
+              <p className="font-semibold">
+                {pickLocalizedText(language, selectedRoom.nameEn, selectedRoom.nameFil, selectedRoom.nameBis)}
+              </p>
               {selectedRoom.roomNumber && (
-                <p className="text-xs text-slate-300">Room {selectedRoom.roomNumber}</p>
+                <p className="text-xs text-slate-300">{getRoomDisplay(selectedRoom.roomNumber, language)}</p>
               )}
               {selectedRoom.department && (
                 <p className="mt-1 text-xs text-slate-300">{selectedRoom.department}</p>
               )}
               {selectedRoom.descriptionEn && (
-                <p className="mt-2 text-xs leading-relaxed text-slate-300">{selectedRoom.descriptionEn}</p>
+                <p className="mt-2 text-xs leading-relaxed text-slate-300">
+                  {pickLocalizedText(
+                    language,
+                    selectedRoom.descriptionEn,
+                    selectedRoom.descriptionFil,
+                    selectedRoom.descriptionBis
+                  )}
+                </p>
               )}
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button size="sm" variant="secondary" onClick={setDestinationFromSelection}>
-                  Set destination
+                  {pickLang(language, "Set destination", "Itakda bilang destinasyon", "I-set isip destinasyon")}
                 </Button>
               </div>
             </div>
           ) : (
-            <p className="text-xs text-slate-400">Tap a room on the map for details.</p>
+            <p className="text-xs text-slate-400">
+              {pickLang(
+                language,
+                "Tap a room on the map for details.",
+                "Pindutin ang silid sa mapa para sa detalye.",
+                "Pindota ang kwarto sa mapa para sa detalye."
+              )}
+            </p>
           )}
 
           <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-teal-200/80">Navigate</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-teal-200/80">
+              {pickLang(language, "Navigate", "Paggabay", "Paggiya")}
+            </p>
             <Button size="sm" variant="outline" className="w-full border-white/20 text-white" onClick={pickStartNearRoom}>
-              Use entrance / start
+              {pickLang(language, "Use entrance / start", "Gamitin ang pasukan bilang simula", "Gamita ang ganghaan isip sugod")}
             </Button>
             <label className="flex items-center gap-2 text-xs text-slate-300">
               <input
@@ -265,10 +331,12 @@ export function IndoorKioskMap({ payload, buildingName }: Props) {
                 checked={wheelchairOnly}
                 onChange={(e) => setWheelchairOnly(e.target.checked)}
               />
-              <Accessibility className="h-3.5 w-3.5" /> Wheelchair-friendly route
+              <Accessibility className="h-3.5 w-3.5" />{" "}
+              {pickLang(language, "Wheelchair-friendly route", "Rutang angkop sa wheelchair", "Ruta nga angay sa wheelchair")}
             </label>
             <Button className="w-full bg-teal-500 text-slate-950 hover:bg-teal-400" disabled={pending} onClick={go}>
-              <Navigation className="mr-1 h-4 w-4" /> Show shortest route
+              <Navigation className="mr-1 h-4 w-4" />{" "}
+              {pickLang(language, "Show shortest route", "Ipakita ang pinakamaikling ruta", "Ipakita ang pinakamubo nga ruta")}
             </Button>
             {route && (
               <div className="text-xs text-slate-300">

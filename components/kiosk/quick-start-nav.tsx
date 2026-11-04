@@ -71,9 +71,9 @@ export function QuickStartNav({
     return (
       <p className="px-1 py-2 text-[11px] leading-relaxed text-white/60 sm:text-xs">
         {language === "fil"
-          ? "Lalabas dito ang mga pinakabinibisita mong serbisyo."
+          ? "Lalabas dito ang mga serbisyong pinakamadalas mong binibisita."
           : language === "bis"
-            ? "Makita dinhi ang imong pinakabinisitahan nga mga serbisyo."
+            ? "Makita dinhi ang mga serbisyo nga kanunay nimong bisitahon."
             : "Your most visited services will appear here."}
       </p>
     );

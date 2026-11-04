@@ -34,6 +34,7 @@ export async function syncQueuedFeedback(): Promise<number> {
           rating: item.rating,
           message: item.message,
           category: item.category,
+          answers: item.answers,
         }),
       });
       if (res.ok) {

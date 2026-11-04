@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FileText, Info, Mail, QrCode, TrendingUp } from "lucide-react";
 import { useKiosk } from "@/hooks/use-kiosk";
-import { localized, pickLang } from "@/lib/i18n/translations";
+import { localized, pickLang, type Language } from "@/lib/i18n/translations";
 import { DownloadDeliveryDialog } from "@/components/kiosk/download-delivery-dialog";
 import type { DownloadDeliverySettings } from "@/features/downloads/download-settings";
 import type { Download as DownloadModel } from "@prisma/client";
@@ -44,6 +44,30 @@ function categoryStyle(category: string | null): CategoryStyle {
 function categoryLabel(category: string | null) {
   const value = category?.trim() || "General";
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+const CATEGORY_LABELS: Record<string, { fil: string; bis: string }> = {
+  forms: { fil: "Mga Form", bis: "Mga Form" },
+  form: { fil: "Form", bis: "Form" },
+  business: { fil: "Negosyo", bis: "Negosyo" },
+  permits: { fil: "Mga Permit", bis: "Mga Permit" },
+  permit: { fil: "Permit", bis: "Permit" },
+  guidelines: { fil: "Mga Alituntunin", bis: "Mga Giya" },
+  brochures: { fil: "Mga Brochure", bis: "Mga Brochure" },
+  reports: { fil: "Mga Ulat", bis: "Mga Report" },
+  heritage: { fil: "Pamana", bis: "Kabilin" },
+  tourism: { fil: "Turismo", bis: "Turismo" },
+  tax: { fil: "Buwis", bis: "Buhis" },
+  health: { fil: "Kalusugan", bis: "Panglawas" },
+  social: { fil: "Serbisyong Panlipunan", bis: "Serbisyo Sosyal" },
+  employment: { fil: "Trabaho", bis: "Trabaho" },
+  ordinance: { fil: "Ordinansa", bis: "Ordinansa" },
+  general: { fil: "Pangkalahatan", bis: "Kinatibuk-an" },
+};
+
+function localizedCategoryLabel(label: string, language: Language) {
+  const known = CATEGORY_LABELS[label.toLowerCase()];
+  return known ? pickLang(language, label, known.fil, known.bis) : label;
 }
 
 export function DownloadCenterClient({
@@ -123,7 +147,7 @@ export function DownloadCenterClient({
               )}
             >
               <TrendingUp className="h-4 w-4" />
-              {pickLang(language, "Most Downloads", "Pinakamaraming Download", "Pinakadaghan og Download")}
+              {pickLang(language, "Most Downloads", "Pinakamaraming Na-download", "Pinakadaghang Na-download")}
             </button>
             {categories.map((category) => (
               <button
@@ -137,7 +161,7 @@ export function DownloadCenterClient({
                     : "bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-kiosk-navy"
                 )}
               >
-                {category}
+                {localizedCategoryLabel(category, language)}
               </button>
             ))}
           </div>
@@ -149,7 +173,7 @@ export function DownloadCenterClient({
                 language,
                 "Get any document on your phone — scan a QR code or receive it by email.",
                 "Makuha ang anumang dokumento sa iyong telepono — mag-scan ng QR o matanggap sa email.",
-                "Makuha ang bisan unsang dokumento sa imong telepono — i-scan ang QR o madawat sa email."
+                "Kuhaa ang bisan unsang dokumento sa imong telepono — i-scan ang QR code o dawata pinaagi sa email."
               )}
             </p>
           </div>
@@ -185,7 +209,7 @@ export function DownloadCenterClient({
                         style.badge
                       )}
                     >
-                      {categoryLabel(item.category)}
+                      {localizedCategoryLabel(categoryLabel(item.category), language)}
                     </span>
                     {activeCategory === "most" && (
                       <span className="text-[10px] font-semibold whitespace-nowrap text-gray-400">
@@ -211,7 +235,7 @@ export function DownloadCenterClient({
                     className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-kiosk-navy px-3 text-[13px] font-semibold whitespace-nowrap text-white transition-colors hover:bg-kiosk-navy/90"
                   >
                     <QrCode className="h-4 w-4 shrink-0" />
-                    {pickLang(language, "Download via QR", "I-download via QR", "I-download via QR")}
+                    {pickLang(language, "Download via QR", "I-download gamit ang QR", "I-download pinaagi sa QR")}
                   </button>
                 )}
                 {deliverySettings.emailEnabled && (

@@ -4,6 +4,7 @@ import { memo, type ReactNode } from "react";
 import { MAP_NATIVE, TRACED_MUNICIPALITIES } from "@/data/map/traced-paths";
 import { MAP_ANNOTATIONS, MAP_MUNICIPALITY_LABELS } from "@/data/map/map-spot-labels";
 import type { AnnotationKind } from "@/data/map/map-spot-labels";
+import { pickLang, type Language } from "@/lib/i18n/translations";
 
 export type MapTerrainLabelAnnotation = {
   id: string;
@@ -30,6 +31,7 @@ type Props = {
   annotations?: MapTerrainLabelAnnotation[];
   /** When set (including []), replaces static municipality labels. */
   municipalityLabels?: MapTerrainMunicipalityLabel[];
+  language?: Language;
 };
 
 function annotationIcon(kind: AnnotationKind, x: number, y: number): ReactNode {
@@ -87,6 +89,7 @@ export const MapTerrainLabels = memo(function MapTerrainLabels({
   nightMode = false,
   annotations: annotationsOverride,
   municipalityLabels: municipalityLabelsOverride,
+  language = "en",
 }: Props) {
   const { width: W, height: H } = MAP_NATIVE;
 
@@ -248,7 +251,12 @@ export const MapTerrainLabels = memo(function MapTerrainLabels({
             strokeWidth: 2.5,
           }}
         >
-          THE ISLAND BORN OF FIRE
+          {pickLang(
+            language,
+            "THE ISLAND BORN OF FIRE",
+            "ANG ISLANG ISINILANG SA APOY",
+            "ANG ISLA NGA NATAWO SA KALAYO"
+          )}
         </text>
       </g>
     </svg>

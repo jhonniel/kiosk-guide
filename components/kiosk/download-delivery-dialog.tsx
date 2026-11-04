@@ -123,9 +123,21 @@ export function DownloadDeliveryDialog({
         language,
         "A network connection is required to download or send files by email.",
         "Kailangan ng koneksyon sa network para mag-download o magpadala ng email.",
-        "Kinahanglan ang network connection aron makadownload o makapadala ug email."
+        "Kinahanglan og koneksyon sa network aron maka-download o makapadala og email."
       ),
     [language]
+  );
+  const qrFailedMessage = pickLang(
+    language,
+    "Failed to create QR code",
+    "Hindi nagawa ang QR code",
+    "Wala nahimo ang QR code"
+  );
+  const emailFailedMessage = pickLang(
+    language,
+    "Failed to send email",
+    "Hindi naipadala ang email",
+    "Wala napadala ang email"
   );
 
   async function startQrFlow() {
@@ -150,7 +162,7 @@ export function DownloadDeliveryDialog({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to create QR code");
+      if (!res.ok) throw new Error(data.error ?? qrFailedMessage);
 
       const expiry = new Date(data.expiresAt);
       setExpiresAt(expiry);
@@ -161,7 +173,7 @@ export function DownloadDeliveryDialog({
       });
       setQrDataUrl(dataUrl);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to create QR code");
+      toast.error(error instanceof Error ? error.message : qrFailedMessage);
       setStep("choose");
     } finally {
       setLoading(false);
@@ -180,8 +192,8 @@ export function DownloadDeliveryDialog({
         pickLang(
           language,
           "Email server is not configured. Please contact the administrator.",
-          "Hindi pa naka-configure ang email server. Makipag-ugnayan sa administrator.",
-          "Wala pa na-configure ang email server. Kontaka ang administrator."
+          "Hindi pa naka-configure ang email server. Mangyaring makipag-ugnayan sa administrator.",
+          "Wala pa ma-configure ang email server. Palihug kontaka ang administrator."
         )
       );
       return;
@@ -200,10 +212,10 @@ export function DownloadDeliveryDialog({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to send email");
+      if (!res.ok) throw new Error(data.error ?? emailFailedMessage);
       setStep("email-sent");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to send email");
+      toast.error(error instanceof Error ? error.message : emailFailedMessage);
     } finally {
       setLoading(false);
     }
@@ -211,7 +223,7 @@ export function DownloadDeliveryDialog({
 
   const stepHeading =
     step === "qr"
-      ? pickLang(language, "Download via QR", "I-download via QR", "I-download via QR")
+      ? pickLang(language, "Download via QR", "I-download gamit ang QR", "I-download pinaagi sa QR")
       : step === "email" || step === "email-sent"
         ? pickLang(language, "Send via Email", "Ipadala sa Email", "Ipadala sa Email")
         : activeSettings.modalTitle;
@@ -249,14 +261,14 @@ export function DownloadDeliveryDialog({
                   </span>
                   <span className="min-w-0">
                     <span className="block text-sm font-semibold text-kiosk-navy">
-                      {pickLang(language, "Download via QR", "I-download via QR", "I-download via QR")}
+                      {pickLang(language, "Download via QR", "I-download gamit ang QR", "I-download pinaagi sa QR")}
                     </span>
                     <span className="block text-xs text-gray-500">
                       {pickLang(
                         language,
                         `Valid for ${activeSettings.qrExpiryMinutes} minutes`,
                         `May bisa sa loob ng ${activeSettings.qrExpiryMinutes} minuto`,
-                        `Valid sulod sa ${activeSettings.qrExpiryMinutes} minuto`
+                        `Balido sulod sa ${activeSettings.qrExpiryMinutes} ka minuto`
                       )}
                     </span>
                   </span>
@@ -279,7 +291,7 @@ export function DownloadDeliveryDialog({
                       {pickLang(
                         language,
                         "Receive the file as an email attachment",
-                        "Matatanggap ang file bilang attachment",
+                        "Matatanggap ang file bilang attachment sa email",
                         "Madawat ang file isip attachment sa email"
                       )}
                     </span>
@@ -300,7 +312,7 @@ export function DownloadDeliveryDialog({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={qrDataUrl}
-                    alt={pickLang(language, "Download QR code", "QR code para mag-download", "QR code aron makadownload")}
+                    alt={pickLang(language, "Download QR code", "QR code para mag-download", "QR code aron maka-download")}
                     width={232}
                     height={232}
                   />
@@ -314,7 +326,7 @@ export function DownloadDeliveryDialog({
                   language,
                   "Scan this QR code with your phone camera to download the file.",
                   "I-scan ang QR code gamit ang camera ng iyong telepono upang i-download ang file.",
-                  "I-scan kini nga QR code gamit ang camera sa imong telepono aron makadownload sa file."
+                  "I-scan kini nga QR code gamit ang camera sa imong telepono aron ma-download ang file."
                 )}
               </p>
 
@@ -362,7 +374,7 @@ export function DownloadDeliveryDialog({
                     language,
                     "The document will be sent as an attachment.",
                     "Ipapadala ang dokumento bilang attachment.",
-                    "Ipadala ang dokumento isip attachment."
+                    "Ang dokumento ipadala isip attachment."
                   )}
                 </p>
               </div>
@@ -379,7 +391,7 @@ export function DownloadDeliveryDialog({
                 ) : (
                   <>
                     <Mail className="mr-2 h-4 w-4" />
-                    {pickLang(language, "Send file", "Ipadala ang file", "Ipadala ang dokumento")}
+                    {pickLang(language, "Send file", "Ipadala ang file", "Ipadala ang file")}
                   </>
                 )}
               </Button>
@@ -397,9 +409,9 @@ export function DownloadDeliveryDialog({
               <p className="max-w-xs text-xs leading-relaxed text-gray-500">
                 {pickLang(
                   language,
-                  `We handed off your file to the mail server for ${email}. Delivery can take a few minutes — check Inbox and Spam/Junk.`,
-                  `Naipasa na ang file sa mail server para kay ${email}. Maaaring tumagal ng ilang minuto — tingnan ang Inbox at Spam/Junk.`,
-                  `Gipasa na ang file sa mail server para kang ${email}. Mahimong molungtad ug pipila ka minuto — tan-awa ang Inbox ug Spam/Junk.`
+                  `Your file is on its way to ${email}. It may take a few minutes to arrive — please check your Inbox and Spam/Junk folder.`,
+                  `Ipinapadala na ang file sa ${email}. Maaaring tumagal ng ilang minuto bago ito dumating — tingnan ang iyong Inbox at Spam/Junk folder.`,
+                  `Gipadala na ang file sa ${email}. Mahimong molungtad ug pipila ka minuto una kini moabot — tan-awa ang imong Inbox ug Spam/Junk folder.`
                 )}
               </p>
               <Button

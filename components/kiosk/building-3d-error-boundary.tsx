@@ -2,10 +2,12 @@
 
 import { Component, type ReactNode } from "react";
 import { RefreshCw } from "lucide-react";
+import { pickLang, type Language } from "@/lib/i18n/translations";
 
 interface Props {
   children: ReactNode;
   onRetry?: () => void;
+  language?: Language;
 }
 
 interface State {
@@ -31,9 +33,25 @@ export class Building3DErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      const language = this.props.language ?? "en";
       return (
         <div className="flex h-full min-h-[280px] flex-col items-center justify-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 text-center sm:px-6">
-          <p className="text-sm font-semibold text-amber-900">3D building layout failed to load</p>
+          <p className="text-sm font-semibold text-amber-900">
+            {pickLang(
+              language,
+              "3D building layout failed to load",
+              "Hindi na-load ang 3D layout ng gusali",
+              "Wala ma-load ang 3D layout sa building"
+            )}
+          </p>
+          <p className="max-w-sm text-xs text-amber-800">
+            {pickLang(
+              language,
+              "Please try again. If the problem continues, ask the Information Desk for help.",
+              "Pakisubukang muli. Kung magpatuloy ang problema, magtanong sa Information Desk.",
+              "Palihug sulayi pag-usab. Kung magpadayon ang problema, pangutana sa Information Desk."
+            )}
+          </p>
           <p className="max-w-sm text-xs text-amber-800">
             This is often caused by a stale dev cache. Stop the dev server, then run{" "}
             <code className="rounded bg-white/80 px-1">npm run dev:clean</code>{" "}
@@ -51,7 +69,7 @@ export class Building3DErrorBoundary extends Component<Props, State> {
             className="inline-flex items-center gap-2 rounded-lg bg-kiosk-navy px-4 py-2 text-xs font-semibold text-white hover:bg-kiosk-navy/90"
           >
             <RefreshCw className="h-3.5 w-3.5" />
-            Try again
+            {pickLang(language, "Try again", "Subukang muli", "Sulayi pag-usab")}
           </button>
         </div>
       );

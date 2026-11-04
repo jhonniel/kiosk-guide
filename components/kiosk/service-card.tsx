@@ -92,12 +92,12 @@ export function ServiceCard({
       )}
 
       <h3
-        className="min-w-0 max-w-full shrink-0 truncate px-0.5 text-[clamp(0.65rem,4.5cqw,0.95rem)] leading-tight font-extrabold tracking-wide uppercase"
+        className="min-w-0 max-w-full shrink-0 px-0.5 text-[clamp(0.65rem,4.5cqw,0.95rem)] leading-tight font-extrabold tracking-wide text-balance uppercase"
         style={{ color: palette.text }}
       >
         {title}
       </h3>
-      <p className="line-clamp-2 min-w-0 max-w-full px-0.5 text-[clamp(0.6rem,3.8cqw,0.85rem)] leading-snug text-gray-600">
+      <p className="min-w-0 max-w-full px-0.5 text-[clamp(0.6rem,3.8cqw,0.85rem)] leading-snug text-balance text-gray-600">
         {description}
       </p>
     </Link>

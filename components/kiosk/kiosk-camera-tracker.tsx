@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useKiosk } from "@/hooks/use-kiosk";
+import { pickLang } from "@/lib/i18n/translations";
 import { getKioskSessionId } from "@/features/kiosk/visit-tracking";
 import { normalizeVisitPage } from "@/features/kiosk/quick-start";
 import { getBoolSetting } from "@/features/settings/settings-helpers";
@@ -252,13 +253,22 @@ export function KioskCameraTracker() {
           onClick={requestCameraFromGesture}
           className="fixed bottom-24 left-1/2 z-[90] -translate-x-1/2 rounded-full bg-kiosk-navy/90 px-4 py-2 text-xs font-semibold text-white shadow-lg"
         >
-          Tap to enable kiosk camera
+          {pickLang(
+            language,
+            "Tap to enable kiosk camera",
+            "Pindutin para i-on ang camera ng kiosk",
+            "Pindota aron i-on ang camera sa kiosk"
+          )}
         </button>
       ) : null}
       {!secureContext ? (
         <p className="sr-only">
-          Camera tracking requires localhost or HTTPS. Open http://localhost:3000 instead of an IP
-          address.
+          {pickLang(
+            language,
+            "Camera tracking requires localhost or HTTPS. Open http://localhost:3000 instead of an IP address.",
+            "Kailangan ng localhost o HTTPS para sa camera tracking. Buksan ang http://localhost:3000 sa halip na IP address.",
+            "Kinahanglan og localhost o HTTPS para sa camera tracking. Ablihi ang http://localhost:3000 imbes nga IP address."
+          )}
         </p>
       ) : null}
     </>

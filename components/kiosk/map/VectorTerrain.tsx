@@ -9,6 +9,7 @@ import {
   TRACED_ROADS,
   TRACED_WHITE_ISLAND,
 } from "@/data/map/traced-paths";
+import { pickLang } from "@/lib/i18n/translations";
 
 type Props = {
   /** Kept for callers; municipality focus is shown via labels only. */
@@ -29,6 +30,7 @@ type Props = {
 export const VectorTerrain = memo(function VectorTerrain({
   routeRoadActive = false,
   nightMode = false,
+  language = "en",
   hideOcean = false,
   reducedEffects = false,
 }: Props) {
@@ -42,7 +44,12 @@ export const VectorTerrain = memo(function VectorTerrain({
       className="absolute inset-0 z-0 h-full w-full"
       shapeRendering="geometricPrecision"
       role="img"
-      aria-label="Camiguin Island interactive map"
+      aria-label={pickLang(
+        language,
+        "Camiguin Island interactive map",
+        "Interactive na mapa ng Isla ng Camiguin",
+        "Interactive nga mapa sa Isla sa Camiguin"
+      )}
     >
       <defs>
         <linearGradient id="ocean-grad" x1="0%" y1="0%" x2="100%" y2="100%">

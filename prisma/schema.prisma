@@ -244,6 +244,8 @@ model Feedback {
   rating    Int?
   message   String
   category  String?
+  /// Experience survey scores (1-5) keyed by question id.
+  answers   Json?
   createdAt DateTime @default(now())
 }
 

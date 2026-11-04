@@ -9,6 +9,11 @@ import { getLatestAnnouncements, getOngoingCalendarEvents } from "@/features/off
 import { NewsDetailModal, NewsThumb } from "@/components/kiosk/news-detail-modal";
 import { announceIdleAttract } from "@/lib/kiosk-events";
 import { useKiosk } from "@/hooks/use-kiosk";
+import {
+  formatKioskDate,
+  formatKioskShortDate,
+  formatKioskWeekday,
+} from "@/components/kiosk/date-time-widget";
 import { cn } from "@/lib/utils";
 
 type AttractPhase = "watching" | "prompt" | "video";
@@ -123,16 +128,16 @@ function TapToStartCycle({ active }: { active: boolean }) {
   );
 }
 
-function eventWhen(event: Event) {
+function eventWhen(event: Event, language: Language) {
   const start = new Date(event.startDate);
   const end = event.endDate ? new Date(event.endDate) : null;
   if (!end || format(start, "yyyy-MM-dd") === format(end, "yyyy-MM-dd")) {
-    return format(start, "MMM d");
+    return formatKioskShortDate(start, language);
   }
   if (format(start, "MMM yyyy") === format(end, "MMM yyyy")) {
-    return `${format(start, "MMM d")}–${format(end, "d")}`;
+    return `${formatKioskShortDate(start, language)}–${format(end, "d")}`;
   }
-  return `${format(start, "MMM d")}–${format(end, "MMM d")}`;
+  return `${formatKioskShortDate(start, language)}–${formatKioskShortDate(end, language)}`;
 }
 
 const STRIP_ROTATE_MS = 20_000;
@@ -254,10 +259,10 @@ function IdleInfoStrip({
   if (events.length > 0) {
     slides.push({
       key: "events",
-      heading: pickLang(language, "Ongoing events", "Mga kasalukuyang kaganapan", "Mga kasamtangang kalihokan"),
+      heading: pickLang(language, "Ongoing events", "Mga Kasalukuyang Kaganapan", "Mga Kalihokan Karon"),
       cards: events.map((event) => ({
         id: event.id,
-        when: eventWhen(event),
+        when: eventWhen(event, language),
         title: localized(event, language, "title"),
         detail: event.location,
       })),
@@ -266,10 +271,12 @@ function IdleInfoStrip({
   if (announcements.length > 0) {
     slides.push({
       key: "news",
-      heading: pickLang(language, "News and announcements", "Balita at anunsyo", "Balita ug anunsyo"),
+      heading: pickLang(language, "News and announcements", "Balita at Anunsyo", "Balita ug Pahibalo"),
       cards: announcements.map((item) => ({
         id: item.id,
-        when: `${format(new Date(item.publishedAt), "MMM d")} · ${item.category?.trim() || "Announcement"}`,
+        when: `${formatKioskShortDate(new Date(item.publishedAt), language)} · ${
+          item.category?.trim() || pickLang(language, "Announcement", "Anunsyo", "Pahibalo")
+        }`,
         title: localized(item, language, "title"),
         announcement: item,
       })),
@@ -502,7 +509,7 @@ export function KioskIdleAttract({
 
   useEffect(() => {
     phaseRef.current = phase;
-    announceIdleAttract(phase !== "watching");
+    announceIdleAttract(phase !== "watching", phase);
   }, [phase]);
 
   useEffect(() => {
@@ -689,7 +696,7 @@ export function KioskIdleAttract({
   const dashOffset = circumference * (1 - progress);
 
   return (
-    <div className="fixed inset-0 z-[100]">
+    <div className="fixed inset-0 z-[100]" data-kiosk-fullscreen>
       {phase === "prompt" && (
         <button
           type="button"
@@ -710,7 +717,7 @@ export function KioskIdleAttract({
               id="idle-prompt-title"
               className="text-[2.35rem] leading-[1.12] font-medium tracking-[-0.03em] text-white sm:text-[2.75rem]"
             >
-              {pickLang(language, "Are you still there?", "Nandito ka pa ba?", "Naa pa ba ka?")}
+              {pickLang(language, "Are you still there?", "Nandiyan ka pa ba?", "Naa pa ka diha?")}
             </h2>
 
             <p id="idle-prompt-desc" className="mt-4 text-[1rem] font-normal text-white/50">
@@ -718,7 +725,7 @@ export function KioskIdleAttract({
                 language,
                 "Tap anywhere to continue",
                 "Pindutin kahit saan para magpatuloy",
-                "Pindota bisan asa aron magpadayon"
+                "Pindota bisan asa aron mopadayon"
               )}
             </p>
 
@@ -830,7 +837,7 @@ export function KioskIdleAttract({
                 {format(now, "h:mm:ss a")}
               </p>
               <p className="mt-4 text-3xl font-medium uppercase tracking-[0.14em] text-white/80 drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]">
-                {format(now, "EEEE, MMMM d, yyyy")}
+                {`${formatKioskWeekday(now, language)}, ${formatKioskDate(now, language)}`}
               </p>
             </div>
           )}

@@ -24,13 +24,13 @@ type ChatItem = CamiMessage & {
 const SUGGESTIONS = [
   {
     en: "What tourist spots can I visit?",
-    fil: "Anong tourist spots ang pwedeng bisitahin?",
-    bis: "Unsa nga tourist spots ang pwede bisitahan?",
+    fil: "Anong mga pasyalan ang puwede kong bisitahin?",
+    bis: "Unsang mga pasyalan ang pwede nakong bisitahan?",
   },
   {
     en: "Where is the Treasurer's Office?",
     fil: "Nasaan ang Treasurer's Office?",
-    bis: "Asa ang Treasurer's Office?",
+    bis: "Asa man ang Treasurer's Office?",
   },
   {
     en: "What are the Capitol office hours?",
@@ -39,13 +39,13 @@ const SUGGESTIONS = [
   },
   {
     en: "What can I find on this kiosk?",
-    fil: "Ano ang makikita sa kiosk na ito?",
-    bis: "Unsa ang makita niining kiosk?",
+    fil: "Ano ang makikita ko sa kiosk na ito?",
+    bis: "Unsa ang akong makita niining kiosk?",
   },
   {
     en: "Where are emergency hotlines?",
-    fil: "Saan ang emergency hotlines?",
-    bis: "Asa ang emergency hotlines?",
+    fil: "Nasaan ang mga emergency hotline?",
+    bis: "Asa makita ang mga emergency hotline?",
   },
 ];
 
@@ -53,8 +53,8 @@ function welcomeMessage(language: "en" | "fil" | "bis") {
   return pickLang(
     language,
     "Hi, I’m Cami—your Camiguin kiosk assistant. Ask me about tourism, services, events, emergency contacts, downloads, or other information in this system.",
-    "Kumusta, ako si Cami—ang Camiguin assistant ng kiosk. Magtanong tungkol sa turismo, serbisyo, events, emergency contacts, downloads, o iba pang impormasyon sa system na ito.",
-    "Kumusta, ako si Cami—ang Camiguin assistant sa kiosk. Pangutana bahin sa turismo, serbisyo, events, emergency contacts, downloads, o ubang impormasyon niining system."
+    "Kumusta, ako si Cami—ang iyong katulong sa Camiguin kiosk. Magtanong tungkol sa turismo, mga serbisyo, mga kaganapan, mga emergency contact, mga download, o iba pang impormasyon sa system na ito.",
+    "Kumusta, ako si Cami—ang imong katabang dinhi sa Camiguin kiosk. Pangutana bahin sa turismo, mga serbisyo, mga kalihokan, mga emergency contact, mga download, o uban pang impormasyon niining sistema."
   );
 }
 
@@ -181,8 +181,8 @@ export function CamiChat() {
           content: pickLang(
             replyLang,
             "I couldn’t reach the assistant service just now. Please try again.",
-            "Hindi maabot ang assistant service sa ngayon. Subukan ulit.",
-            "Dili maabot ang assistant service karon. Sulayi pag-usab."
+            "Hindi ko maabot ang serbisyo ng katulong sa ngayon. Pakisubukang muli.",
+            "Dili nako maabot ang serbisyo sa katabang karon. Palihug sulayi pag-usab."
           ),
         },
       ]);
@@ -221,7 +221,7 @@ export function CamiChat() {
               </div>
               <div className="min-w-0 flex-1 pr-8">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/80">
-                  {pickLang(language, "Camiguin assistant", "Camiguin assistant", "Camiguin assistant")}
+                  {pickLang(language, "Camiguin assistant", "Katulong ng Camiguin", "Katabang sa Camiguin")}
                 </p>
                 <h2 id="cami-chat-title" className="text-base font-extrabold tracking-tight sm:text-lg">
                   Cami
@@ -283,7 +283,7 @@ export function CamiChat() {
                     language,
                     "Cami is composing a reply",
                     "Gumagawa si Cami ng sagot",
-                    "Naghimog tubag si Cami"
+                    "Nagsulat og tubag si Cami"
                   )}
                 >
                   <span className="cami-typing-dots" aria-hidden="true">

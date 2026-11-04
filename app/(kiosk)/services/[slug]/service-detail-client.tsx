@@ -2,7 +2,8 @@
 
 import { MapPin, Clock, FileText, PhilippinePeso, Phone } from "lucide-react";
 import { useKiosk } from "@/hooks/use-kiosk";
-import { localized, pickLang } from "@/lib/i18n/translations";
+import { localized } from "@/lib/i18n/translations";
+import { uiText } from "@/lib/i18n/kiosk-ui";
 import { ContentCard } from "@/components/kiosk/content-card";
 import type { Service } from "@prisma/client";
 
@@ -10,13 +11,13 @@ export function ServiceDetailClient({ service }: { service: Service }) {
   const { language } = useKiosk();
 
   const sections = [
-    { icon: FileText, label: pickLang(language, "Requirements", "Mga Kinakailangan", "Mga Kinahanglan"), value: localized(service, language, "requirements") },
-    { icon: FileText, label: pickLang(language, "Documents", "Mga Dokumento", "Mga Papeles"), value: localized(service, language, "documents") },
-    { icon: MapPin, label: pickLang(language, "Office Location", "Lokasyon ng Opisina", "Lokasyon sa Opisina"), value: service.officeLocation },
-    { icon: Clock, label: pickLang(language, "Office Hours", "Oras ng Opisina", "Oras sa Opisina"), value: service.officeHours },
-    { icon: Clock, label: pickLang(language, "Processing Time", "Oras ng Pagproseso", "Oras sa Pagproseso"), value: service.processingTime },
-    { icon: PhilippinePeso, label: pickLang(language, "Fee", "Bayad", "Bayad"), value: service.fee },
-    { icon: Phone, label: pickLang(language, "Contact", "Contact", "Kontak"), value: service.contactInfo },
+    { icon: FileText, label: uiText(language, "requirements"), value: localized(service, language, "requirements") },
+    { icon: FileText, label: uiText(language, "documents"), value: localized(service, language, "documents") },
+    { icon: MapPin, label: uiText(language, "officeLocation"), value: service.officeLocation },
+    { icon: Clock, label: uiText(language, "officeHoursLabel"), value: service.officeHours },
+    { icon: Clock, label: uiText(language, "processingTime"), value: service.processingTime },
+    { icon: PhilippinePeso, label: uiText(language, "fee"), value: service.fee },
+    { icon: Phone, label: uiText(language, "contact"), value: service.contactInfo },
   ];
 
   return (

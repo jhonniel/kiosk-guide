@@ -1,7 +1,7 @@
 "use client";
 
 import type { HomepageCard, Service } from "@prisma/client";
-import { t, type Language } from "@/lib/i18n/translations";
+import { pickLang, t, type Language } from "@/lib/i18n/translations";
 import {
   resolveBrandingFooterImageUrl,
 } from "@/lib/branding";
@@ -84,7 +84,7 @@ export function Sidebar({
       </div>
 
       <div className="relative h-[140px] shrink-0 overflow-hidden">
-        <SidebarFooterImage src={footerImageUrl} alt="Camiguin landscape" />        <div className="absolute inset-0 bg-gradient-to-b from-kiosk-navy via-kiosk-navy/55 to-transparent" />
+        <SidebarFooterImage src={footerImageUrl} alt={pickLang(language, "Camiguin landscape", "Tanawin ng Camiguin", "Talan-awon sa Camiguin")} />        <div className="absolute inset-0 bg-gradient-to-b from-kiosk-navy via-kiosk-navy/55 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/35 to-transparent" />
         <p
           className="absolute right-4 bottom-4 left-4 text-xl leading-[1.15] text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]"

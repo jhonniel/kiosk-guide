@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { feedbackSchema } from "@/lib/validations";
+import { saveFeedback } from "@/features/feedback/save-feedback";
 import { getDynamicQuickStartLinks } from "@/features/kiosk/get-dynamic-quick-start";
 import { normalizeVisitPage } from "@/features/kiosk/quick-start";
 
@@ -9,15 +10,16 @@ export async function submitFeedback(data: {
   name?: string;
   email?: string;
   rating?: number;
-  message: string;
+  message?: string;
   category?: string;
+  answers?: Record<string, number>;
 }) {
   const parsed = feedbackSchema.safeParse(data);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  await db.feedback.create({ data: parsed.data });
+  await saveFeedback(parsed.data);
   return { success: true };
 }
 

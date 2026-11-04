@@ -17,7 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { useKiosk } from "@/hooks/use-kiosk";
-import { pickLocalizedText } from "@/lib/i18n/translations";
+import { pickLang, pickLocalizedText } from "@/lib/i18n/translations";
 import { uiText } from "@/lib/i18n/kiosk-ui";
 import { CAMIGUIN_ISLAND_MAP_SRC } from "@/features/map/camiguin-island";
 import { cn } from "@/lib/utils";
@@ -265,7 +265,12 @@ export function CamiguinInteractiveMap({ markers }: Props) {
         >
           <Image
             src={CAMIGUIN_ISLAND_MAP_SRC}
-            alt="Camiguin Island map"
+            alt={pickLang(
+              language,
+              "Camiguin Island map",
+              "Mapa ng Isla ng Camiguin",
+              "Mapa sa Isla sa Camiguin"
+            )}
             fill
             className="object-cover select-none"
             priority
@@ -355,7 +360,7 @@ export function CamiguinInteractiveMap({ markers }: Props) {
                   resetView();
                 }}
                 className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                aria-label="Close"
+                aria-label={uiText(language, "closeLabel")}
               >
                 <X className="h-5 w-5" />
               </button>

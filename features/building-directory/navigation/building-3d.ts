@@ -243,7 +243,8 @@ export function stairHallApproachPlanPoints(
     const onHall = { x: node.x, y: hallY };
     const atMouth = { x: node.x, y: mouthY };
     const atFoot = { x: footX, y: footY };
-    return leaving ? [onHall, atMouth, atFoot] : [atFoot, atMouth, onHall];
+    // Arriving: the climb was drawn on the floor below, so step out of the stair opening.
+    return leaving ? [onHall, atMouth, atFoot] : [atMouth, onHall];
   }
 
   const footY = node.y + directedFoot / scale;
@@ -252,7 +253,7 @@ export function stairHallApproachPlanPoints(
   const onHall = { x: hallY, y: node.y };
   const atMouth = { x: mouthX, y: node.y };
   const atFoot = { x: footX, y: footY };
-  return leaving ? [onHall, atMouth, atFoot] : [atFoot, atMouth, onHall];
+  return leaving ? [onHall, atMouth, atFoot] : [atMouth, onHall];
 }
 
 /**
@@ -341,23 +342,39 @@ export function routeAroundUpperHallWell(
     return false;
   };
 
+  const besideWell = (point: { x: number; y: number }) => point.x > well.x0 && point.x < well.x1;
   const laneY = (point: { x: number; y: number }) => {
+    // Outside the opening's span the hall is open, so keep the point's own lane.
+    if (!besideWell(point)) return point.y;
     if (point.y > (well.y0 + well.y1) / 2) return southLane;
     return point.y <= northClearY ? point.y : northClearY;
   };
+  const pickGap = (from: { x: number }, to: { x: number }) =>
+    Math.abs(from.x - westGap) + Math.abs(to.x - westGap) <=
+    Math.abs(from.x - eastGap) + Math.abs(to.x - eastGap)
+      ? westGap
+      : eastGap;
 
   const out = [points[0]];
   for (let i = 1; i < points.length; i += 1) {
-    const prev = out[out.length - 1];
     const next = points[i];
-    if (!crosses(prev, next)) {
+    if (!crosses(out[out.length - 1], next)) {
       out.push(next);
       continue;
     }
 
-    const leftCost = Math.abs(prev.x - westGap) + Math.abs(next.x - westGap);
-    const rightCost = Math.abs(prev.x - eastGap) + Math.abs(next.x - eastGap);
-    const gapX = leftCost <= rightCost ? westGap : eastGap;
+    let gapX = pickGap(out[out.length - 1], next);
+    // Undo hall steps that walked away from the gap. Otherwise the guide goes
+    // to the door's column first and then doubles back around the stairs.
+    while (out.length >= 2) {
+      const last = out[out.length - 1];
+      const before = out[out.length - 2];
+      const sameLane = Math.abs(last.y - before.y) < 4;
+      if (!sameLane || Math.abs(last.x - gapX) <= Math.abs(before.x - gapX)) break;
+      out.pop();
+      gapX = pickGap(out[out.length - 1], next);
+    }
+    const prev = out[out.length - 1];
     const extras = [
       { x: prev.x, y: laneY(prev) },
       { x: gapX, y: laneY(prev) },

@@ -5,7 +5,7 @@ import { Clock3, Globe, Heart, History, MapPinned, Phone, Share2, Ticket, X, Nav
 import { motion, AnimatePresence } from "framer-motion";
 import type { Attraction } from "@/features/map/types";
 import { categoryMeta } from "@/features/map/categories";
-import type { Language } from "@/lib/i18n/translations";
+import { pickLang, type Language } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
 
 function pick(lang: Language, s: { en: string; fil: string; bis: string }) {
@@ -81,7 +81,8 @@ function AttractionBody({
         {attraction.history && pick(language, attraction.history).trim() && (
           <p className="text-xs leading-relaxed text-slate-500">
             <span className="inline-flex items-center gap-1 font-semibold text-kiosk-navy">
-              <History className="h-3.5 w-3.5" /> History:{" "}
+              <History className="h-3.5 w-3.5" />{" "}
+              {pickLang(language, "History", "Kasaysayan", "Kasaysayan")}:{" "}
             </span>
             {pick(language, attraction.history)}
           </p>
@@ -183,7 +184,7 @@ function AttractionBody({
 }
 
 export function AttractionPopup(props: SharedProps) {
-  const { attraction, onClose } = props;
+  const { attraction, onClose, language } = props;
   return (
     <AnimatePresence>
       {attraction && (
@@ -200,7 +201,7 @@ export function AttractionPopup(props: SharedProps) {
             type="button"
             onClick={onClose}
             className="absolute top-3 right-3 z-10 rounded-full bg-black/35 p-1.5 text-white"
-            aria-label="Close"
+            aria-label={pickLang(language, "Close", "Isara", "Isira")}
           >
             <X className="h-4 w-4" />
           </button>

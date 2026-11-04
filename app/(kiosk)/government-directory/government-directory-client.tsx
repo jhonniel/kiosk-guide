@@ -116,8 +116,8 @@ export function GovernmentDirectoryClient({ directories }: { directories: Direct
         {pickLang(
           language,
           "No government offices available.",
-          "Walang available na mga opisina.",
-          "Walay available nga mga opisina."
+          "Walang available na opisina.",
+          "Walay opisina nga anaa."
         )}
       </p>
     );
@@ -182,7 +182,7 @@ export function GovernmentDirectoryClient({ directories }: { directories: Direct
                         language,
                         "Head / Name",
                         "Punong Opisyal / Pangalan",
-                        "Punong Opisyal / Ngalan"
+                        "Pangulo / Ngalan"
                       )}
                     </p>
                     <p className="flex items-start gap-2 text-[14px] font-semibold text-slate-800">

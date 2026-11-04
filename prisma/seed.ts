@@ -1512,6 +1512,9 @@ async function main() {
   const { applyBisayaContent } = await import("./apply-bisaya-content");
   await applyBisayaContent(prisma);
   console.log("Cebuano content applied.");
+  const { applyFilipinoContent } = await import("./apply-filipino-content");
+  await applyFilipinoContent(prisma);
+  console.log("Filipino content applied.");
 
   const { importCitizensCharterFromStatic } = await import(
     "../features/citizens-charter/import-static"
@@ -1525,6 +1528,11 @@ async function main() {
 
   const { seedMapEngine } = await import("./seed-map");
   await seedMapEngine(prisma);
+  const { applyBisayaMapContent } = await import("./apply-bisaya-content");
+  await applyBisayaMapContent(prisma);
+  const { applyFilipinoMapContent } = await import("./apply-filipino-content");
+  await applyFilipinoMapContent(prisma);
+  console.log("Map translations applied.");
 
   // Remove accidental duplicates from older create-only seed runs.
   await dedupeByKey(prisma.faq, "questionEn");

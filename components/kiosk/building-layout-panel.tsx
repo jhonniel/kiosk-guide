@@ -13,6 +13,8 @@ interface BuildingLayoutPanelProps {
   navigationGraph: NavigationGraph;
   locations: BuildingLocationData[];
   kioskLocation: BuildingUiConfig["kioskLocation"];
+  /** Top-down floor plan instead of the tilted 3D view. */
+  flatView?: boolean;
   highlightLocationId?: string | null;
   pickedNode?: NavNode | null;
   onLocationClick?: (locationId: string, floor?: number, label?: string) => void;
@@ -35,6 +37,7 @@ export function BuildingLayoutPanel({
   navigationGraph,
   locations,
   kioskLocation,
+  flatView = false,
   highlightLocationId,
   pickedNode,
   onLocationClick,
@@ -61,6 +64,7 @@ export function BuildingLayoutPanel({
       <Building3DViewerLazy
         graph={navigationGraph}
         kioskLocation={kioskLocation}
+        flatView={flatView}
         currentFloor={currentFloor}
         highlightLocationId={highlightLocationId ?? undefined}
         onLocationClick={onLocationClick}

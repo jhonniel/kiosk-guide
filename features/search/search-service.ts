@@ -221,7 +221,7 @@ export async function searchAll(query: string, lang: Language): Promise<SearchRe
     }
   }
 
-  results.push(...searchCitizensCharterEdition(charter, q));
+  results.push(...searchCitizensCharterEdition(charter, q, lang));
 
   const buildingMatches = await searchBuildingLocations(q, lang);
   for (const match of buildingMatches) {

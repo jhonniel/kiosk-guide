@@ -21,7 +21,7 @@ export default function DownloadCenterPage() {
       titleBis="Sentro sa Pag-download"
       descriptionEn="Scan the QR code to download forms, permit templates and public brochures."
       descriptionFil="I-scan ang QR code para i-download ang mga form, permit template at pampublikong brochure."
-      descriptionBis="I-scan ang QR code aron makadownload og mga form, permit template ug pampublikong brochure."
+      descriptionBis="I-scan ang QR code aron ma-download ang mga form, permit template ug mga brochure alang sa publiko."
     >
       <DownloadCenterClient
         downloads={getSortedDownloads(data)}

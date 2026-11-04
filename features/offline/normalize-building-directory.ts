@@ -9,8 +9,12 @@ import { buildBuildingUiConfig } from "@/features/settings/building-config";
 import { SETTING_DEFAULTS } from "@/features/settings/defaults";
 import type { KioskOfflineData } from "./types";
 
+/** Admin display choices, not building data. Keep what the admin saved. */
+const ADMIN_BUILDING_PREFERENCES = new Set(["building_map_2d"]);
+
 const BUILDING_SETTING_KEYS = Object.keys(SETTING_DEFAULTS).filter(
-  (key) => key.startsWith("building_") || key === "indoor_map_v2"
+  (key) =>
+    (key.startsWith("building_") || key === "indoor_map_v2") && !ADMIN_BUILDING_PREFERENCES.has(key)
 );
 
 function capitolSettings(settings: Record<string, string>): Record<string, string> {
