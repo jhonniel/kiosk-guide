@@ -334,6 +334,100 @@ html.kiosk-large-text {
   overflow: visible;
 }
 
+/*
+ * Home cards size their contents from the card itself (cqw/cqh), so the icon, title, and
+ * description always fit — on small screens and when wheelchair mode makes the cards shorter.
+ */
+.kiosk-service-card {
+  container-type: size;
+  gap: clamp(0.15rem, 2.5cqh, 0.4rem);
+}
+
+.kiosk-service-card__icon {
+  width: clamp(2.25rem, min(52cqw, 40cqh), 6.25rem);
+}
+
+.kiosk-service-card__title {
+  font-size: clamp(0.6rem, min(7.4cqw, 8.4cqh), 0.95rem);
+}
+
+.kiosk-service-card__desc {
+  font-size: clamp(0.58rem, min(6.4cqw, 6.6cqh), 0.85rem);
+}
+
+/*
+ * Short main area (small screens, or wheelchair mode lowering the kiosk): drop the big title,
+ * keep every card tall enough for its icon and title, and let the card grid scroll instead of squeezing.
+ */
+.kiosk-main-frame {
+  container-name: kiosk-main;
+}
+
+@container kiosk-main (max-height: 38rem) {
+  .kiosk-home-header {
+    display: none;
+  }
+
+  /* The date/time widget sits in this row once the title is hidden. */
+  .kiosk-home-search {
+    padding-right: 27.5rem;
+  }
+
+  /* Give the search field the room; the search icon still marks it. */
+  .kiosk-home-search .kiosk-smart-search-label {
+    display: none;
+  }
+
+  .kiosk-home-cards {
+    grid-auto-rows: minmax(3.5rem, 1fr);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0.25rem;
+    margin: -0.25rem;
+    scrollbar-width: none;
+  }
+
+  .kiosk-home-cards::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Too short for a readable description: show the icon and full title only, never a clipped line. */
+@container (max-height: 9.5rem) {
+  .kiosk-service-card__desc {
+    display: none;
+  }
+
+  .kiosk-service-card__icon {
+    width: clamp(2rem, min(52cqw, 48cqh), 6.25rem);
+  }
+
+  .kiosk-service-card__title {
+    font-size: clamp(0.58rem, min(7.4cqw, 11cqh), 0.95rem);
+  }
+}
+
+/* Very short cards: icon beside the title so the whole name still fits on one or two lines. */
+@container (max-height: 6.75rem) {
+  .kiosk-service-card {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 0.6rem;
+    padding-inline: 0.75rem;
+    text-align: left;
+  }
+
+  .kiosk-service-card__icon {
+    width: clamp(1.75rem, 66cqh, 3.25rem);
+  }
+
+  .kiosk-service-card__title {
+    flex: 1 1 0%;
+    font-size: clamp(0.58rem, min(6.2cqw, 20cqh), 0.85rem);
+    text-wrap: balance;
+  }
+}
+
 /* "backwards" so the tiles drop their transform (and GPU layer) once they land. */
 .kiosk-home-cards > * {
   transform-origin: center center;
