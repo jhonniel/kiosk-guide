@@ -1,7 +1,7 @@
 import type { FloorPlanConfig, NavigationGraph, NavEdge, NavNode } from "./types";
 
-export const CAPITOL_GROUND_FLOOR_PLAN_URL = "/images/indoor-plans/capitol-ground-floor.png?v=2";
-export const CAPITOL_UPPER_FLOOR_PLAN_URL = "/images/indoor-plans/capitol-upper-floor.png?v=3";
+export const CAPITOL_GROUND_FLOOR_PLAN_URL = "/images/indoor-plans/capitol-ground-floor.png?v=4";
+export const CAPITOL_UPPER_FLOOR_PLAN_URL = "/images/indoor-plans/capitol-upper-floor.png?v=5";
 export const CAPITOL_GROUND_FLOOR_WIDTH = 936;
 export const CAPITOL_GROUND_FLOOR_HEIGHT = 550;
 
