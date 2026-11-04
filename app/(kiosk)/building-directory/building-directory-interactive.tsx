@@ -6,6 +6,7 @@ import { IndoorKioskMap } from "@/components/indoor-map/indoor-kiosk-map";
 import { useBuildingNavigation } from "@/hooks/use-building-navigation";
 import { pickBuildingUiConfig } from "@/features/building-directory/page-data";
 import { getNodeByLocationId } from "@/features/building-directory/navigation/demo-graph";
+import { isNavigableLocation } from "@/features/building-directory/navigation/graph-helpers";
 import {
   findLocationById,
   getLocationDisplay,
@@ -86,10 +87,11 @@ export function BuildingDirectoryInteractive({
 
   const handleStartNavigation = useCallback(
     (locationId: string, name: string, accessible: boolean) => {
+      if (!isNavigableLocation(navigationGraph, locationId)) return;
       setHighlightLocationId(locationId);
       setNavTarget({ locationId, name, accessible });
     },
-    []
+    [navigationGraph]
   );
 
   const handleLocationClick = useCallback(
@@ -101,6 +103,7 @@ export function BuildingDirectoryInteractive({
         setPickedLabel(label ?? null);
         return;
       }
+      if (!isNavigableLocation(navigationGraph, locationId)) return;
       const location = findLocationById(locations, locationId);
       const name =
         label?.trim() ||
@@ -111,7 +114,7 @@ export function BuildingDirectoryInteractive({
       setPickedLabel(null);
       handleStartNavigation(locationId, name, false);
     },
-    [handleStartNavigation, language, locations, uiConfig.kioskLocation.locationId]
+    [handleStartNavigation, language, locations, navigationGraph, uiConfig.kioskLocation.locationId]
   );
 
   const handleCloseNavigation = useCallback(() => {

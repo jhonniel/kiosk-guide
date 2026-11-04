@@ -30,6 +30,7 @@ import {
   type KioskLocationConfig,
 } from "@/features/building-directory/navigation/building-3d";
 import { resolveFloorRouteProgress } from "@/features/building-directory/navigation/routing-engine";
+import { isNavigationDestination } from "@/features/building-directory/navigation/graph-helpers";
 import { localizePlaceLabel } from "@/features/building-directory/location-display";
 import { pickLang, type Language } from "@/lib/i18n/translations";
 import {
@@ -895,7 +896,7 @@ export function Building3DScene({
           (!!highlightLocationId && node.locationId === highlightLocationId);
         const pos = map2DToFloorPlan3D(node.x, node.y, graph, viewFloor);
         const handleClick =
-          node.locationId && onLocationClick
+          node.locationId && onLocationClick && (isNavigationDestination(node) || node.type === "landmark")
             ? () => locationClickRef.current?.(node.locationId!, node.floor, node.label)
             : undefined;
 
