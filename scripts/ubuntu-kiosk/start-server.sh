@@ -15,8 +15,15 @@ if [ -d .git ] && command -v git >/dev/null 2>&1; then
   head="$(git rev-parse HEAD 2>/dev/null || true)"
   built="$(cat "$MARKER" 2>/dev/null || true)"
   if [ -n "$head" ] && [ "$head" != "$built" ]; then
-    npm run build || true
-    if [ -f .next/BUILD_ID ]; then
+    changed="$(git diff --name-only "$built" "$head" 2>/dev/null || true)"
+    if [ ! -d node_modules/next ] || printf '%s\n' "$changed" | grep -Eq '^(package\.json|package-lock\.json)$' || [ -z "$built" ]; then
+      npm install || true
+    fi
+    if [ -z "$built" ] || printf '%s\n' "$changed" | grep -q '^prisma/'; then
+      npm run db:deploy || true
+    fi
+    npx prisma generate || true
+    if npm run build && [ -f .next/BUILD_ID ]; then
       printf '%s\n' "$head" > "$MARKER"
     fi
   fi

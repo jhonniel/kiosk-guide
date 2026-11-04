@@ -121,7 +121,18 @@ Skip continues with the kiosk that is already installed." "Pull and install" "Sk
   if printf '%s\n' "$changed" | grep -q '^prisma/'; then
     echo 75
     echo "# Updating the database..."
-    npm run db:deploy >>"$LOG" 2>&1 || true
+    if ! npm run db:deploy >>"$LOG" 2>&1; then
+      echo 100
+      echo "# Database update failed. The installed kiosk is still running."
+      sleep 2
+      exit 0
+    fi
+    if ! npx prisma generate >>"$LOG" 2>&1; then
+      echo 100
+      echo "# Could not prepare the update. The installed kiosk is still running."
+      sleep 2
+      exit 0
+    fi
   fi
   if [ -n "$changed" ]; then
     echo 85

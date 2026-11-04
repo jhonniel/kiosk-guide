@@ -8,7 +8,7 @@ $LogDir = "C:\Kiosk\logs"
 $Log = Join-Path $LogDir "server.log"
 $Branch = "get-updates"
 $Git = "C:\Program Files\Git\cmd\git.exe"
-$Npm = "C:\Program Files\nodejs\npm.cmd"
+$NpmCli = "C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js"
 $RunningCommit = "C:\Kiosk\running-commit"
 
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
@@ -97,22 +97,92 @@ if (-not $postgresReady) {
   exit 1
 }
 
-if (-not (Test-Path $Node) -or -not (Test-Path $NextBin)) {
-  Write-Log "Node or Next.js is missing. Node=$Node Next=$NextBin"
+if (-not (Test-Path $Node) -or -not (Test-Path $NpmCli)) {
+  Write-Log "Node.js is missing. Node=$Node"
   exit 1
 }
 
 Set-Location $Root
 $env:Path = "C:\Program Files\nodejs;C:\Program Files\Git\cmd;" + $env:Path
+
+function Get-ChangedSinceBuild {
+  if (-not (Test-Path $Git)) { return @() }
+  $head = (& $Git -C $Root "rev-parse" "HEAD").Trim()
+  if (-not (Test-Path $RunningCommit)) { return @("*") }
+  $built = (Get-Content $RunningCommit -Raw -ErrorAction SilentlyContinue)
+  if (-not $built) { return @("*") }
+  $built = $built.Trim()
+  if ($built -eq $head) { return @() }
+  & $Git -C $Root "cat-file" "-e" "$built^{commit}" 2>$null
+  if ($LASTEXITCODE -ne 0) { return @("*") }
+  return @(& $Git -C $Root "diff" "--name-only" $built $head)
+}
+
 if (-not $buildIsCurrent) {
-  Write-Log "Building the get-updates version before start."
-  & $Npm "run" "build"
-  if ($LASTEXITCODE -ne 0) {
-    Write-Log "Build failed. Starting the existing build."
-  } elseif (Test-Path $Git) {
-    (& $Git -C $Root "rev-parse" "HEAD").Trim() | Set-Content -Path $RunningCommit -Encoding ascii
-    Write-Log "Build matches get-updates."
+  $mutex = New-Object System.Threading.Mutex($false, "Global\KioskGuideBuild")
+  if (-not $mutex.WaitOne(0)) {
+    Write-Log "Waiting for the update install to finish."
+    if (-not $mutex.WaitOne(1200000)) {
+      Write-Log "The update install did not finish."
+      exit 1
+    }
   }
+  $buildIsCurrent = Test-BuildIsCurrent
+  try {
+    if (-not $buildIsCurrent) {
+    $changed = @(Get-ChangedSinceBuild)
+    $needsInstall = -not (Test-Path $NextBin) -or @($changed | Where-Object { $_ -eq "*" -or $_ -eq "package.json" -or $_ -eq "package-lock.json" }).Count -gt 0
+    $needsMigrate = @($changed | Where-Object { $_ -eq "*" -or $_ -like "prisma/*" }).Count -gt 0
+    $buildLog = Join-Path $LogDir "build.log"
+    $installOk = $true
+
+    if ($needsInstall) {
+      Write-Log "Installing packages for the new update."
+      & $Node $NpmCli "install" *> $buildLog
+      if ($LASTEXITCODE -ne 0) {
+        $installOk = $false
+        Write-Log "Package install failed. See $buildLog"
+      }
+    }
+    if ($installOk -and $needsMigrate) {
+      Write-Log "Updating the database for the new update."
+      & $Node $NpmCli "run" "db:deploy" *>> $buildLog
+      if ($LASTEXITCODE -ne 0) {
+        $installOk = $false
+        Write-Log "Database update failed. See $buildLog"
+      }
+    }
+    if ($installOk) {
+      Write-Log "Preparing the database client."
+      & $Node (Join-Path $Root "node_modules\prisma\build\index.js") "generate" *>> $buildLog
+      if ($LASTEXITCODE -ne 0) {
+        $installOk = $false
+        Write-Log "Database client update failed. See $buildLog"
+      }
+    }
+    if ($installOk) {
+      Write-Log "Building the get-updates version before start."
+      & $Node $NpmCli "run" "build" *>> $buildLog
+      if ($LASTEXITCODE -ne 0) {
+        $installOk = $false
+        Write-Log "Build failed. See $buildLog"
+        Get-Content $buildLog -Tail 30 -ErrorAction SilentlyContinue | ForEach-Object { Write-Log $_ }
+      }
+    }
+    if ($installOk -and (Test-Path $Git)) {
+      (& $Git -C $Root "rev-parse" "HEAD").Trim() | Set-Content -Path $RunningCommit -Encoding ascii
+      Write-Log "Installed update is ready to start."
+    }
+    }
+  } finally {
+    $mutex.ReleaseMutex() | Out-Null
+    $mutex.Dispose()
+  }
+}
+
+if (-not (Test-Path $NextBin) -or -not (Test-Path (Join-Path $Root ".next\BUILD_ID"))) {
+  Write-Log "There is no production build to start."
+  exit 1
 }
 
 Write-Log "Starting Next.js production server from get-updates."

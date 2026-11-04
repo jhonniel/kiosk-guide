@@ -6,7 +6,8 @@ $ErrorActionPreference = "Continue"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $Branch = "get-updates"
 $Git = "C:\Program Files\Git\cmd\git.exe"
-$Npm = "C:\Program Files\nodejs\npm.cmd"
+$NodeExe = "C:\Program Files\nodejs\node.exe"
+$NpmCli = "C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js"
 $LogDir = "C:\Kiosk\logs"
 $Log = Join-Path $LogDir "update.log"
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
@@ -153,7 +154,7 @@ function Set-Progress([int]$Percent, [string]$Text) {
 function Close-Update([string]$Text) {
   if ($script:Closed) { return }
   Set-Progress 100 $Text
-  Wait-Ui 4000
+  Wait-Ui 1500
   $script:Closed = $true
   $form.Close()
   $form.Dispose()
@@ -196,6 +197,13 @@ function Invoke-Tool([string]$File, [string[]]$ArgumentList) {
   $text = [string]$outTask.Result + [string]$errTask.Result
   if ($text) { Write-Log $text.Trim() }
   return [pscustomobject]@{ Code = $proc.ExitCode; Text = $text }
+}
+
+function Invoke-Npm([string[]]$NpmArgs) {
+  if (-not (Test-Path $NodeExe) -or -not (Test-Path $NpmCli)) {
+    return [pscustomobject]@{ Code = 1; Text = "Node.js is missing." }
+  }
+  return Invoke-Tool $NodeExe (@($NpmCli) + $NpmArgs)
 }
 
 function Test-KioskPort {
@@ -321,40 +329,69 @@ try {
     $_ -notmatch '^(README\.md|LICENSE|.*\.md)$'
   }).Count -gt 0
 
-  if ($needsInstall) {
-    if (-not (Test-Path $Npm)) {
-      Close-Update "Node.js is missing, so the update could not be installed."
-      exit 0
-    }
-    Set-Progress -1 "Installing updates..."
-    $install = Invoke-Tool "cmd.exe" @("/c", "`"$Npm`"", "install")
-    if ($install.Code -ne 0) {
-      Close-Update "Install failed. Continuing with the installed kiosk."
-      exit 0
+  $installMutex = New-Object System.Threading.Mutex($false, "Global\KioskGuideBuild")
+  $ownsInstall = $false
+  $deadline = (Get-Date).AddMinutes(20)
+  while (-not $ownsInstall -and (Get-Date) -lt $deadline) {
+    $recorded = ""
+    if (Test-Path "C:\Kiosk\running-commit") { $recorded = (Get-Content "C:\Kiosk\running-commit" -Raw).Trim() }
+    if ($recorded -eq $after -and (Test-Path (Join-Path $Root ".next\BUILD_ID"))) { break }
+    if ($installMutex.WaitOne(800)) { $ownsInstall = $true; break }
+    Set-Progress -1 "Installing the update..."
+  }
+
+  if ($ownsInstall) {
+    try {
+      $recorded = ""
+      if (Test-Path "C:\Kiosk\running-commit") { $recorded = (Get-Content "C:\Kiosk\running-commit" -Raw).Trim() }
+      $alreadyBuilt = $recorded -eq $after -and (Test-Path (Join-Path $Root ".next\BUILD_ID"))
+      if (-not $alreadyBuilt) {
+        if ($needsInstall) {
+          if (-not (Test-Path $NodeExe)) {
+            Close-Update "Node.js is missing, so the update could not be installed."
+            exit 0
+          }
+          Set-Progress -1 "Installing updates..."
+          $install = Invoke-Npm @("install")
+          if ($install.Code -ne 0) {
+            Close-Update "Install failed. Continuing with the installed kiosk."
+            exit 0
+          }
+        }
+        if ($needsMigrate) {
+          Set-Progress -1 "Updating the database..."
+          $migrate = Invoke-Npm @("run", "db:deploy")
+          if ($migrate.Code -ne 0) {
+            Close-Update "Database update failed. The installed kiosk is still running."
+            exit 0
+          }
+        }
+        if ($needsBuild -or $needsMigrate) {
+          Set-Progress -1 "Preparing the update..."
+          $generated = Invoke-Npm @("exec", "--", "prisma", "generate")
+          if ($generated.Code -ne 0) {
+            Close-Update "Could not prepare the update. The installed kiosk is still running."
+            exit 0
+          }
+        }
+        if ($needsBuild) {
+          Set-Progress -1 "Building the kiosk..."
+          $build = Invoke-Npm @("run", "build")
+          if ($build.Code -ne 0) {
+            Close-Update "Build failed. The installed kiosk is still running."
+            exit 0
+          }
+          $after | Set-Content -Path "C:\Kiosk\running-commit" -Encoding ascii
+        }
+      }
+    } finally {
+      $installMutex.ReleaseMutex() | Out-Null
+      $installMutex.Dispose()
     }
   }
 
-  if ($needsMigrate) {
-    Set-Progress -1 "Updating the database..."
-    $migrate = Invoke-Tool "cmd.exe" @("/c", "`"$Npm`"", "run", "db:deploy")
-    if ($migrate.Code -ne 0) {
-      Write-Log "Database update failed."
-    }
-  }
-
-  if ($needsBuild) {
-    Set-Progress -1 "Building the kiosk..."
-    $build = Invoke-Tool "cmd.exe" @("/c", "`"$Npm`"", "run", "build")
-    if ($build.Code -ne 0) {
-      Close-Update "Build failed. Continuing with the installed kiosk."
-      exit 0
-    }
-    Restart-KioskServer
-    Close-Update "Update installed. The new kiosk is ready."
-    exit 0
-  }
-
-  Close-Update "Updates downloaded. The kiosk is ready."
+  if (-not (Test-KioskPort)) { Restart-KioskServer }
+  Close-Update "Update installed. The new kiosk is ready."
 } catch {
   Write-Log $_.Exception.Message
   Close-Update "Update check failed. Continuing with the installed kiosk."
