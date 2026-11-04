@@ -57,14 +57,14 @@ export function ServiceCard({
         onOpen();
       }}
       className={cn(
-        "group flex h-full min-h-0 min-w-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-3xl bg-white px-2 py-1.5 text-center shadow-md",
+        "kiosk-service-card group flex h-full min-h-0 min-w-0 flex-col items-center justify-center overflow-hidden rounded-3xl bg-white px-2 py-1.5 text-center shadow-md",
         "transition-shadow duration-200 hover:shadow-xl active:brightness-95",
         className
       )}
     >
       {showImage ? (
         <div
-          className="aspect-square w-[clamp(3.25rem,52%,6.25rem)] shrink-0 overflow-hidden rounded-full transition-transform duration-200 group-hover:scale-105"
+          className="kiosk-service-card__icon aspect-square shrink-0 overflow-hidden rounded-full transition-transform duration-200 group-hover:scale-105"
           style={{ boxShadow: `0 8px 20px -6px ${palette.icon}66` }}
         >
           <Image
@@ -81,7 +81,7 @@ export function ServiceCard({
         </div>
       ) : (
         <div
-          className="flex aspect-square w-[clamp(3.25rem,52%,6.25rem)] shrink-0 items-center justify-center rounded-full shadow-lg transition-transform duration-200 group-hover:scale-105"
+          className="kiosk-service-card__icon flex aspect-square shrink-0 items-center justify-center rounded-full shadow-lg transition-transform duration-200 group-hover:scale-105"
           style={{
             background: `linear-gradient(135deg, ${palette.icon} 0%, ${palette.text} 100%)`,
             boxShadow: `0 8px 20px -6px ${palette.icon}66`,
@@ -92,12 +92,12 @@ export function ServiceCard({
       )}
 
       <h3
-        className="min-w-0 max-w-full shrink-0 px-0.5 text-[clamp(0.65rem,4.5cqw,0.95rem)] leading-tight font-extrabold tracking-wide text-balance uppercase"
+        className="kiosk-service-card__title min-w-0 max-w-full shrink-0 px-0.5 leading-tight font-extrabold tracking-wide text-balance uppercase"
         style={{ color: palette.text }}
       >
         {title}
       </h3>
-      <p className="min-w-0 max-w-full px-0.5 text-[clamp(0.6rem,3.8cqw,0.85rem)] leading-snug text-balance text-gray-600">
+      <p className="kiosk-service-card__desc min-w-0 max-w-full px-0.5 leading-snug text-balance text-gray-600">
         {description}
       </p>
     </Link>

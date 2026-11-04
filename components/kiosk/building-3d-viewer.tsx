@@ -372,6 +372,7 @@ export function Building3DViewer({
           shadows={false}
           dpr={lowPower ? 1 : [1, 1.5]}
           frameloop={isNavigating ? "always" : "demand"}
+          style={{ isolation: "isolate" }}
           camera={
             imageIsoMode
               ? { position: [55, 65, 55], fov: 32, near: 0.1, far: 500 }

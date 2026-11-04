@@ -263,7 +263,7 @@ export function SmartSearch() {
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#d5e0ee]">
               <Search className="h-5 w-5 text-kiosk-navy" strokeWidth={2.25} />
             </div>
-            <div className="min-w-0">
+            <div className="kiosk-smart-search-label min-w-0">
               <p className="text-[0.95rem] leading-none font-extrabold tracking-[0.04em] text-kiosk-navy uppercase">
                 {t(language, "smartSearch")}
               </p>
