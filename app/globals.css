@@ -213,8 +213,87 @@
   animation: kiosk-scroll-hint-bob-up 1.35s ease-in-out infinite;
 }
 
+/*
+ * Wheelchair mode: the kiosk sits in the lower part of the screen so every control is in reach.
+ * The stage size is set inline by the screen-fit hook, hence !important.
+ */
+html {
+  --kiosk-lowered-top: 32dvh;
+}
+
+/* The slide itself is a transform animation (use-lowered-stage); only the layout switches here. */
+/* Positioned so it paints over the banner while sliding; no z-index or will-change, which would trap fixed modals. */
+.kiosk-ui-scale-stage {
+  position: relative;
+}
+
+.kiosk-ui-scale-stage.kiosk-stage-lowered {
+  margin-top: var(--kiosk-lowered-top);
+  height: calc(100dvh - var(--kiosk-lowered-top)) !important;
+  border-top-left-radius: 1.25rem;
+  border-top-right-radius: 1.25rem;
+  box-shadow: 0 -12px 30px rgba(15, 26, 46, 0.25);
+}
+
+.kiosk-lowered-banner {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 0;
+  height: var(--kiosk-lowered-top);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #0f1a2e 0%, #1a2744 100%);
+  animation: kiosk-lowered-banner-in 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.kiosk-lowered-banner-out {
+  animation: kiosk-lowered-banner-out 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes kiosk-lowered-banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes kiosk-lowered-banner-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kiosk-lowered-banner,
+  .kiosk-lowered-banner-out {
+    animation: none;
+  }
+}
+
+/* Pop-ups and dialogs open inside the lowered area, not at the top of the screen. */
+html.kiosk-lowered .fixed.inset-0:not([data-kiosk-fullscreen]) {
+  top: var(--kiosk-lowered-top) !important;
+}
+
+html.kiosk-lowered [data-slot="dialog-content"] {
+  top: calc(var(--kiosk-lowered-top) + (100dvh - var(--kiosk-lowered-top)) / 2) !important;
+  max-height: calc(100dvh - var(--kiosk-lowered-top) - 2rem);
+  overflow-y: auto;
+}
+
+/* !important: the kiosk sets the root font size inline to fit the screen. */
 html.kiosk-large-text {
-  font-size: 118%;
+  font-size: calc(var(--kiosk-root-font, 16px) * 1.18) !important;
 }
 
 /*
@@ -296,17 +375,74 @@ html.kiosk-large-text {
 .kiosk-lock-select [contenteditable="true"] {
   -webkit-user-select: text !important;
   user-select: text !important;
-  -webkit-touch-callout: default !important;
 }
 
-html.kiosk-high-contrast {
-  --color-kiosk-navy: #000000;
-  --color-kiosk-bg: #ffffff;
-  --color-kiosk-green: #006600;
+/* Nothing ever shows as highlighted, including text inside fields. */
+.kiosk-lock-select ::selection {
+  background: transparent;
+  color: inherit;
 }
 
-html.kiosk-high-contrast .bg-kiosk-navy {
-  background-color: #000000;
+/*
+ * High contrast. Theme colors are compiled into the utilities (@theme inline),
+ * so the readable versions are applied over the utility classes themselves.
+ */
+html.kiosk-high-contrast body {
+  color: #000000;
+}
+
+html.kiosk-high-contrast :is(
+    .text-gray-300,
+    .text-gray-400,
+    .text-gray-500,
+    .text-gray-600,
+    .text-slate-300,
+    .text-slate-400,
+    .text-slate-500,
+    .text-slate-600,
+    .text-muted-foreground
+  ) {
+  color: #111827 !important;
+}
+
+html.kiosk-high-contrast :is(.text-gray-700, .text-slate-700, .text-slate-800, .text-kiosk-navy) {
+  color: #000000 !important;
+}
+
+/* Faded white text on dark panels and the bottom bar. */
+html.kiosk-high-contrast [class*="text-white/"],
+html.kiosk-high-contrast [class*="text-blue-1"] {
+  color: #ffffff !important;
+}
+
+html.kiosk-high-contrast :is(
+    .border,
+    .border-b,
+    .border-t,
+    .border-gray-100,
+    .border-gray-200,
+    .border-slate-100,
+    .border-slate-200
+  ) {
+  border-color: #475569 !important;
+}
+
+html.kiosk-high-contrast :is(.divide-slate-100, .divide-gray-100) > :not(:last-child) {
+  border-color: #475569 !important;
+}
+
+html.kiosk-high-contrast :is(.bg-kiosk-navy, .bg-kiosk-navy-dark) {
+  background-color: #000000 !important;
+}
+
+html.kiosk-high-contrast ::placeholder {
+  color: #374151 !important;
+  opacity: 1;
+}
+
+html.kiosk-high-contrast :is(a, button, input, textarea, [role="slider"], [role="button"]):focus-visible {
+  outline: 3px solid #facc15;
+  outline-offset: 2px;
 }
 
 html.kiosk-screen-reader *:focus-visible {
@@ -1558,6 +1694,91 @@ html.kiosk-zoom-locked [data-kiosk-zoom-surface] {
   }
 }
 
+/* Feedback — emoji satisfaction slider */
+.feedback-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2.5rem;
+  background: transparent;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.feedback-range:focus {
+  outline: none;
+}
+
+.feedback-range::-webkit-slider-runnable-track {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--feedback-color, #94a3b8) var(--feedback-fill, 0%),
+    #e2e8f0 var(--feedback-fill, 0%)
+  );
+}
+
+.feedback-range::-moz-range-track {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--feedback-color, #94a3b8) var(--feedback-fill, 0%),
+    #e2e8f0 var(--feedback-fill, 0%)
+  );
+}
+
+.feedback-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-top: -0.625rem;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 3px solid var(--feedback-color, #94a3b8);
+  box-shadow: 0 2px 8px rgba(15, 26, 46, 0.18);
+  transition: transform 120ms ease;
+}
+
+.feedback-range::-moz-range-thumb {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 3px solid var(--feedback-color, #94a3b8);
+  box-shadow: 0 2px 8px rgba(15, 26, 46, 0.18);
+}
+
+.feedback-range:active::-webkit-slider-thumb,
+.feedback-range:focus-visible::-webkit-slider-thumb {
+  transform: scale(1.1);
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--feedback-color, #94a3b8) 18%, transparent),
+    0 2px 8px rgba(15, 26, 46, 0.18);
+}
+
+.feedback-thanks-pop {
+  animation: feedback-thanks-pop 620ms cubic-bezier(0.16, 1.4, 0.3, 1) both;
+}
+
+@keyframes feedback-thanks-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6) rotate(-8deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedback-thanks-pop {
+    animation: none;
+  }
+}
+
 /* Building map — hexagon crystal loader */
 .building-map-loader {
   display: flex;
@@ -1576,57 +1797,58 @@ html.kiosk-zoom-locked [data-kiosk-zoom-surface] {
 
 .building-map-loader-stage {
   position: relative;
-  width: 5.5rem;
-  height: 5.5rem;
+  width: 7.5rem;
+  height: 7.5rem;
 }
 
 .building-map-loader-glow {
   position: absolute;
-  inset: 8%;
+  inset: 4%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(34, 197, 94, 0.22), transparent 68%);
+  background: radial-gradient(circle, rgba(34, 197, 94, 0.24), transparent 70%);
   animation: building-map-loader-glow 2.4s ease-in-out infinite;
 }
 
-.building-map-loader-gem {
-  position: relative;
+.building-map-loader-ring {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  overflow: visible;
+  animation: building-map-loader-spin 1.6s linear infinite;
 }
 
-.building-map-loader-spin {
-  transform-origin: 50px 50px;
-  animation: building-map-loader-spin 7.5s linear infinite;
-}
-
-.building-map-loader-faces {
-  fill: rgba(26, 39, 68, 0.05);
-}
-
-.building-map-loader-ribs {
+.building-map-loader-track {
   fill: none;
-  stroke: #1a2744;
-  stroke-width: 2.1;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  stroke: rgba(26, 39, 68, 0.1);
+  stroke-width: 3;
 }
 
-.building-map-loader-outline {
-  fill: none;
-  stroke: #1a2744;
-  stroke-width: 2.4;
-  stroke-linejoin: round;
-}
-
-.building-map-loader-trace {
+.building-map-loader-arc {
   fill: none;
   stroke: #22c55e;
-  stroke-width: 2.6;
-  stroke-linejoin: round;
+  stroke-width: 3.4;
   stroke-linecap: round;
-  stroke-dasharray: 36 180;
-  animation: building-map-loader-trace 2.1s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+  stroke-dasharray: 72 217;
+}
+
+.building-map-loader-logo {
+  position: absolute;
+  inset: 13%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 26, 46, 0.16);
+  animation: building-map-loader-breathe 2.4s ease-in-out infinite;
+}
+
+.building-map-loader-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 6%;
 }
 
 .building-map-loader-label {
@@ -1679,9 +1901,13 @@ html.kiosk-zoom-locked [data-kiosk-zoom-surface] {
   }
 }
 
-@keyframes building-map-loader-trace {
-  to {
-    stroke-dashoffset: -216;
+@keyframes building-map-loader-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
   }
 }
 
@@ -1711,14 +1937,10 @@ html.kiosk-zoom-locked [data-kiosk-zoom-surface] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .building-map-loader-spin,
-  .building-map-loader-trace,
+  .building-map-loader-ring,
+  .building-map-loader-logo,
   .building-map-loader-glow,
   .building-map-loader-dots span {
     animation: none;
-  }
-
-  .building-map-loader-trace {
-    stroke-dasharray: none;
   }
 }

@@ -206,7 +206,7 @@ export function EmergencyClient({ contacts }: { contacts: EmergencyContact[] }) 
   if (!contacts.length) {
     return (
       <p className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center text-slate-500">
-        {pickLang(language, "No emergency contacts available.", "Walang emergency contacts.", "Walay emergency contacts.")}
+        {pickLang(language, "No emergency contacts available.", "Walang available na emergency contact.", "Walay emergency contact nga anaa.")}
       </p>
     );
   }
@@ -222,7 +222,7 @@ export function EmergencyClient({ contacts }: { contacts: EmergencyContact[] }) 
               language,
               "Quick Access — Province",
               "Mabilisang Access — Probinsya",
-              "Dalíng Access — Probinsya"
+              "Dali nga Access — Probinsya"
             )}
           </h2>
         </div>
@@ -270,7 +270,7 @@ export function EmergencyClient({ contacts }: { contacts: EmergencyContact[] }) 
         <div className="mb-3 flex items-center gap-2">
           <Landmark className="h-4 w-4 text-kiosk-navy" strokeWidth={2.25} />
           <h2 className="text-sm font-extrabold tracking-[0.08em] text-kiosk-navy uppercase">
-            {pickLang(language, "By Municipality", "Ayon sa Munisipyo", "Pinaagi sa Munisipyo")}
+            {pickLang(language, "By Municipality", "Ayon sa Munisipalidad", "Matag Lungsod")}
           </h2>
         </div>
 
@@ -347,7 +347,13 @@ export function EmergencyClient({ contacts }: { contacts: EmergencyContact[] }) 
                   </span>
                   <div className="min-w-0">
                     <h3 className="truncate text-[15px] font-bold text-kiosk-navy">{label}</h3>
-                    <p className="text-xs font-medium text-slate-400">{area}</p>
+                    <p className="text-xs font-medium text-slate-400">
+                      {area === "Province"
+                        ? pickLang(language, "Province", "Probinsya", "Probinsya")
+                        : area === "Other"
+                          ? pickLang(language, "Other", "Iba pa", "Uban pa")
+                          : area}
+                    </p>
                   </div>
                 </div>
 
@@ -370,14 +376,14 @@ export function EmergencyClient({ contacts }: { contacts: EmergencyContact[] }) 
           </span>
           <div className="min-w-0">
             <p className="text-sm font-extrabold tracking-wide text-[#c1121f] uppercase">
-              {pickLang(language, "Important Reminder", "Mahalagang Paalala", "Importante nga Paahinumdom")}
+              {pickLang(language, "Important Reminder", "Mahalagang Paalala", "Importante nga Pahinumdom")}
             </p>
             <p className="mt-0.5 text-sm leading-snug text-kiosk-navy/80">
               {pickLang(
                 language,
                 "In case of emergency, stay calm and dial the appropriate hotline. Your safety is our priority.",
-                "Sa oras ng emergency, manatiling kalmado at tumawag sa tamang hotline. Priority namin ang inyong kaligtasan.",
-                "Kung emergency, magpabilin nga kalmado ug tawagi ang hustong hotline. Una namo ang inyong kaluwasan."
+                "Sa oras ng emergency, manatiling kalmado at tumawag sa tamang hotline. Pangunahing priyoridad namin ang inyong kaligtasan.",
+                "Kung adunay emergency, pabilin nga kalmado ug tawag sa hustong hotline. Ang inyong kaluwasan ang among pangunang prayoridad."
               )}
             </p>
           </div>

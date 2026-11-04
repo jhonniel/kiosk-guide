@@ -35,7 +35,11 @@ export type CharterBrowseCategoryId =
 export type CharterBrowseCategory = {
   id: CharterBrowseCategoryId;
   title: string;
+  titleFil: string;
+  titleBis: string;
   description: string;
+  descriptionFil: string;
+  descriptionBis: string;
   match: RegExp;
   icon: CharterCategoryIcon;
   /** Reference glyph asset (colored circle + white icon). */
@@ -49,7 +53,11 @@ export const CHARTER_BROWSE_CATEGORIES: CharterBrowseCategory[] = [
   {
     id: "health",
     title: "Health Services",
+    titleFil: "Mga Serbisyong Pangkalusugan",
+    titleBis: "Mga Serbisyo sa Panglawas",
     description: "Hospital services, laboratory, medicine, certificates, and consultation.",
+    descriptionFil: "Mga serbisyo ng ospital, laboratoryo, gamot, sertipiko, at konsultasyon.",
+    descriptionBis: "Mga serbisyo sa ospital, laboratoryo, tambal, sertipiko, ug konsultasyon.",
     match: /hospital|health|medical|clinic|pharmacy/i,
     icon: HealthServicesIcon,
     iconSrc: "/images/citizens-charter/category-icons/health.svg",
@@ -60,7 +68,11 @@ export const CHARTER_BROWSE_CATEGORIES: CharterBrowseCategory[] = [
   {
     id: "social",
     title: "Social Welfare Services",
+    titleFil: "Mga Serbisyong Pangkagalingang Panlipunan",
+    titleBis: "Mga Serbisyo sa Kaayohang Sosyal",
     description: "Assistance programs and services for individuals and families in need.",
+    descriptionFil: "Mga programa at serbisyong tulong para sa mga indibidwal at pamilyang nangangailangan.",
+    descriptionBis: "Mga programa ug serbisyo sa tabang para sa mga indibidwal ug pamilya nga nanginahanglan.",
     match: /social|welfare|youth|women|senior|employment|human|peso/i,
     icon: SocialWelfareIcon,
     iconSrc: "/images/citizens-charter/category-icons/social.svg",
@@ -71,7 +83,11 @@ export const CHARTER_BROWSE_CATEGORIES: CharterBrowseCategory[] = [
   {
     id: "agriculture",
     title: "Agriculture Services",
+    titleFil: "Mga Serbisyong Pang-agrikultura",
+    titleBis: "Mga Serbisyo sa Agrikultura",
     description: "Support services for farmers, nursery, and agriculture facilities.",
+    descriptionFil: "Mga serbisyong suporta para sa mga magsasaka, nursery, at mga pasilidad pang-agrikultura.",
+    descriptionBis: "Mga serbisyo nga suporta para sa mga mag-uuma, nursery, ug mga pasilidad sa agrikultura.",
     match: /agriculture|fisher|farm|environment|natural resources/i,
     icon: AgricultureServicesIcon,
     iconSrc: "/images/citizens-charter/category-icons/agriculture.svg",
@@ -82,7 +98,11 @@ export const CHARTER_BROWSE_CATEGORIES: CharterBrowseCategory[] = [
   {
     id: "engineering",
     title: "Engineering Services",
+    titleFil: "Mga Serbisyong Pang-inhinyeriya",
+    titleBis: "Mga Serbisyo sa Inhenyeriya",
     description: "Infrastructure projects, road works, clearances, and structure repair.",
+    descriptionFil: "Mga proyektong pang-imprastraktura, paggawa ng kalsada, clearance, at pagkukumpuni ng mga istruktura.",
+    descriptionBis: "Mga proyekto sa imprastraktura, buhat sa dalan, clearance, ug pag-ayo sa mga istruktura.",
     match: /engineer|works|infrastructure|building|disaster|risk/i,
     icon: EngineeringServicesIcon,
     iconSrc: "/images/citizens-charter/category-icons/engineering.svg",
@@ -93,7 +113,11 @@ export const CHARTER_BROWSE_CATEGORIES: CharterBrowseCategory[] = [
   {
     id: "business",
     title: "Business & Procurement",
+    titleFil: "Negosyo at Pagbili",
+    titleBis: "Negosyo ug Pagpamalit",
     description: "Procurement, bidding, contracts, and supplier services.",
+    descriptionFil: "Pagbili ng gobyerno, bidding, mga kontrata, at mga serbisyo para sa supplier.",
+    descriptionBis: "Pagpamalit sa gobyerno, bidding, mga kontrata, ug mga serbisyo para sa supplier.",
     match: /bids|awards|bac|general services|procurement|business/i,
     icon: BusinessProcurementIcon,
     iconSrc: "/images/citizens-charter/category-icons/business.svg",
@@ -104,7 +128,11 @@ export const CHARTER_BROWSE_CATEGORIES: CharterBrowseCategory[] = [
   {
     id: "tourism",
     title: "Tourism Services",
+    titleFil: "Mga Serbisyong Panturismo",
+    titleBis: "Mga Serbisyo sa Turismo",
     description: "Tourism accreditation, facilities management, and visitor services.",
+    descriptionFil: "Akreditasyong panturismo, pamamahala ng mga pasilidad, at mga serbisyo para sa mga bisita.",
+    descriptionBis: "Akreditasyon sa turismo, pagdumala sa mga pasilidad, ug mga serbisyo para sa mga bisita.",
     match: /tourism|facilities management/i,
     icon: TourismServicesIcon,
     iconSrc: "/images/citizens-charter/category-icons/tourism.png",
@@ -115,7 +143,11 @@ export const CHARTER_BROWSE_CATEGORIES: CharterBrowseCategory[] = [
   {
     id: "veterinary",
     title: "Veterinary Services",
+    titleFil: "Mga Serbisyong Beterinaryo",
+    titleBis: "Mga Serbisyo sa Beterinaryo",
     description: "Animal health, vaccination, breeding, surgery, and certificates.",
+    descriptionFil: "Kalusugan ng hayop, bakuna, pagpaparami, operasyon, at mga sertipiko.",
+    descriptionBis: "Panglawas sa mananap, bakuna, pagpasanay, operasyon, ug mga sertipiko.",
     match: /veterinary|animal/i,
     icon: VeterinaryServicesIcon,
     iconSrc: "/images/citizens-charter/category-icons/veterinary.svg",
@@ -126,7 +158,11 @@ export const CHARTER_BROWSE_CATEGORIES: CharterBrowseCategory[] = [
   {
     id: "treasury",
     title: "Treasury / Payments",
+    titleFil: "Ingat-yaman / Mga Bayad",
+    titleBis: "Tesorerya / Mga Bayad",
     description: "Taxes, permits, fees, and other government payments.",
+    descriptionFil: "Mga buwis, permit, bayarin, at iba pang bayad sa gobyerno.",
+    descriptionBis: "Mga buhis, permit, bayranan, ug uban pang bayad sa gobyerno.",
     match: /treasury|accounting|budget|finance|cashier|revenue|assessment/i,
     icon: TreasuryPaymentsIcon,
     iconSrc: "/images/citizens-charter/category-icons/treasury.svg",
@@ -215,49 +251,69 @@ export type CharterCoreTopicId = "mandate" | "vision" | "mission" | "pledge";
 export type CharterCoreTopic = {
   id: CharterCoreTopicId;
   title: string;
+  titleFil: string;
+  titleBis: string;
   icon: CharterCategoryIcon;
   accent: string;
   soft: string;
   ring: string;
   body: string;
+  bodyFil: string;
+  bodyBis: string;
 };
 
 export const CHARTER_CORE_TOPICS: CharterCoreTopic[] = [
   {
     id: "mandate",
     title: "Mandate",
+    titleFil: "Mandato",
+    titleBis: "Mandato",
     icon: Shield,
     accent: "text-[#2563eb]",
     soft: "bg-[#dbeafe]",
     ring: "ring-[#fbbf24]",
     body: "The Provincial Government of Camiguin is mandated to deliver responsive local governance, promote public welfare, and provide efficient frontline services to residents, investors, and visitors across the island province.",
+    bodyFil: "Ang Pamahalaang Panlalawigan ng Camiguin ay may mandatong maghatid ng tumutugong lokal na pamamahala, itaguyod ang kapakanan ng publiko, at magbigay ng mahusay na frontline na serbisyo sa mga residente, mamumuhunan, at bisita sa buong lalawigan.",
+    bodyBis: "Ang Kagamhanan sa Probinsya sa Camiguin adunay mandato sa paghatag og matubagong lokal nga pagdumala, pagpalambo sa kaayohan sa publiko, ug paghatag og episyenteng frontline nga serbisyo sa mga residente, mamumuhunan, ug mga bisita sa tibuok isla nga probinsya.",
   },
   {
     id: "vision",
     title: "Vision",
+    titleFil: "Bisyon",
+    titleBis: "Panan-awon",
     icon: Eye,
     accent: "text-[#16a34a]",
     soft: "bg-[#dcfce7]",
     ring: "ring-[#fbbf24]",
     body: "A progressive, resilient, and people-centered Camiguin where transparent public service, sustainable development, and community well-being guide every program and transaction.",
+    bodyFil: "Isang maunlad, matatag, at makataong Camiguin kung saan ang tapat na serbisyo publiko, napapanatiling kaunlaran, at kagalingan ng komunidad ang gumagabay sa bawat programa at transaksyon.",
+    bodyBis: "Usa ka mauswagon, lig-on, ug nakasentro sa katawhan nga Camiguin diin ang transparent nga serbisyo publiko, malungtarong kalamboan, ug kaayohan sa komunidad ang nagagiya sa matag programa ug transaksyon.",
   },
   {
     id: "mission",
     title: "Mission",
+    titleFil: "Misyon",
+    titleBis: "Misyon",
     icon: Target,
     accent: "text-[#7c3aed]",
     soft: "bg-[#ede9fe]",
     ring: "ring-[#fbbf24]",
     body: "To provide accessible, accountable, and quality provincial services through clear processes, competent personnel, and citizen-focused systems that uphold integrity and excellence.",
+    bodyFil: "Magbigay ng madaling maabot, may pananagutan, at de-kalidad na serbisyong panlalawigan sa pamamagitan ng malinaw na proseso, mahuhusay na kawani, at mga sistemang nakatuon sa mamamayan na nagtataguyod ng integridad at kahusayan.",
+    bodyBis: "Paghatag og sayon maabot, responsable, ug de-kalidad nga serbisyo sa probinsya pinaagi sa klarong proseso, maayong mga kawani, ug mga sistema nga nakatutok sa katawhan nga nagbantay sa integridad ug kahanas.",
   },
   {
     id: "pledge",
     title: "Service Pledge",
+    titleFil: "Pangako sa Serbisyo",
+    titleBis: "Saad sa Serbisyo",
     icon: HandHeart,
     accent: "text-[#ea580c]",
     soft: "bg-[#ffedd5]",
     ring: "ring-[#fbbf24]",
     body: "We pledge to serve with courtesy, fairness, and urgency; to explain requirements clearly; to process transactions within published timelines; and to treat every client with respect and professionalism.",
+    bodyFil: "Nangangako kaming maglingkod nang may paggalang, pagkamakatarungan, at agarang pagtugon; ipaliwanag nang malinaw ang mga kinakailangan; iproseso ang mga transaksyon sa loob ng itinakdang panahon; at pakitunguhan ang bawat kliyente nang may respeto at propesyonalismo.",
+    bodyBis: "Nagsaad kami nga moalagad nga may pagtahod, kaangayan, ug dinaliang pagtubag; ipasabot og klaro ang mga kinahanglanon; iproseso ang mga transaksyon sulod sa gitakdang panahon; ug atimanon ang matag kliyente nga may pagtahod ug propesyonalismo.",
   },
 ];
 

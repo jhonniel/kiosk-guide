@@ -64,7 +64,7 @@ export default async function MapPage() {
       titleBis="Mapa sa Camiguin"
       descriptionEn="Explore the Camiguin tourism map — search, zoom, and tap attractions for details."
       descriptionFil="Tuklasin ang tourism map ng Camiguin — maghanap, mag-zoom, at pindutin ang mga atraksiyon para sa detalye."
-      descriptionBis="Suhola ang tourism map sa Camiguin — pangita, mag-zoom, ug pindota ang mga atraksyon para sa detalye."
+      descriptionBis="Susiha ang tourism map sa Camiguin — pangita, i-zoom, ug pindota ang mga destinasyon aron makita ang detalye."
     >
       <MapClient data={data} />
     </ModulePageClient>

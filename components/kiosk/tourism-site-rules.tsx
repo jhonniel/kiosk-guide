@@ -9,7 +9,7 @@ const RULES = [
     src: "/images/tourism/rules/no-pets.png",
     altEn: "No pets allowed",
     altFil: "Bawal ang alagang hayop",
-    altBis: "Dili gidawat ang binuhi",
+    altBis: "Bawal ang binuhing hayop",
   },
   {
     id: "liquor",
@@ -23,23 +23,23 @@ const RULES = [
     src: "/images/tourism/rules/no-smoking.png",
     altEn: "No smoking",
     altFil: "Bawal manigarilyo",
-    altBis: "Bawal mag-smoke",
+    altBis: "Bawal manigarilyo",
   },
 ] as const;
 
 function getRuleLabels(language: Language): Record<(typeof RULES)[number]["id"], string[]> {
   if (language === "fil") {
     return {
-      pets: ["Bawal", "Ang", "Alagang Hayop"],
+      pets: ["Bawal", "ang Alagang", "Hayop"],
       liquor: ["Bawal", "Alak"],
       smoking: ["Bawal", "Manigarilyo"],
     };
   }
   if (language === "bis") {
     return {
-      pets: ["Dili", "Gidawat", "Ang Binuhi"],
+      pets: ["Bawal", "ang Binuhing", "Hayop"],
       liquor: ["Bawal", "Alak"],
-      smoking: ["Bawal", "Pag-smoke"],
+      smoking: ["Bawal", "Manigarilyo"],
     };
   }
   return {
@@ -68,9 +68,9 @@ export function TourismSiteRules({ language, className }: TourismSiteRulesProps)
       className={cn("flex flex-wrap items-start justify-center gap-6 sm:gap-8", className)}
       aria-label={
         language === "fil"
-          ? "Mga patakaran sa destinasyon"
+          ? "Mga patakaran sa lugar"
           : language === "bis"
-            ? "Mga lagda sa destinasyon"
+            ? "Mga lagda sa lugar"
             : "Site rules"
       }
     >

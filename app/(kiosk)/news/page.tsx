@@ -13,8 +13,10 @@ export default function NewsPage() {
       icon="Megaphone"
       titleEn="News & Announcements"
       titleFil="Balita at Anunsyo"
+      titleBis="Balita ug Pahibalo"
       descriptionEn="Latest advisories, programs, and public notices."
-      descriptionFil="Pinakabagong mga abiso, programa, at pampublikong paunawa."
+      descriptionFil="Pinakabagong mga paalala, programa, at pampublikong abiso."
+      descriptionBis="Pinakabag-ong mga pahimangno, programa, ug pahibalo sa publiko."
       fit
     >
       <NewsClient announcements={getSortedAnnouncements(data)} />

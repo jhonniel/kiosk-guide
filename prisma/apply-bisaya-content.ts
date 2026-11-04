@@ -7,6 +7,10 @@ import {
   BISAYA_EVENTS,
   BISAYA_FAQS,
   BISAYA_HOMEPAGE_CARDS,
+  BISAYA_MAP_ATTRACTIONS,
+  BISAYA_MAP_CATEGORIES,
+  BISAYA_MAP_FEATURES,
+  BISAYA_MAP_ROUTES,
   BISAYA_PAGES,
   BISAYA_QUICK_LINKS,
   BISAYA_SERVICES,
@@ -66,7 +70,7 @@ export async function applyBisayaContent(prisma: PrismaClient) {
     if (bis) {
       await prisma.download.update({
         where: { id: download.id },
-        data: { titleBis: bis.titleBis },
+        data: { titleBis: bis.titleBis, descriptionBis: bis.descriptionBis },
       });
     }
   }
@@ -79,11 +83,10 @@ export async function applyBisayaContent(prisma: PrismaClient) {
     });
   }
 
-  const announcements = await prisma.announcement.findMany({ orderBy: { publishedAt: "asc" } });
-  for (let i = 0; i < announcements.length && i < BISAYA_ANNOUNCEMENTS.length; i++) {
-    await prisma.announcement.update({
-      where: { id: announcements[i].id },
-      data: BISAYA_ANNOUNCEMENTS[i],
+  for (const [titleEn, bis] of Object.entries(BISAYA_ANNOUNCEMENTS)) {
+    await prisma.announcement.updateMany({
+      where: { titleEn },
+      data: { titleBis: bis.titleBis, contentBis: bis.contentBis },
     });
   }
 
@@ -101,11 +104,10 @@ export async function applyBisayaContent(prisma: PrismaClient) {
     });
   }
 
-  const events = await prisma.event.findMany({ orderBy: { startDate: "asc" } });
-  for (let i = 0; i < events.length && i < BISAYA_EVENTS.length; i++) {
-    await prisma.event.update({
-      where: { id: events[i].id },
-      data: BISAYA_EVENTS[i],
+  for (const [titleEn, bis] of Object.entries(BISAYA_EVENTS)) {
+    await prisma.event.updateMany({
+      where: { titleEn },
+      data: { titleBis: bis.titleBis, descriptionBis: bis.descriptionBis },
     });
   }
 
@@ -114,5 +116,30 @@ export async function applyBisayaContent(prisma: PrismaClient) {
       where: { slug },
       data: { titleBis: bis.titleBis, contentBis: bis.contentBis },
     });
+  }
+}
+
+/** Run after seedMapEngine, which resets map names from the static catalog. */
+export async function applyBisayaMapContent(prisma: PrismaClient) {
+  for (const [slug, bis] of Object.entries(BISAYA_MAP_CATEGORIES)) {
+    await prisma.mapCategory.updateMany({ where: { slug }, data: { nameBis: bis.nameBis } });
+  }
+
+  for (const [slug, bis] of Object.entries(BISAYA_MAP_ATTRACTIONS)) {
+    await prisma.mapAttraction.updateMany({
+      where: { slug },
+      data: { nameBis: bis.nameBis, entranceFeeBis: bis.entranceFeeBis },
+    });
+  }
+
+  for (const [slug, bis] of Object.entries(BISAYA_MAP_ROUTES)) {
+    await prisma.mapRoute.updateMany({
+      where: { slug },
+      data: { nameBis: bis.nameBis, travelTimeBis: bis.travelTimeBis },
+    });
+  }
+
+  for (const [slug, bis] of Object.entries(BISAYA_MAP_FEATURES)) {
+    await prisma.mapFeature.updateMany({ where: { slug }, data: { nameBis: bis.nameBis } });
   }
 }

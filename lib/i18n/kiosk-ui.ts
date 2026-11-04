@@ -14,7 +14,7 @@ const UI = {
   locationLabel: {
     en: "Location:",
     fil: "Lokasyon:",
-    bis: "Asa:",
+    bis: "Lokasyon:",
   },
   nearbyLabel: {
     en: "Nearby:",
@@ -24,22 +24,22 @@ const UI = {
   directionsLabel: {
     en: "Directions:",
     fil: "Mga Direksyon:",
-    bis: "Mga Lakang:",
+    bis: "Mga Direksyon:",
   },
   startNavigation: {
     en: "Start Navigation",
-    fil: "Simulan ang Navigation",
-    bis: "Sugdi ang Navigation",
+    fil: "Simulan ang Paggabay",
+    bis: "Sugdi ang Paggiya",
   },
   accessibleRoute: {
     en: "Accessible Route",
-    fil: "Accessible Route",
-    bis: "Accessible nga Ruta",
+    fil: "Rutang Accessible",
+    bis: "Ruta nga Accessible",
   },
   selectLocation: {
     en: "Select a location:",
     fil: "Pumili ng lokasyon:",
-    bis: "Pilia ang lokasyon:",
+    bis: "Pili og lokasyon:",
   },
   officesHeading: {
     en: "Offices",
@@ -49,7 +49,7 @@ const UI = {
   officesHint: {
     en: "Tap an office for directions",
     fil: "Pindutin ang opisina para sa direksyon",
-    bis: "Pindota ang opisina para sa lakang",
+    bis: "Pindota ang opisina aron makita ang direksyon",
   },
   closeLabel: {
     en: "Close",
@@ -59,7 +59,7 @@ const UI = {
   trySearching: {
     en: "Try searching for:",
     fil: "Subukang hanapin:",
-    bis: "Sulayi pangitaa:",
+    bis: "Sulayi pagpangita:",
   },
   roomLabel: {
     en: "Room",
@@ -68,28 +68,28 @@ const UI = {
   },
   nearLabel: {
     en: "Near",
-    fil: "Malapit",
+    fil: "Malapit sa",
     bis: "Duol sa",
   },
   directionsButton: {
     en: "Directions",
     fil: "Direksyon",
-    bis: "Lakang",
+    bis: "Direksyon",
   },
   buildingLayoutTitle: {
     en: "3D BUILDING LAYOUT",
     fil: "3D LAYOUT NG GUSALI",
-    bis: "3D LAYOUT SA BUILDING",
+    bis: "3D LAYOUT SA BILDING",
   },
   tapRoomHint: {
     en: "Tap a room · Rotate · Zoom",
-    fil: "Pindutin ang silid · I-rotate · Zoom",
-    bis: "Pindota ang kwarto · I-rotate · Zoom",
+    fil: "Pindutin ang silid · I-ikot · I-zoom",
+    bis: "Pindota ang kwarto · Ilingi · I-zoom",
   },
   phoneLabel: {
     en: "Phone",
     fil: "Telepono",
-    bis: "Numero sa Telepono",
+    bis: "Telepono",
   },
   emailLabel: {
     en: "Email",
@@ -99,7 +99,7 @@ const UI = {
   addressLabel: {
     en: "Address",
     fil: "Address",
-    bis: "Direksyon sa Balay",
+    bis: "Address",
   },
   ratingLabel: {
     en: "Rating",
@@ -128,8 +128,8 @@ const UI = {
   },
   feedbackSavedOffline: {
     en: "Feedback saved offline. It will sync when connection is restored.",
-    fil: "Na-save ang feedback offline. Isi-sync kapag may koneksyon na.",
-    bis: "Na-save ang feedback offline. Mo-sync kung naay koneksyon na.",
+    fil: "Na-save ang feedback offline. Isi-sync ito kapag bumalik ang koneksyon.",
+    bis: "Na-save ang feedback offline. Mo-sync kini inig balik sa koneksyon.",
   },
   offlineReady: {
     en: "Offline mode — using saved kiosk data",
@@ -138,23 +138,23 @@ const UI = {
   },
   offlineLimited: {
     en: "Offline — limited features available",
-    fil: "Offline — limitadong tampok",
-    bis: "Offline — limitado nga mga feature",
+    fil: "Offline — limitado ang mga feature",
+    bis: "Offline — limitado ang mga feature",
   },
   loadingKioskData: {
     en: "Loading kiosk data…",
-    fil: "Nilo-load ang kiosk data…",
-    bis: "Nag-load ang kiosk data…",
+    fil: "Inihahanda ang impormasyon ng kiosk…",
+    bis: "Giandam ang impormasyon sa kiosk…",
   },
   preparingOffline: {
     en: "Preparing information for offline use.",
     fil: "Inihahanda ang impormasyon para sa offline na paggamit.",
-    bis: "Giandam ang impormasyon para sa offline nga paggamit.",
+    bis: "Giandam ang impormasyon alang sa offline nga paggamit.",
   },
   downloadAria: {
     en: (title: string) => `Download ${title}`,
     fil: (title: string) => `I-download ang ${title}`,
-    bis: (title: string) => `Kuhaa ang ${title}`,
+    bis: (title: string) => `I-download ang ${title}`,
   },
   officialDirectory: {
     en: "OFFICIAL DIRECTORY",
@@ -168,17 +168,17 @@ const UI = {
   },
   closedWeekends: {
     en: "Closed on weekends and national holidays.",
-    fil: "Sarado tuwing weekend at pambansang holiday.",
-    bis: "Sirado sa weekend ug national holidays.",
+    fil: "Sarado tuwing Sabado, Linggo, at pambansang holiday.",
+    bis: "Sirado kon Sabado, Domingo, ug mga national holiday.",
   },
   officesLegend: {
     en: "Offices",
     fil: "Mga Opisina",
-    bis: "Mga Opisinahan",
+    bis: "Mga Opisina",
   },
   landmarksLegend: {
     en: "Landmarks",
-    fil: "Mga Landmark",
+    fil: "Mga Palatandaan",
     bis: "Mga Timailhan",
   },
   municipalitiesLegend: {
@@ -208,13 +208,13 @@ const UI = {
   },
   capitolOffices: {
     en: "CAPITOL & GOVERNMENT OFFICES",
-    fil: "CAPITOL AT MGA OPISINA",
-    bis: "CAPITOL UG MGA OPISINA",
+    fil: "CAPITOL AT MGA OPISINA NG PAMAHALAAN",
+    bis: "CAPITOL UG MGA OPISINA SA GOBYERNO",
   },
   visitLocationHint: {
     en: "Visit this location on Camiguin Island. For capitol offices, tap a green marker for indoor directions.",
-    fil: "Bisitahin ang lokasyong ito sa Isla ng Camiguin. Para sa mga opisina sa capitol, pindutin ang berdeng marker para sa indoor directions.",
-    bis: "Bisitaha kini nga lokasyon sa Isla sa Camiguin. Para sa mga opisina sa capitol, pindota ang green marker para sa indoor directions.",
+    fil: "Bisitahin ang lugar na ito sa Isla ng Camiguin. Para sa mga opisina sa Capitol, pindutin ang berdeng marker para sa direksyon sa loob ng gusali.",
+    bis: "Bisitaha kini nga lugar sa Isla sa Camiguin. Para sa mga opisina sa Capitol, pindota ang berde nga marker para sa direksyon sulod sa bilding.",
   },
   requirements: {
     en: "Requirements",
@@ -224,7 +224,7 @@ const UI = {
   documents: {
     en: "Documents",
     fil: "Mga Dokumento",
-    bis: "Mga Papeles",
+    bis: "Mga Dokumento",
   },
   officeLocation: {
     en: "Office Location",
@@ -238,33 +238,33 @@ const UI = {
   },
   processingTime: {
     en: "Processing Time",
-    fil: "Oras ng Pagproseso",
-    bis: "Oras sa Pagproseso",
+    fil: "Tagal ng Pagproseso",
+    bis: "Gidugayon sa Pagproseso",
   },
   fee: {
     en: "Fee",
-    fil: "Bayad",
-    bis: "Bayad",
+    fil: "Bayarin",
+    bis: "Bayranan",
   },
   contact: {
     en: "Contact",
-    fil: "Contact",
+    fil: "Kontak",
     bis: "Kontak",
   },
   firstFloor: {
     en: "1st Floor",
-    fil: "1st Floor",
-    bis: "Unang Palapag",
+    fil: "Unang Palapag",
+    bis: "Unang Andana",
   },
   secondFloor: {
     en: "2nd Floor",
-    fil: "2nd Floor",
-    bis: "Ikaduha nga Palapag",
+    fil: "Ikalawang Palapag",
+    bis: "Ikaduhang Andana",
   },
   thirdFloor: {
     en: "3rd Floor",
-    fil: "3rd Floor",
-    bis: "Ikatulo nga Palapag",
+    fil: "Ikatlong Palapag",
+    bis: "Ikatulong Andana",
   },
   mapFilterAll: {
     en: "All",
@@ -273,8 +273,8 @@ const UI = {
   },
   mapFilterTourist: {
     en: "Tourist Spots",
-    fil: "Mga Turista",
-    bis: "Mga Turista",
+    fil: "Mga Pasyalan",
+    bis: "Mga Destinasyon sa Turista",
   },
   mapFilterOffices: {
     en: "Offices",
@@ -288,33 +288,33 @@ const UI = {
   },
   mapZoomIn: {
     en: "Zoom in",
-    fil: "Mag-zoom in",
-    bis: "Zoom in",
+    fil: "Palakihin",
+    bis: "Padak-a",
   },
   mapZoomOut: {
     en: "Zoom out",
-    fil: "Mag-zoom out",
-    bis: "Zoom out",
+    fil: "Paliitin",
+    bis: "Pagamaya",
   },
   mapResetView: {
     en: "Reset view",
-    fil: "I-reset ang view",
-    bis: "I-reset ang view",
+    fil: "Ibalik ang view",
+    bis: "Ibalik ang view",
   },
   mapExploreHint: {
     en: "Pinch or drag to explore the island. Tap a marker to view details.",
-    fil: "I-pinch o i-drag upang tuklasin ang isla. Pindutin ang marker para sa detalye.",
-    bis: "I-pinch o i-drag aron susihon ang isla. Pindota ang marker para sa detalye.",
+    fil: "I-pinch o i-drag para malibot ang isla. Pindutin ang marker para makita ang detalye.",
+    bis: "I-pinch o i-drag aron malibot ang isla. Pindota ang marker aron makita ang detalye.",
   },
   touristSpotsTitle: {
     en: "TOURIST SPOTS",
-    fil: "MGA TURISTA",
-    bis: "MGA TURISTA",
+    fil: "MGA PASYALAN",
+    bis: "MGA DESTINASYON SA TURISTA",
   },
   mapTapHint: {
     en: "Tap a spot on the map or choose from the list below.",
     fil: "Pindutin ang lugar sa mapa o pumili mula sa listahan sa ibaba.",
-    bis: "Pindota ang lugar sa mapa o pilia gikan sa listahan sa ubos.",
+    bis: "Pindota ang lugar sa mapa o pili gikan sa listahan sa ubos.",
   },
 } as const;
 

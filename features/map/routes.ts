@@ -122,8 +122,8 @@ export function buildStraightRoute(
     points: [from, mid, to],
     travelTime: {
       en: "Estimate varies",
-      fil: "Tinatayang oras ay nag-iiba",
-      bis: "Banabana nga oras naglainlain",
+      fil: "Nag-iiba ang tinatayang oras",
+      bis: "Lainlain ang banabana nga oras",
     },
   };
 }

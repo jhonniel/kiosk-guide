@@ -2,6 +2,8 @@
 
 import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronsDown, ChevronsUp } from "lucide-react";
+import { useKiosk } from "@/hooks/use-kiosk";
+import { pickLang } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
 
 type ScrollFadeContainerProps = {
@@ -18,6 +20,7 @@ export function ScrollFadeContainer({
   contentClassName,
   fadeClassName = "from-white via-white/80",
 }: ScrollFadeContainerProps) {
+  const { language } = useKiosk();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollDown, setCanScrollDown] = useState(false);
   const [canScrollUp, setCanScrollUp] = useState(false);
@@ -87,7 +90,7 @@ export function ScrollFadeContainer({
           type="button"
           onClick={() => scrollByPage("up")}
           className="relative -mt-1 flex h-11 w-11 items-center justify-center rounded-lg text-[#0d9488] transition hover:scale-105 active:scale-95"
-          aria-label="Scroll up"
+          aria-label={pickLang(language, "Scroll up", "Mag-scroll pataas", "I-scroll pataas")}
         >
           <ChevronsUp
             className="kiosk-scroll-hint-badge-up h-7 w-7 drop-shadow-[0_1px_3px_rgba(255,255,255,0.9)]"
@@ -110,7 +113,7 @@ export function ScrollFadeContainer({
           type="button"
           onClick={() => scrollByPage("down")}
           className="relative -mb-1 flex h-11 w-11 items-center justify-center rounded-lg text-[#0d9488] transition hover:scale-105 active:scale-95"
-          aria-label="Scroll down"
+          aria-label={pickLang(language, "Scroll down", "Mag-scroll pababa", "I-scroll paubos")}
         >
           <ChevronsDown
             className="kiosk-scroll-hint-badge h-7 w-7 drop-shadow-[0_1px_3px_rgba(255,255,255,0.9)]"

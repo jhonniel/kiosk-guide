@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { saveFeedback } from "@/features/feedback/save-feedback";
 import { feedbackSchema } from "@/lib/validations";
 
 export async function POST(request: NextRequest) {
@@ -13,6 +13,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  await db.feedback.create({ data: parsed.data });
+  await saveFeedback(parsed.data);
   return NextResponse.json({ success: true });
 }

@@ -4,6 +4,231 @@ export const CAPITOL_BUILDING_NAME_EN = "Provincial Capitol Building";
 export const CAPITOL_BUILDING_NAME_FIL = "Capitol Building";
 export const CAPITOL_BUILDING_NAME_BIS = "Capitol Building";
 
+const ENTER_FIL = "Pumasok sa gitnang pasilyo.";
+const ENTER_BIS = "Sulod sa tungang pasilyo.";
+const WEST_FIL = "Pumasok sa gitnang pasilyo at maglakad pakanluran.";
+const WEST_BIS = "Sulod sa tungang pasilyo ug lakaw pakasadpan.";
+const EAST_FIL = "Pumasok sa gitnang pasilyo at maglakad pasilangan.";
+const EAST_BIS = "Sulod sa tungang pasilyo ug lakaw pasidlakan.";
+const EAST_END_FIL = "Pumasok sa gitnang pasilyo at maglakad hanggang sa dulong silangan.";
+const EAST_END_BIS = "Sulod sa tungang pasilyo ug lakaw hangtod sa tumoy sa sidlakan.";
+const UP_2_FIL = "Sumakay sa elevator o umakyat sa hagdan papunta sa Ikalawang Palapag.";
+const UP_2_BIS = "Sakay sa elevator o saka sa hagdanan paingon sa Ikaduhang Andana.";
+const UP_3_FIL = "Sumakay sa elevator o umakyat sa hagdan papunta sa Ikatlong Palapag.";
+const UP_3_BIS = "Sakay sa elevator o saka sa hagdanan paingon sa Ikatulong Andana.";
+const WEST_END_FIL = "Mula sa gitnang pasilyo, maglakad hanggang sa dulong kanluran malapit sa mga elevator.";
+const WEST_END_BIS = "Gikan sa tungang pasilyo, lakaw hangtod sa tumoy sa kasadpan duol sa mga elevator.";
+const UPPER_CR_FIL = "Ang Comfort Room ng lalaki at babae ay nasa tabi ng sangang pasilyo sa kanluran.";
+const UPPER_CR_BIS = "Ang Comfort Room sa lalaki ug babaye naa sa tupad sa sanga sa pasilyo sa kasadpan.";
+
+const CAPITOL_LOCATION_TRANSLATIONS: Record<
+  string,
+  { nameFil?: string; nameBis?: string; directionsFil: string[]; directionsBis: string[] }
+> = {
+  "gf-governor-entrance": {
+    nameFil: "Pasukan ng Gobernador (Unang Palapag)",
+    nameBis: "Ganghaan sa Gobernador (Unang Andana)",
+    directionsFil: [
+      "Nandito ka sa Pasukan ng Gobernador sa Unang Palapag.",
+      "Dumiretso para marating ang gitnang pasilyo at ang directory kiosk.",
+    ],
+    directionsBis: [
+      "Ania ka sa Ganghaan sa Gobernador sa Unang Andana.",
+      "Diretso lang aron maabot ang tungang pasilyo ug ang directory kiosk.",
+    ],
+  },
+  "gf-kiosk": {
+    directionsFil: [
+      "Nandito ka sa Building Directory kiosk sa gitnang pasilyo.",
+      "Mula sa pasilyong ito matatagpuan ang lahat ng opisina ng probinsya sa Unang Palapag.",
+    ],
+    directionsBis: [
+      "Ania ka sa Building Directory kiosk sa tungang pasilyo.",
+      "Gikan niini nga pasilyo makit-an ang tanang opisina sa probinsya sa Unang Andana.",
+    ],
+  },
+  "gf-fire-exit": {
+    nameFil: "Labasan Pang-emergency (Likod, Unang Palapag)",
+    nameBis: "Gawasanan sa Emergency (Likod, Unang Andana)",
+    directionsFil: [
+      "Ang labasan pang-emergency ay nasa likod ng gusali malapit sa Provincial Veterinary Office.",
+      "Gamitin lamang kapag may emergency.",
+    ],
+    directionsBis: [
+      "Ang gawasanan sa emergency naa sa likod sa building duol sa Provincial Veterinary Office.",
+      "Gamita lang kung adunay emergency.",
+    ],
+  },
+  "gf-elevator-1": {
+    directionsFil: ["Mula sa gitnang pasilyo, ang Elevator 1 ay nasa kanlurang bahagi kasama ng iba pang elevator."],
+    directionsBis: ["Gikan sa tungang pasilyo, ang Elevator 1 naa sa kasadpang bahin uban sa ubang mga elevator."],
+  },
+  "gf-elevator-2": {
+    directionsFil: ["Mula sa gitnang pasilyo, ang Elevator 2 ay katabi ng Elevator 1 sa kanlurang bahagi."],
+    directionsBis: ["Gikan sa tungang pasilyo, ang Elevator 2 naa sa tupad sa Elevator 1 sa kasadpang bahin."],
+  },
+  "gf-stair-a": {
+    nameFil: "Hagdan (Gitna)",
+    nameBis: "Hagdanan (Tunga)",
+    directionsFil: ["Mula sa gitnang pasilyo, ang hagdan ay nasa kaliwang bahagi ng gitna ng pasilyo."],
+    directionsBis: ["Gikan sa tungang pasilyo, ang hagdanan naa sa wala nga bahin sa tunga sa pasilyo."],
+  },
+  "gf-stair-b": {
+    nameFil: "Hagdan (Silangan)",
+    nameBis: "Hagdanan (Sidlakan)",
+    directionsFil: ["Mula sa gitnang pasilyo, ang ikalawang hagdan ay nasa kanang bahagi ng gitna ng pasilyo."],
+    directionsBis: ["Gikan sa tungang pasilyo, ang ikaduhang hagdanan naa sa tuo nga bahin sa tunga sa pasilyo."],
+  },
+  "gf-comfort-room": {
+    directionsFil: [WEST_END_FIL, "Ang Comfort Room ay ang silid sa tabi ng sangang pasilyo sa kanluran."],
+    directionsBis: [WEST_END_BIS, "Ang Comfort Room mao ang kwarto sa tupad sa sanga sa pasilyo sa kasadpan."],
+  },
+  "gf-veterinary": {
+    directionsFil: [
+      "Pumasok sa gitnang pasilyo mula sa kiosk.",
+      "Maglakad pakanluran at lumiko pahilaga — ang Provincial Veterinary Office ay nasa hilagang-kanlurang sulok.",
+    ],
+    directionsBis: [
+      "Sulod sa tungang pasilyo gikan sa kiosk.",
+      "Lakaw pakasadpan ug liko paamihanan — ang Provincial Veterinary Office naa sa amihanang-kasadpang eskina.",
+    ],
+  },
+  "gf-agriculture": {
+    directionsFil: [WEST_FIL, "Ang Provincial Agriculture Office ay nasa hilagang bahagi ng Unang Palapag."],
+    directionsBis: [WEST_BIS, "Ang Provincial Agriculture Office naa sa amihanang bahin sa Unang Andana."],
+  },
+  "gf-general-services": {
+    directionsFil: [ENTER_FIL, "Ang Provincial General Services Office ay nasa hilagang bahagi, sa gitna ng gusali."],
+    directionsBis: [ENTER_BIS, "Ang Provincial General Services Office naa sa amihanang bahin, sa tunga sa building."],
+  },
+  "gf-budget": {
+    directionsFil: [EAST_FIL, "Ang Provincial Budget Office ay nasa hilagang bahagi ng Unang Palapag."],
+    directionsBis: [EAST_BIS, "Ang Provincial Budget Office naa sa amihanang bahin sa Unang Andana."],
+  },
+  "gf-health": {
+    directionsFil: [EAST_END_FIL, "Ang Provincial Health Office ay nasa hilagang-silangang sulok ng Unang Palapag."],
+    directionsBis: [EAST_END_BIS, "Ang Provincial Health Office naa sa amihanang-sidlakang eskina sa Unang Andana."],
+  },
+  "gf-conference": {
+    directionsFil: [EAST_FIL, "Ang PDRRMO ay nasa silangang bahagi ng Unang Palapag."],
+    directionsBis: [EAST_BIS, "Ang PDRRMO naa sa sidlakang bahin sa Unang Andana."],
+  },
+  "gf-social-welfare": {
+    directionsFil: [WEST_FIL, "Ang Provincial Social Welfare and Development Office ay nasa timog-kanlurang bahagi ng Unang Palapag."],
+    directionsBis: [WEST_BIS, "Ang Provincial Social Welfare and Development Office naa sa habagatang-kasadpang bahin sa Unang Andana."],
+  },
+  "gf-assessor": {
+    directionsFil: [ENTER_FIL, "Ang Provincial Assessor's Office ay nasa timog na bahagi ng Unang Palapag."],
+    directionsBis: [ENTER_BIS, "Ang Provincial Assessor's Office naa sa habagatang bahin sa Unang Andana."],
+  },
+  "gf-people-assistance": {
+    directionsFil: [ENTER_FIL, "Ang People Assistance Office ay nasa timog na bahagi malapit sa gitna ng gusali."],
+    directionsBis: [ENTER_BIS, "Ang People Assistance Office naa sa habagatang bahin duol sa tunga sa building."],
+  },
+  "gf-treasury": {
+    directionsFil: [EAST_FIL, "Ang Provincial Treasury Office ay nasa timog na bahagi ng Unang Palapag."],
+    directionsBis: [EAST_BIS, "Ang Provincial Treasury Office naa sa habagatang bahin sa Unang Andana."],
+  },
+  "gf-tourism": {
+    directionsFil: [EAST_END_FIL, "Ang Provincial Tourism Office ay nasa timog-silangang sulok ng Unang Palapag."],
+    directionsBis: [EAST_END_BIS, "Ang Provincial Tourism Office naa sa habagatang-sidlakang eskina sa Unang Andana."],
+  },
+  "f2-governor": {
+    directionsFil: [
+      "Sumakay sa Elevator 1 o umakyat sa hagdan papunta sa Ikalawang Palapag.",
+      "Ang Governor's Office ay ang silid sa timog-kanluran ng Ikalawang Palapag.",
+    ],
+    directionsBis: [
+      "Sakay sa Elevator 1 o saka sa hagdanan paingon sa Ikaduhang Andana.",
+      "Ang Governor's Office mao ang kwarto sa habagatang-kasadpan sa Ikaduhang Andana.",
+    ],
+  },
+  "f2-administrator": {
+    directionsFil: [UP_2_FIL, "Ang Administrator Office ay ang silid na katabi ng Governor's Office."],
+    directionsBis: [UP_2_BIS, "Ang Administrator Office mao ang kwarto nga tupad sa Governor's Office."],
+  },
+  "f2-engineering": {
+    directionsFil: [UP_2_FIL, "Ang Provincial Engineering Department ay ang silid sa hilagang-kanluran ng Ikalawang Palapag."],
+    directionsBis: [UP_2_BIS, "Ang Provincial Engineering Department mao ang kwarto sa amihanang-kasadpan sa Ikaduhang Andana."],
+  },
+  "f2-peso": {
+    directionsFil: [UP_2_FIL, "Ang Public Employment Services Office Department ay nasa hilagang bahagi ng Ikalawang Palapag."],
+    directionsBis: [UP_2_BIS, "Ang Public Employment Services Office Department naa sa amihanang bahin sa Ikaduhang Andana."],
+  },
+  "f2-planning": {
+    directionsFil: [UP_2_FIL, "Ang Provincial Planning Development Department ay nasa dalawang gitnang silid sa hilagang bahagi ng Ikalawang Palapag."],
+    directionsBis: [UP_2_BIS, "Ang Provincial Planning Development Department naa sa duha ka tungang kwarto sa amihanang bahin sa Ikaduhang Andana."],
+  },
+  "f2-audit": {
+    directionsFil: [UP_2_FIL, "Ang Internal Audit Services ay nasa hilagang-silangang bahagi ng Ikalawang Palapag."],
+    directionsBis: [UP_2_BIS, "Ang Internal Audit Services naa sa amihanang-sidlakang bahin sa Ikaduhang Andana."],
+  },
+  "f2-conference": {
+    directionsFil: [UP_2_FIL, "Ang Conference Room ay nasa silangang bahagi ng Ikalawang Palapag."],
+    directionsBis: [UP_2_BIS, "Ang Conference Room naa sa sidlakang bahin sa Ikaduhang Andana."],
+  },
+  "f2-admin": {
+    directionsFil: [UP_2_FIL, "Ang Congressman Office ay nasa timog na bahagi ng gitnang pasilyo."],
+    directionsBis: [UP_2_BIS, "Ang Congressman Office naa sa habagatang bahin sa tungang pasilyo."],
+  },
+  "f2-legal": {
+    directionsFil: [UP_2_FIL, "Ang Legal Department ay katabi ng Congressman Office."],
+    directionsBis: [UP_2_BIS, "Ang Legal Department naa sa tupad sa Congressman Office."],
+  },
+  "f2-environment": {
+    directionsFil: [UP_2_FIL, "Ang Environment and Natural Resources ay nasa timog na bahagi ng Ikalawang Palapag, sa silangan ng Legal Department."],
+    directionsBis: [UP_2_BIS, "Ang Environment and Natural Resources naa sa habagatang bahin sa Ikaduhang Andana, sa sidlakan sa Legal Department."],
+  },
+  "f2-bac": {
+    directionsFil: [UP_2_FIL, "Ang Bids and Award Committee Office ay katabi ng Environment and Natural Resources."],
+    directionsBis: [UP_2_BIS, "Ang Bids and Award Committee Office naa sa tupad sa Environment and Natural Resources."],
+  },
+  "f2-accounting": {
+    directionsFil: [UP_2_FIL, "Ang Accounting Department ay nasa timog-silangang sulok ng Ikalawang Palapag."],
+    directionsBis: [UP_2_BIS, "Ang Accounting Department naa sa habagatang-sidlakang eskina sa Ikaduhang Andana."],
+  },
+  "f2-comfort-room": {
+    directionsFil: [UP_2_FIL, WEST_END_FIL, UPPER_CR_FIL],
+    directionsBis: [UP_2_BIS, WEST_END_BIS, UPPER_CR_BIS],
+  },
+  "f3-information": {
+    directionsFil: [UP_3_FIL, "Ang Information Office ay ang silid sa hilagang-kanluran ng Ikatlong Palapag."],
+    directionsBis: [UP_3_BIS, "Ang Information Office mao ang kwarto sa amihanang-kasadpan sa Ikatulong Andana."],
+  },
+  "f3-sanggunian": {
+    directionsFil: [UP_3_FIL, "Ang Sangguniang Panlalawigan Office ay nasa hilagang bahagi ng Ikatlong Palapag, katabi ng Secretariat Office."],
+    directionsBis: [UP_3_BIS, "Ang Sangguniang Panlalawigan Office naa sa amihanang bahin sa Ikatulong Andana, tupad sa Secretariat Office."],
+  },
+  "f3-secretariat": {
+    directionsFil: [UP_3_FIL, "Ang Secretariat Office ay katabi ng Sangguniang Panlalawigan Office."],
+    directionsBis: [UP_3_BIS, "Ang Secretariat Office naa sa tupad sa Sangguniang Panlalawigan Office."],
+  },
+  "f3-session": {
+    directionsFil: [UP_3_FIL, "Ang Session Hall ay nasa hilagang bahagi ng Ikatlong Palapag."],
+    directionsBis: [UP_3_BIS, "Ang Session Hall naa sa amihanang bahin sa Ikatulong Andana."],
+  },
+  "f3-vice-governor": {
+    directionsFil: [UP_3_FIL, "Ang Office of the Vice Governor ay ang silid sa hilagang-silangan ng Ikatlong Palapag."],
+    directionsBis: [UP_3_BIS, "Ang Office of the Vice Governor mao ang kwarto sa amihanang-sidlakan sa Ikatulong Andana."],
+  },
+  "f3-cpmc": {
+    directionsFil: [UP_3_FIL, "Ang CPMC ay nasa silangang bahagi ng Ikatlong Palapag."],
+    directionsBis: [UP_3_BIS, "Ang CPMC naa sa sidlakang bahin sa Ikatulong Andana."],
+  },
+  "f3-multipurpose": {
+    directionsFil: [UP_3_FIL, "Ang Multi-Purpose Hall ay ang silid sa timog-kanluran ng Ikatlong Palapag."],
+    directionsBis: [UP_3_BIS, "Ang Multi-Purpose Hall mao ang kwarto sa habagatang-kasadpan sa Ikatulong Andana."],
+  },
+  "f3-archive": {
+    directionsFil: [UP_3_FIL, "Ang Archive ay nasa timog na bahagi ng Ikatlong Palapag."],
+    directionsBis: [UP_3_BIS, "Ang Archive naa sa habagatang bahin sa Ikatulong Andana."],
+  },
+  "f3-comfort-room": {
+    directionsFil: [UP_3_FIL, WEST_END_FIL, UPPER_CR_FIL],
+    directionsBis: [UP_3_BIS, WEST_END_BIS, UPPER_CR_BIS],
+  },
+};
+
 function loc(
   id: string,
   nameEn: string,
@@ -22,15 +247,19 @@ function loc(
 ): BuildingLocationData {
   const floor = opts?.floor ?? 1;
   const floorLabelEn = opts?.floorLabelEn ?? (floor === 1 ? "Ground Floor" : floor === 2 ? "2nd Floor" : "3rd Floor");
-  const floorLabelFil = opts?.floorLabelFil ?? floorLabelEn;
-  const floorLabelBis = opts?.floorLabelBis ?? floorLabelEn;
+  const floorLabelFil =
+    opts?.floorLabelFil ?? (floor === 1 ? "Unang Palapag" : floor === 2 ? "Ikalawang Palapag" : "Ikatlong Palapag");
+  const floorLabelBis =
+    opts?.floorLabelBis ?? (floor === 1 ? "Unang Andana" : floor === 2 ? "Ikaduhang Andana" : "Ikatulong Andana");
+  const translated = CAPITOL_LOCATION_TRANSLATIONS[id];
   return {
     id,
     buildingNameEn: CAPITOL_BUILDING_NAME_EN,
     buildingNameFil: CAPITOL_BUILDING_NAME_FIL,
     buildingNameBis: CAPITOL_BUILDING_NAME_BIS,
     nameEn,
-    nameFil: opts?.nameFil,
+    nameFil: opts?.nameFil ?? translated?.nameFil,
+    nameBis: translated?.nameBis,
     floor,
     floorLabelEn,
     floorLabelFil,
@@ -40,6 +269,8 @@ function loc(
     category: opts?.category,
     nearbyLandmarks: opts?.nearbyLandmarks ?? [],
     directionsEn,
+    directionsFil: translated?.directionsFil,
+    directionsBis: translated?.directionsBis,
     aliases: opts?.aliases,
   };
 }
@@ -54,20 +285,25 @@ function facility(
     nearbyLandmarks?: string[];
   }
 ): BuildingLocationData {
+  const translated = CAPITOL_LOCATION_TRANSLATIONS[id];
   return {
     id,
     buildingNameEn: CAPITOL_BUILDING_NAME_EN,
     buildingNameFil: CAPITOL_BUILDING_NAME_FIL,
     buildingNameBis: CAPITOL_BUILDING_NAME_BIS,
     nameEn,
+    nameFil: translated?.nameFil,
+    nameBis: translated?.nameBis,
     floor: 1,
     floorLabelEn: "Ground Floor",
-    floorLabelFil: "Ground Floor",
-    floorLabelBis: "Ground Floor",
+    floorLabelFil: "Unang Palapag",
+    floorLabelBis: "Unang Andana",
     locationType: "facility",
     category: opts?.category,
     nearbyLandmarks: opts?.nearbyLandmarks ?? [],
     directionsEn,
+    directionsFil: translated?.directionsFil,
+    directionsBis: translated?.directionsBis,
     aliases: opts?.aliases,
   };
 }

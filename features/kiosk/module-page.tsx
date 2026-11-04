@@ -6,24 +6,30 @@ import { ModulePageClient } from "./module-page-client";
 interface ModulePageProps {
   titleEn: string;
   titleFil: string;
+  titleBis?: string;
   descriptionEn?: string;
   descriptionFil?: string;
+  descriptionBis?: string;
   children: React.ReactNode;
 }
 
 export function ModulePageWrapper({
   titleEn,
   titleFil,
+  titleBis,
   descriptionEn,
   descriptionFil,
+  descriptionBis,
   children,
 }: ModulePageProps) {
   return (
     <ModulePageClient
       titleEn={titleEn}
       titleFil={titleFil}
+      titleBis={titleBis}
       descriptionEn={descriptionEn}
       descriptionFil={descriptionFil}
+      descriptionBis={descriptionBis}
     >
       {children}
     </ModulePageClient>

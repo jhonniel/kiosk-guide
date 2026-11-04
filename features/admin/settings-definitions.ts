@@ -86,6 +86,13 @@ export const SETTING_GROUPS: SettingGroupDef[] = [
         description: "When enabled, uses Building Locations from admin instead of demo data.",
       },
       {
+        key: "building_map_2d",
+        label: "Show building map in 2D",
+        type: "boolean",
+        description:
+          "On: flat top-down floor plan view. Off: 3D view. Office list, directions, and the route guide work the same in both.",
+      },
+      {
         key: "indoor_map_v2",
         label: "Use Leaflet indoor map (v2)",
         type: "boolean",

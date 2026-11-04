@@ -10,7 +10,7 @@ import type { Faq } from "@prisma/client";
 const CATEGORY_META: Record<string, { en: string; fil: string; bis: string }> = {
   all: { en: "All", fil: "Lahat", bis: "Tanan" },
   general: { en: "General", fil: "Pangkalahatan", bis: "Kinatibuk-an" },
-  services: { en: "Services", fil: "Serbisyo", bis: "Serbisyo" },
+  services: { en: "Services", fil: "Mga Serbisyo", bis: "Mga Serbisyo" },
   tourism: { en: "Tourism", fil: "Turismo", bis: "Turismo" },
   travel: { en: "Travel", fil: "Paglalakbay", bis: "Pagbiyahe" },
   emergency: { en: "Emergency", fil: "Emergency", bis: "Emergency" },
@@ -75,7 +75,7 @@ export function FaqClient({ faqs }: { faqs: Faq[] }) {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold tracking-[0.18em] text-slate-400 uppercase">
-                {pickLang(language, "Knowledge base", "Knowledge base", "Knowledge base")}
+                {pickLang(language, "Knowledge base", "Mga Sagot at Impormasyon", "Mga Tubag ug Impormasyon")}
               </p>
               <h2 className="mt-1 text-xl font-bold tracking-tight text-kiosk-navy">
                 {pickLang(
@@ -92,8 +92,8 @@ export function FaqClient({ faqs }: { faqs: Faq[] }) {
                 {pickLang(
                   language,
                   "Need more help? Tap Cami at the bottom right.",
-                  "Kailangan ng tulong? Pindutin si Cami sa ibabang kanan.",
-                  "Kinahanglan og tabang? Pindota si Cami sa ubos tuo."
+                  "Kailangan pa ng tulong? Pindutin si Cami sa kanang ibaba.",
+                  "Kinahanglan pa og tabang? Pindota si Cami sa ubos nga tuo."
                 )}
               </span>
             </div>
@@ -117,7 +117,7 @@ export function FaqClient({ faqs }: { faqs: Faq[] }) {
                 type="button"
                 onClick={() => setQuery("")}
                 className="absolute top-1/2 right-3 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                aria-label={pickLang(language, "Clear search", "I-clear ang search", "I-clear ang search")}
+                aria-label={pickLang(language, "Clear search", "Burahin ang hinahanap", "Papasa ang gipangita")}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -158,8 +158,8 @@ export function FaqClient({ faqs }: { faqs: Faq[] }) {
               {pickLang(
                 language,
                 "No matching FAQs. Try another search or ask Cami.",
-                "Walang tumugmang FAQ. Subukan ang ibang search o magtanong kay Cami.",
-                "Walay mohaum nga FAQ. Sulayi ang laing search o pangutana kang Cami."
+                "Walang tugmang FAQ. Sumubok ng ibang hahanapin o magtanong kay Cami.",
+                "Walay katugbang nga FAQ. Sulayi og laing pangitaon o pangutana kang Cami."
               )}
             </p>
           </div>

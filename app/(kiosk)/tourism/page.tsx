@@ -13,8 +13,10 @@ export default function TourismPage() {
       icon="Palmtree"
       titleEn="Tourism Information"
       titleFil="Impormasyon sa Turismo"
+      titleBis="Impormasyon sa Turismo"
       descriptionEn="Attractions, activities, and travel tips."
-      descriptionFil="Mga atraksyon, aktibidad, at mga tip sa paglalakbay."
+      descriptionFil="Mga pasyalan, aktibidad, at mga tip sa paglalakbay."
+      descriptionBis="Mga destinasyon, kalihokan, ug mga tip sa pagbiyahe."
     >
       <TourismClient items={getSortedTourism(data)} />
     </ModulePageClient>

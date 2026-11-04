@@ -57,6 +57,7 @@ export function useKioskUiScale(enabled = true): {
       const next = computeFit(enabled);
       setState(next);
       root.style.setProperty("--kiosk-ui-scale", "1");
+      root.style.setProperty("--kiosk-root-font", `${next.fontSizePx}px`);
       root.style.fontSize = `${next.fontSizePx}px`;
     };
 
@@ -71,6 +72,7 @@ export function useKioskUiScale(enabled = true): {
       window.visualViewport?.removeEventListener("scroll", update);
       window.removeEventListener("orientationchange", update);
       root.style.setProperty("--kiosk-ui-scale", "1");
+      root.style.removeProperty("--kiosk-root-font");
       root.style.fontSize = "";
     };
   }, [enabled]);

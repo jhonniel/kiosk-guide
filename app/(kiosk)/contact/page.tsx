@@ -12,10 +12,16 @@ export default function ContactPage() {
       icon="Mail"
       titleEn="Contact Us"
       titleFil="Makipag-ugnayan"
+      titleBis="Kontaka Kami"
       descriptionEn="Get in touch with the Provincial Government of Camiguin."
       descriptionFil="Makipag-ugnayan sa Pamahalaang Panlalawigan ng Camiguin."
+      descriptionBis="Kontaka ang Provincial Government sa Camiguin."
+      fit
     >
-      <ContactClient settings={data.settings} />
+      {/* Only the content scrolls; the banner above stays in place. */}
+      <div className="kiosk-main-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pb-1">
+        <ContactClient settings={data.settings} />
+      </div>
     </ModulePageClient>
   );
 }

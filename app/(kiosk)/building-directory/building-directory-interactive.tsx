@@ -147,6 +147,7 @@ export function BuildingDirectoryInteractive({
             navigationGraph={navigationGraph}
             locations={locations}
             kioskLocation={uiConfig.kioskLocation}
+            flatView={uiConfig.mapView === "2d"}
             highlightLocationId={highlightLocationId}
             pickedNode={pickedNode}
             onLocationClick={handleLocationClick}

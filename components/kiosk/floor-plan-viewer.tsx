@@ -12,6 +12,9 @@ import {
   resolveFloorRouteProgress,
 } from "@/features/building-directory/navigation/routing-engine";
 import { getLandmarkNodesForFloor, getRoomNodesForFloor } from "@/features/building-directory/navigation/demo-graph";
+import { localizeFloorLabel, localizePlaceLabel } from "@/features/building-directory/location-display";
+import { useKiosk } from "@/hooks/use-kiosk";
+import { pickLang } from "@/lib/i18n/translations";
 
 interface FloorPlanViewerProps {
   graph: NavigationGraph;
@@ -27,6 +30,10 @@ interface FloorPlanViewerProps {
   className?: string;
 }
 
+function landmarkText(label: string) {
+  return label.length > 14 ? label.split(" ")[0] : label;
+}
+
 export function FloorPlanViewer({
   graph,
   route,
@@ -40,6 +47,7 @@ export function FloorPlanViewer({
   browseMode = false,
   className,
 }: FloorPlanViewerProps) {
+  const { language } = useKiosk();
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const dragRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
@@ -110,7 +118,7 @@ export function FloorPlanViewer({
                   : "bg-white text-kiosk-navy hover:bg-gray-100"
               )}
             >
-              {f.label}
+              {localizeFloorLabel(f.label, f.floor, language)}
             </button>
           ))}
         </div>
@@ -119,7 +127,7 @@ export function FloorPlanViewer({
             type="button"
             onClick={() => setZoom((z) => Math.min(z + 0.2, 2.5))}
             className="rounded-lg p-1.5 hover:bg-gray-200"
-            aria-label="Zoom in"
+            aria-label={pickLang(language, "Zoom in", "Palakihin", "Padak-a")}
           >
             <ZoomIn className="h-4 w-4" />
           </button>
@@ -127,7 +135,7 @@ export function FloorPlanViewer({
             type="button"
             onClick={() => setZoom((z) => Math.max(z - 0.2, 0.6))}
             className="rounded-lg p-1.5 hover:bg-gray-200"
-            aria-label="Zoom out"
+            aria-label={pickLang(language, "Zoom out", "Paliitin", "Pagamaya")}
           >
             <ZoomOut className="h-4 w-4" />
           </button>
@@ -136,7 +144,12 @@ export function FloorPlanViewer({
 
       {isDemoMode && (
         <div className="bg-amber-50 px-4 py-1.5 text-center text-xs text-amber-700">
-          Demo floor plan — navigation uses demonstration data
+          {pickLang(
+            language,
+            "Demo floor plan — navigation uses demonstration data",
+            "Demo na floor plan — sample na datos ang gamit sa paggabay",
+            "Demo nga floor plan — sample nga datos ang gamit sa paggiya"
+          )}
         </div>
       )}
 
@@ -198,7 +211,7 @@ export function FloorPlanViewer({
                   className="fill-kiosk-navy font-semibold"
                   style={{ fontSize: isRoom ? 9 : 7 }}
                 >
-                  {isRoom ? room.label.replace("Room ", "R") : room.label.split(" ")[0]}
+                  {isRoom ? room.label.replace("Room ", "R") : localizePlaceLabel(room.label, language).split(" ")[0]}
                 </text>
               </g>
             );
@@ -229,7 +242,7 @@ export function FloorPlanViewer({
                   className="fill-kiosk-navy font-medium"
                   style={{ fontSize: 7 }}
                 >
-                  {lm.label.length > 14 ? lm.label.split(" ")[0] : lm.label}
+                  {landmarkText(localizePlaceLabel(lm.label, language))}
                 </text>
               )}
             </g>
@@ -287,7 +300,14 @@ export function FloorPlanViewer({
       {route && isNavigating && (
         <div className="flex items-center justify-between border-t px-4 py-2 text-xs text-gray-500">
           <span>~{route.totalDistanceMeters}m · ~{route.estimatedMinutes} min</span>
-          <span>{Math.round(progress * 100)}% complete</span>
+          <span>
+            {pickLang(
+              language,
+              `${Math.round(progress * 100)}% complete`,
+              `${Math.round(progress * 100)}% tapos na`,
+              `${Math.round(progress * 100)}% human na`
+            )}
+          </span>
         </div>
       )}
     </div>

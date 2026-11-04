@@ -48,7 +48,7 @@ import {
 } from "@/features/kiosk/charter-quick-start";
 import { getKioskSessionId } from "@/features/kiosk/visit-tracking";
 import { useQuickStartVisits } from "@/components/kiosk/quick-start-visit-provider";
-import { pickLang, t } from "@/lib/i18n/translations";
+import { pickLang, t, type Language } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
 import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
 import { getKioskPublicOrigin, resolveKioskPublicFileUrl } from "@/lib/kiosk-sync-url";
@@ -350,9 +350,21 @@ export function CitizensCharterClient({ edition }: CitizensCharterClientProps) {
     return (
       <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center">
         <FileText className="mx-auto mb-3 h-8 w-8 text-gray-300" />
-        <p className="font-semibold text-kiosk-navy">Citizens&apos; Charter is not published yet</p>
+        <p className="font-semibold text-kiosk-navy">
+          {pickLang(
+            language,
+            "Citizens' Charter is not published yet",
+            "Hindi pa nailalathala ang Citizens' Charter",
+            "Wala pa mapatik ang Citizens' Charter"
+          )}
+        </p>
         <p className="mt-1 text-sm text-gray-500">
-          Ask an administrator to publish a draft edition from the admin panel.
+          {pickLang(
+            language,
+            "Ask an administrator to publish a draft edition from the admin panel.",
+            "Pakihiling sa isang administrator na ilathala ang draft na edisyon mula sa admin panel.",
+            "Palihug hangyoa ang administrator nga ipatik ang draft nga edisyon gikan sa admin panel."
+          )}
         </p>
       </div>
     );
@@ -490,6 +502,12 @@ function OverviewView({
   async function handleSendCharterPdf(event: FormEvent) {
     event.preventDefault();
     setEmailSending(true);
+    const sendFailedMessage = pickLang(
+      language,
+      "Failed to send email",
+      "Hindi naipadala ang email",
+      "Wala napadala ang email"
+    );
     try {
       const res = await kioskSyncFetch("/api/kiosk/citizens-charter/email", {
         method: "POST",
@@ -501,10 +519,10 @@ function OverviewView({
         }),
       });
       const data = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Failed to send email");
+      if (!res.ok) throw new Error(data.error ?? sendFailedMessage);
       setEmailSent(true);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to send email");
+      toast.error(error instanceof Error ? error.message : sendFailedMessage);
     } finally {
       setEmailSending(false);
     }
@@ -522,11 +540,15 @@ function OverviewView({
 
         <div className="mt-1.5 min-w-0 max-w-xl">
           <p className="text-[11px] font-bold tracking-[0.34em] text-[#0f766e] uppercase">
-            Overview
+            {pickLang(language, "Overview", "Pangkalahatang-ideya", "Kinatibuk-ang Pagtan-aw")}
           </p>
           <p className="mt-2 max-w-lg text-[13px] leading-relaxed text-slate-500">
-            Your guide to government services in Camiguin. Explore services, requirements,
-            processing time, and fees all in one place.
+            {pickLang(
+              language,
+              "Your guide to government services in Camiguin. Explore services, requirements, processing time, and fees all in one place.",
+              "Ang iyong gabay sa mga serbisyo ng pamahalaan sa Camiguin. Tingnan ang mga serbisyo, kinakailangan, tagal ng pagproseso, at bayarin sa iisang lugar.",
+              "Ang imong giya sa mga serbisyo sa kagamhanan sa Camiguin. Tan-awa ang mga serbisyo, kinahanglanon, gidugayon sa pagproseso, ug bayranan sa usa ka dapit."
+            )}
           </p>
         </div>
       </header>
@@ -545,7 +567,12 @@ function OverviewView({
             <img
               ref={coverRef}
               src={CHARTER_COVER_IMAGE}
-              alt="Citizens' Charter 2026 cover"
+              alt={pickLang(
+                language,
+                "Citizens' Charter 2026 cover",
+                "Pabalat ng Citizens' Charter 2026",
+                "Hapin sa Citizens' Charter 2026"
+              )}
               loading="eager"
               fetchPriority="high"
               decoding="async"
@@ -561,7 +588,14 @@ function OverviewView({
           </div>
           <div className="mt-3 shrink-0 text-center">
             <h2 className="text-[17px] font-extrabold text-kiosk-navy">{editionLabel}</h2>
-            <p className="mt-0.5 text-[13px] text-slate-500">Complete Citizens&apos; Charter</p>
+            <p className="mt-0.5 text-[13px] text-slate-500">
+              {pickLang(
+                language,
+                "Complete Citizens' Charter",
+                "Kumpletong Citizens' Charter",
+                "Kompletong Citizens' Charter"
+              )}
+            </p>
             {edition.pdfUrl ? (
               <button
                 type="button"
@@ -569,7 +603,7 @@ function OverviewView({
                 className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[#e8eef6] text-[13px] font-semibold text-kiosk-navy transition hover:bg-[#dce5f1]"
               >
                 <FileText className="h-4 w-4 text-slate-500" />
-                <span>PDF Document</span>
+                <span>{pickLang(language, "PDF Document", "Dokumentong PDF", "Dokumento nga PDF")}</span>
                 <span className="font-normal text-slate-300">|</span>
                 <span className="font-medium text-slate-500">5.3 MB</span>
               </button>
@@ -590,10 +624,20 @@ function OverviewView({
               </span>
               <div className="min-w-0 flex-1">
                 <h2 className="text-[1.5rem] leading-tight font-extrabold text-kiosk-navy lg:text-[1.75rem]">
-                  Browse By Department / Category
+                  {pickLang(
+                    language,
+                    "Browse By Department / Category",
+                    "Tingnan ayon sa Departamento / Kategorya",
+                    "Tan-awa sumala sa Departamento / Kategorya"
+                  )}
                 </h2>
                 <p className="mt-2 text-base leading-snug text-slate-500 lg:text-lg">
-                  Browse official services, published fees, processing time, and source pages.
+                  {pickLang(
+                    language,
+                    "Browse official services, published fees, processing time, and source pages.",
+                    "Tingnan ang mga opisyal na serbisyo, nakalathalang bayarin, tagal ng pagproseso, at mga pinagmulang pahina.",
+                    "Tan-awa ang mga opisyal nga serbisyo, gipatik nga bayranan, gidugayon sa pagproseso, ug mga gigikanang panid."
+                  )}
                 </p>
               </div>
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#eef2f7] text-slate-500">
@@ -608,11 +652,20 @@ function OverviewView({
                 </span>
                 <div className="min-w-0">
                   <h2 className="text-[1.5rem] leading-tight font-extrabold text-kiosk-navy lg:text-[1.75rem]">
-                    Scan QR to Open the Document
+                    {pickLang(
+                      language,
+                      "Scan QR to Open the Document",
+                      "I-scan ang QR para Buksan ang Dokumento",
+                      "I-scan ang QR aron Ablihan ang Dokumento"
+                    )}
                   </h2>
                   <p className="mt-2 max-w-xl text-base leading-snug text-slate-500 lg:text-lg">
-                    Scan the QR code to view or download the complete {edition.year} Citizens&apos;
-                    Charter.
+                    {pickLang(
+                      language,
+                      `Scan the QR code to view or download the complete ${edition.year} Citizens' Charter.`,
+                      `I-scan ang QR code upang makita o i-download ang kumpletong ${edition.year} Citizens' Charter.`,
+                      `I-scan ang QR code aron makita o ma-download ang kompletong ${edition.year} Citizens' Charter.`
+                    )}
                   </p>
                 </div>
               </div>
@@ -622,7 +675,12 @@ function OverviewView({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={qrDataUrl}
-                      alt="Citizens' Charter PDF QR code"
+                      alt={pickLang(
+                        language,
+                        "Citizens' Charter PDF QR code",
+                        "QR code ng Citizens' Charter PDF",
+                        "QR code sa Citizens' Charter PDF"
+                      )}
                       className="h-[7.75rem] w-[7.75rem]"
                     />
                   ) : (
@@ -637,7 +695,7 @@ function OverviewView({
                     onClick={() => setQrOpen(true)}
                     className="inline-flex w-full items-center justify-center rounded-md bg-[#0d9488] px-3 py-2.5 text-sm font-bold tracking-wide text-white uppercase transition hover:bg-[#0f766e]"
                   >
-                    Scan Here
+                    {pickLang(language, "Scan Here", "I-scan Dito", "I-scan Dinhi")}
                   </button>
                 ) : null}
               </div>
@@ -647,7 +705,12 @@ function OverviewView({
           <div className="mt-auto flex shrink-0 items-stretch gap-3.5">
             <div className="min-w-0 shrink-0">
               <p className="mb-2 text-[11px] font-bold tracking-[0.18em] text-slate-400 uppercase">
-                Core Charter Topics
+                {pickLang(
+                  language,
+                  "Core Charter Topics",
+                  "Mga Pangunahing Paksa ng Charter",
+                  "Mga Panguna nga Hilisgutan sa Charter"
+                )}
               </p>
               <div className="flex gap-2.5">
                 {CHARTER_CORE_TOPICS.map((topic) => {
@@ -678,7 +741,7 @@ function OverviewView({
                         <Icon className="h-7 w-7" strokeWidth={2.25} />
                       </span>
                       <span className="px-0.5 text-[11px] leading-tight font-extrabold tracking-wide text-kiosk-navy uppercase">
-                        {topic.title}
+                        {pickLang(language, topic.title, topic.titleFil, topic.titleBis)}
                       </span>
                     </button>
                   );
@@ -692,11 +755,20 @@ function OverviewView({
               </span>
               <div className="min-w-0">
                 <p className="text-base font-extrabold text-kiosk-navy lg:text-lg">
-                  For Reference and Information Only
+                  {pickLang(
+                    language,
+                    "For Reference and Information Only",
+                    "Para sa Sanggunian at Impormasyon Lamang",
+                    "Para sa Pakisayran ug Impormasyon Lamang"
+                  )}
                 </p>
                 <p className="mt-1.5 text-sm leading-snug text-slate-500 lg:text-[15px]">
-                  The Citizens&apos; Charter provides detailed information on our services, policies,
-                  and commitments to the public.
+                  {pickLang(
+                    language,
+                    "The Citizens' Charter provides detailed information on our services, policies, and commitments to the public.",
+                    "Nagbibigay ang Citizens' Charter ng detalyadong impormasyon tungkol sa aming mga serbisyo, patakaran, at mga pangako sa publiko.",
+                    "Naghatag ang Citizens' Charter og detalyadong impormasyon bahin sa among mga serbisyo, palisiya, ug mga saad sa publiko."
+                  )}
                 </p>
               </div>
             </aside>
@@ -718,20 +790,25 @@ function OverviewView({
             <div className="mb-4 flex items-start justify-between gap-4 sm:mb-5">
               <div className="min-w-0 pr-2">
                 <p className="text-xs font-bold tracking-[0.18em] text-[#0d9488] uppercase sm:text-sm">
-                  Core Charter Topic
+                  {pickLang(
+                    language,
+                    "Core Charter Topic",
+                    "Pangunahing Paksa ng Charter",
+                    "Panguna nga Hilisgutan sa Charter"
+                  )}
                 </p>
                 <h3 className="mt-2 text-2xl font-extrabold tracking-tight text-kiosk-navy sm:text-3xl lg:text-4xl">
-                  {activeTopic.title}
+                  {pickLang(language, activeTopic.title, activeTopic.titleFil, activeTopic.titleBis)}
                 </h3>
               </div>
               <CharterCloseButton
                 onClick={() => setTopicOpen(false)}
-                label={pickLang(language, "CLOSE", "ISARA", "SIRADO")}
+                label={pickLang(language, "CLOSE", "ISARA", "ISIRA")}
                 size="md"
               />
             </div>
             <p className="text-base leading-relaxed text-slate-600 sm:text-lg sm:leading-8 lg:text-xl">
-              {activeTopic.body}
+              {pickLang(language, activeTopic.body, activeTopic.bodyFil, activeTopic.bodyBis)}
             </p>
           </div>
         </div>
@@ -749,8 +826,8 @@ function OverviewView({
                   {pickLang(
                     language,
                     "Download via QR",
-                    "I-download via QR",
-                    "I-download via QR"
+                    "I-download gamit ang QR",
+                    "I-download pinaagi sa QR"
                   )}
                 </DialogTitle>
                 <DialogDescription className="mt-0.5 truncate text-xs">
@@ -766,7 +843,12 @@ function OverviewView({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={qrDataUrl}
-                  alt="Citizens' Charter PDF QR code"
+                  alt={pickLang(
+                    language,
+                    "Citizens' Charter PDF QR code",
+                    "QR code ng Citizens' Charter PDF",
+                    "QR code sa Citizens' Charter PDF"
+                  )}
                   className="h-48 w-48 sm:h-56 sm:w-56 lg:h-[16rem] lg:w-[16rem]"
                 />
               ) : (
@@ -780,7 +862,7 @@ function OverviewView({
                 language,
                 "Scan this QR code with your phone camera to view or download the Citizens' Charter PDF.",
                 "I-scan ang QR code gamit ang camera ng iyong telepono upang makita o i-download ang Citizens' Charter PDF.",
-                "I-scan kini nga QR code gamit ang camera sa imong telepono aron makita o makadownload sa Citizens' Charter PDF."
+                "I-scan kini nga QR code gamit ang camera sa imong telepono aron makita o ma-download ang Citizens' Charter PDF."
               )}
             </p>
             <Button
@@ -789,7 +871,7 @@ function OverviewView({
               className="mt-1"
               onClick={() => setQrOpen(false)}
             >
-              {pickLang(language, "Close", "Isara", "Sirado")}
+              {pickLang(language, "Close", "Isara", "Isira")}
             </Button>
           </div>
         </DialogContent>
@@ -830,9 +912,9 @@ function OverviewView({
                 <p className="max-w-xs text-xs leading-relaxed text-gray-500">
                   {pickLang(
                     language,
-                    `We handed off the PDF to the mail server for ${email}. Delivery can take a few minutes — check Inbox and Spam/Junk.`,
-                    `Naipasa na ang PDF sa mail server para kay ${email}. Maaaring tumagal ng ilang minuto — tingnan ang Inbox at Spam/Junk.`,
-                    `Gipasa na ang PDF sa mail server para kang ${email}. Mahimong molungtad ug pipila ka minuto — tan-awa ang Inbox ug Spam/Junk.`
+                    `Your PDF is on its way to ${email}. It may take a few minutes to arrive — please check your Inbox and Spam/Junk folder.`,
+                    `Ipinapadala na ang PDF sa ${email}. Maaaring tumagal ng ilang minuto bago ito dumating — tingnan ang iyong Inbox at Spam/Junk folder.`,
+                    `Gipadala na ang PDF sa ${email}. Mahimong molungtad ug pipila ka minuto una kini moabot — tan-awa ang imong Inbox ug Spam/Junk folder.`
                   )}
                 </p>
                 <Button
@@ -866,7 +948,7 @@ function OverviewView({
                       language,
                       "The Citizens' Charter PDF will be sent as an attachment.",
                       "Ipapadala ang Citizens' Charter PDF bilang attachment.",
-                      "Ipadala ang Citizens' Charter PDF isip attachment."
+                      "Ipadala ang Citizens' Charter PDF isip attachment sa imong email."
                     )}
                   </p>
                 </div>
@@ -931,22 +1013,51 @@ function BrowseView({
   onOpenRequested: (officeId: string, serviceId: string) => void;
   onViewAll: () => void;
 }) {
+  const { language } = useKiosk();
   const fitKey = `${browseMode}:${query}:${categoryCards.length}:${groups.length}:${allRequested.length}`;
+  const serviceCountLabel = (count: number) =>
+    count === 1
+      ? pickLang(language, "Service", "Serbisyo", "Serbisyo")
+      : pickLang(language, "Services", "Mga Serbisyo", "Mga Serbisyo");
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <header className={cn("flex shrink-0 flex-wrap items-start gap-3 pt-1 sm:gap-4", kioskDateTimeReserveClass)}>
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-4">
-            <KioskBackButton onClick={onBack}>Back to Overview</KioskBackButton>
+            <KioskBackButton onClick={onBack}>
+              {pickLang(
+                language,
+                "Back to Overview",
+                "Bumalik sa Pangkalahatang-ideya",
+                "Balik sa Kinatibuk-ang Pagtan-aw"
+              )}
+            </KioskBackButton>
             <h1 className="min-w-0 text-2xl font-black tracking-tight text-kiosk-navy uppercase sm:text-3xl lg:text-4xl">
-              {browseMode === "requested" ? "Most Requested Services" : "Browse Services"}
+              {browseMode === "requested"
+                ? pickLang(
+                    language,
+                    "Most Requested Services",
+                    "Mga Pinakahinihiling na Serbisyo",
+                    "Mga Serbisyo nga Kanunay Gipangayo"
+                  )
+                : pickLang(language, "Browse Services", "Tingnan ang mga Serbisyo", "Tan-awa ang mga Serbisyo")}
             </h1>
           </div>
           <p className="mt-1 text-xs text-slate-500 sm:text-sm">
             {browseMode === "requested"
-              ? "Quick access to commonly requested provincial services."
-              : "Find services, requirements, processing time, and fees."}
+              ? pickLang(
+                  language,
+                  "Quick access to commonly requested provincial services.",
+                  "Mabilis na access sa mga madalas hilinging serbisyo ng lalawigan.",
+                  "Dali nga access sa mga serbisyo sa probinsya nga kanunay gipangayo."
+                )
+              : pickLang(
+                  language,
+                  "Find services, requirements, processing time, and fees.",
+                  "Hanapin ang mga serbisyo, kinakailangan, tagal ng pagproseso, at bayarin.",
+                  "Pangitaa ang mga serbisyo, kinahanglanon, gidugayon sa pagproseso, ug bayranan."
+                )}
           </p>
         </div>
       </header>
@@ -957,24 +1068,26 @@ function BrowseView({
           kioskDateTimeReserveClass
         )}
       >
-        <p className="shrink-0 text-sm font-semibold text-kiosk-navy">Browse By</p>
+        <p className="shrink-0 text-sm font-semibold text-kiosk-navy">
+          {pickLang(language, "Browse By", "Tingnan Ayon sa", "Tan-awa Sumala sa")}
+        </p>
         <div className="flex min-w-0 flex-wrap items-center gap-2.5">
           <ModeChip
             active={browseMode === "category"}
             icon={LayoutGrid}
-            label="By Category"
+            label={pickLang(language, "By Category", "Ayon sa Kategorya", "Sumala sa Kategorya")}
             onClick={() => onBrowseMode("category")}
           />
           <ModeChip
             active={browseMode === "department"}
             icon={Building2}
-            label="By Department"
+            label={pickLang(language, "By Department", "Ayon sa Departamento", "Sumala sa Departamento")}
             onClick={() => onBrowseMode("department")}
           />
           <ModeChip
             active={browseMode === "requested"}
             icon={ListChecks}
-            label="Most Requested"
+            label={pickLang(language, "Most Requested", "Pinakahinihiling", "Kanunay Gipangayo")}
             onClick={() => onBrowseMode("requested")}
           />
         </div>
@@ -1007,15 +1120,20 @@ function BrowseView({
                         category.titleColor
                       )}
                     >
-                      {category.title}
+                      {pickLang(language, category.title, category.titleFil, category.titleBis)}
                     </h3>
                   </div>
                   <p className="mt-5 line-clamp-3 text-[15px] leading-relaxed text-slate-600">
-                    {category.description}
+                    {pickLang(
+                      language,
+                      category.description,
+                      category.descriptionFil,
+                      category.descriptionBis
+                    )}
                   </p>
                   <div className="mt-5 flex items-center justify-between">
                     <span className="text-base font-bold text-kiosk-navy">
-                      {serviceCount} {serviceCount === 1 ? "Service" : "Services"}
+                      {serviceCount} {serviceCountLabel(serviceCount)}
                     </span>
                     <ChevronRight className="h-5 w-5 text-slate-400" />
                   </div>
@@ -1062,11 +1180,16 @@ function BrowseView({
                   </div>
                   <p className="mt-5 line-clamp-3 text-[15px] leading-relaxed text-slate-600">
                     {office.categories.map((category) => category.name).slice(0, 2).join(" · ") ||
-                      "Provincial office services"}
+                      pickLang(
+                        language,
+                        "Provincial office services",
+                        "Mga serbisyo ng opisinang panlalawigan",
+                        "Mga serbisyo sa opisina sa probinsya"
+                      )}
                   </p>
                   <div className="mt-5 flex items-center justify-between">
                     <span className="text-base font-bold text-kiosk-navy">
-                      {serviceCount} {serviceCount === 1 ? "Service" : "Services"}
+                      {serviceCount} {serviceCountLabel(serviceCount)}
                     </span>
                     <ChevronRight className="h-5 w-5 text-slate-400" />
                   </div>
@@ -1105,7 +1228,9 @@ function BrowseView({
                     </div>
                   </div>
                   <div className="flex items-center justify-between border-t border-slate-100 pt-2">
-                    <span className="text-xs font-semibold text-slate-500">Open service</span>
+                    <span className="text-xs font-semibold text-slate-500">
+                      {pickLang(language, "Open service", "Buksan ang serbisyo", "Ablihi ang serbisyo")}
+                    </span>
                     <ChevronRight className="h-4 w-4 text-slate-400" />
                   </div>
                 </button>
@@ -1122,7 +1247,12 @@ function BrowseView({
       {browseMode !== "requested" ? (
         <section className="shrink-0 rounded-[22px] bg-[#e8eef6]/90 px-4 py-4 sm:px-5">
           <h2 className="mb-3 text-[13px] font-extrabold tracking-[0.14em] text-kiosk-navy uppercase">
-            Most Requested Services
+            {pickLang(
+              language,
+              "Most Requested Services",
+              "Mga Pinakahinihiling na Serbisyo",
+              "Mga Serbisyo nga Kanunay Gipangayo"
+            )}
           </h2>
           <div className="flex flex-wrap items-stretch gap-2.5">
             {requested.map(({ office, service }) => {
@@ -1147,7 +1277,7 @@ function BrowseView({
               onClick={onViewAll}
               className="inline-flex min-h-[48px] items-center gap-1.5 rounded-2xl bg-white px-4 py-2.5 text-[13px] font-semibold text-[#2563eb] shadow-[0_1px_2px_rgba(15,35,70,0.04)] transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] sm:text-sm"
             >
-              View All
+              {pickLang(language, "View All", "Tingnan lahat", "Tan-awa tanan")}
               <ChevronRight className="h-4 w-4" strokeWidth={2.25} />
             </button>
           </div>
@@ -1212,6 +1342,7 @@ function CharterCollapsibleSearch({
   searchInputRef: React.RefObject<HTMLInputElement | null>;
   onQueryChange: (value: string) => void;
 }) {
+  const { language } = useKiosk();
   const [expanded, setExpanded] = useState(() => Boolean(query.trim()));
   const [hint, setHint] = useState(CHARTER_SEARCH_EXAMPLES[0] ?? "");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1334,7 +1465,7 @@ function CharterCollapsibleSearch({
                 expanded ? "pl-11" : "pl-3.5"
               )}
             >
-              {hint || "Search…"}
+              {hint || pickLang(language, "Search…", "Maghanap…", "Pangita…")}
             </span>
           )}
           <Search
@@ -1351,7 +1482,12 @@ function CharterCollapsibleSearch({
             onFocus={expand}
             onClick={expand}
             placeholder=""
-            aria-label="Search Citizens' Charter services"
+            aria-label={pickLang(
+              language,
+              "Search Citizens' Charter services",
+              "Maghanap ng mga serbisyo sa Citizens' Charter",
+              "Pangitaa ang mga serbisyo sa Citizens' Charter"
+            )}
             className={cn(
               "relative z-10 h-full w-full rounded-full border-0 bg-transparent text-[13px] text-kiosk-navy outline-none transition-[padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus:ring-2 focus:ring-kiosk-navy/15",
               "appearance-none [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden",
@@ -1362,7 +1498,7 @@ function CharterCollapsibleSearch({
             type="button"
             onClick={expand}
             className="absolute top-1/2 right-1.5 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-kiosk-navy text-white transition hover:scale-105 active:scale-95"
-            aria-label="Expand search"
+            aria-label={pickLang(language, "Expand search", "Palawakin ang paghahanap", "Palapdon ang pagpangita")}
           >
             <Search className="h-4 w-4" strokeWidth={2.5} />
           </button>
@@ -1373,13 +1509,28 @@ function CharterCollapsibleSearch({
 }
 
 function EmptySearch() {
+  const { language } = useKiosk();
   return (
     <div className="rounded-2xl border border-dashed border-slate-300 bg-white/90 px-6 py-14 text-center shadow-sm">
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
         <Search className="h-6 w-6" />
       </div>
-      <p className="text-lg font-bold text-kiosk-navy">No matching services found</p>
-      <p className="mt-1 text-sm text-slate-500">Try another office, requirement, step, fee, or person name.</p>
+      <p className="text-lg font-bold text-kiosk-navy">
+        {pickLang(
+          language,
+          "No matching services found",
+          "Walang nahanap na katugmang serbisyo",
+          "Walay nakit-an nga katugbang nga serbisyo"
+        )}
+      </p>
+      <p className="mt-1 text-sm text-slate-500">
+        {pickLang(
+          language,
+          "Try another office, requirement, step, fee, or person name.",
+          "Subukan ang ibang opisina, kinakailangan, hakbang, bayarin, o pangalan ng tao.",
+          "Sulayi ang laing opisina, kinahanglanon, lakang, bayranan, o ngalan sa tawo."
+        )}
+      </p>
     </div>
   );
 }
@@ -1437,15 +1588,18 @@ function officeInitials(name: string) {
 
 function CharterCloseButton({
   onClick,
-  label = "CLOSE",
+  label: labelProp,
   size = "lg",
-  ariaLabel = "Close",
+  ariaLabel: ariaLabelProp,
 }: {
   onClick: () => void;
   label?: string;
   size?: "lg" | "md";
   ariaLabel?: string;
 }) {
+  const { language } = useKiosk();
+  const label = labelProp ?? pickLang(language, "CLOSE", "ISARA", "ISIRA");
+  const ariaLabel = ariaLabelProp ?? pickLang(language, "Close", "Isara", "Isira");
   return (
     <button
       type="button"
@@ -1487,14 +1641,22 @@ function isPublishedFeeAmount(raw: string): boolean {
   );
 }
 
-function publishedFee(service: CharterServiceView) {
+function seeStepsLabel(language: Language) {
+  return pickLang(language, "See steps", "Tingnan ang mga hakbang", "Tan-awa ang mga lakang");
+}
+
+function seeCharterLabel(language: Language) {
+  return pickLang(language, "See charter", "Tingnan ang charter", "Tan-awa ang charter");
+}
+
+function publishedFee(service: CharterServiceView, language: Language) {
   const fees = service.steps
     .map((step) => step.fee.trim())
     .filter(isPublishedFeeAmount);
-  if (!fees.length) return "None";
+  if (!fees.length) return pickLang(language, "None", "Wala", "Wala");
   const unique = [...new Set(fees)];
   if (unique.length === 1) return unique[0];
-  return "See steps";
+  return seeStepsLabel(language);
 }
 
 /** Parse a charter step time string into minutes (best-effort). */
@@ -1521,8 +1683,8 @@ function parseDurationToMinutes(raw: string): number | null {
   return found && Number.isFinite(total) ? total : null;
 }
 
-function formatTotalMinutes(totalMinutes: number): string {
-  if (!Number.isFinite(totalMinutes) || totalMinutes <= 0) return "See charter";
+function formatTotalMinutes(totalMinutes: number, language: Language): string {
+  if (!Number.isFinite(totalMinutes) || totalMinutes <= 0) return seeCharterLabel(language);
 
   const workingDayMinutes = 8 * 60;
   const days = Math.floor(totalMinutes / workingDayMinutes);
@@ -1531,34 +1693,49 @@ function formatTotalMinutes(totalMinutes: number): string {
   const minutes = rem % 60;
 
   const parts: string[] = [];
-  if (days > 0) parts.push(`${days} ${days === 1 ? "day" : "days"}`);
-  if (hours > 0) parts.push(`${hours} ${hours === 1 ? "hour" : "hours"}`);
-  if (minutes > 0) parts.push(`${minutes} ${minutes === 1 ? "minute" : "minutes"}`);
-  return parts.join(" ") || "See charter";
+  if (days > 0) parts.push(`${days} ${pickLang(language, days === 1 ? "day" : "days", "araw", "adlaw")}`);
+  if (hours > 0) parts.push(`${hours} ${pickLang(language, hours === 1 ? "hour" : "hours", "oras", "oras")}`);
+  if (minutes > 0) {
+    parts.push(`${minutes} ${pickLang(language, minutes === 1 ? "minute" : "minutes", "minuto", "minuto")}`);
+  }
+  return parts.join(" ") || seeCharterLabel(language);
 }
 
-function totalProcessingTime(service: CharterServiceView) {
+function totalProcessingTime(service: CharterServiceView, language: Language) {
   const parsed = service.steps
     .map((step) => parseDurationToMinutes(step.time))
     .filter((value): value is number => value != null && value > 0);
 
   if (parsed.length) {
-    return formatTotalMinutes(parsed.reduce((sum, value) => sum + value, 0));
+    return formatTotalMinutes(parsed.reduce((sum, value) => sum + value, 0), language);
   }
 
   const times = service.steps
     .map((step) => step.time.trim())
     .filter((time) => time && !/^none$|^n\/a$|^-$|^—$/i.test(time));
-  if (!times.length) return "See charter";
+  if (!times.length) return seeCharterLabel(language);
   if (times.length === 1) return times[0];
-  return "See steps";
+  return seeStepsLabel(language);
 }
 
-function officeBlurb(office: CharterOfficeView) {
+function officeBlurb(office: CharterOfficeView, language: Language) {
   const first = office.categories[0]?.services[0];
   if (first?.description) return first.description;
-  if (first?.whoMayAvail) return `Services for ${first.whoMayAvail.toLowerCase()}.`;
-  return "Official services, published fees, processing time, and charter source pages.";
+  if (first?.whoMayAvail) {
+    const audience = first.whoMayAvail.toLowerCase();
+    return pickLang(
+      language,
+      `Services for ${audience}.`,
+      `Mga serbisyo para sa ${audience}.`,
+      `Mga serbisyo para sa ${audience}.`
+    );
+  }
+  return pickLang(
+    language,
+    "Official services, published fees, processing time, and charter source pages.",
+    "Mga opisyal na serbisyo, nakalathalang bayarin, tagal ng pagproseso, at mga pinagmulang pahina ng charter.",
+    "Mga opisyal nga serbisyo, gipatik nga bayranan, gidugayon sa pagproseso, ug mga gigikanang panid sa charter."
+  );
 }
 
 function OfficeModal({
@@ -1588,11 +1765,17 @@ function OfficeModal({
   onOpenService: (serviceId: string) => void;
   onCloseService: () => void;
 }) {
+  const { language } = useKiosk();
   const serviceCount = countServices(group);
   const services = group.categories.flatMap((item) => item.services);
   const initials = officeInitials(group.name);
   const whoMayAvail =
-    services.find((service) => service.whoMayAvail)?.whoMayAvail || "Clients and citizens";
+    services.find((service) => service.whoMayAvail)?.whoMayAvail ||
+    pickLang(language, "Clients and citizens", "Mga kliyente at mamamayan", "Mga kliyente ug lungsoranon");
+  const serviceCountText = (count: number) =>
+    count === 1
+      ? pickLang(language, "service", "serbisyo", "serbisyo")
+      : pickLang(language, "services", "serbisyo", "ka serbisyo");
   const [pdfOpen, setPdfOpen] = useState(false);
   const pdfSrc = edition.pdfUrl ? charterPdfPublicUrl() : "";
 
@@ -1615,10 +1798,17 @@ function OfficeModal({
         <aside className="flex min-h-0 w-[min(20rem,34%)] shrink-0 flex-col border-r border-slate-200/80 bg-[#f7fafc] p-4 sm:p-5">
           <div className="mb-4">
             <p className="text-[10px] font-bold tracking-[0.16em] text-[#0d9488] uppercase">
-              Provincial Offices
+              {pickLang(
+                language,
+                "Provincial Offices",
+                "Mga Opisinang Panlalawigan",
+                "Mga Opisina sa Probinsya"
+              )}
             </p>
             <div className="mt-1 flex items-center gap-2">
-              <h3 className="text-xl font-extrabold text-kiosk-navy">Departments</h3>
+              <h3 className="text-xl font-extrabold text-kiosk-navy">
+                {pickLang(language, "Departments", "Mga Departamento", "Mga Departamento")}
+              </h3>
               <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#dbeafe] px-1.5 text-xs font-bold text-[#1d4ed8]">
                 {relatedOffices.length}
               </span>
@@ -1653,7 +1843,7 @@ function OfficeModal({
                       {office.name}
                     </span>
                     <span className="mt-0.5 block text-xs text-slate-500">
-                      {count} {count === 1 ? "service" : "services"}
+                      {count} {serviceCountText(count)}
                     </span>
                   </span>
                   <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
@@ -1673,7 +1863,12 @@ function OfficeModal({
                 <div className="min-w-0 flex-1">
                   {category ? (
                     <span className="inline-flex rounded-full bg-[#dbeafe] px-2.5 py-1 text-[10px] font-bold tracking-[0.14em] text-[#1d4ed8] uppercase">
-                      {category.title.replace(/ services$/i, "")}
+                      {pickLang(
+                        language,
+                        category.title.replace(/ services$/i, ""),
+                        category.titleFil,
+                        category.titleBis
+                      )}
                     </span>
                   ) : null}
                   <h2
@@ -1695,14 +1890,14 @@ function OfficeModal({
                     className="inline-flex min-h-[3rem] items-center gap-2 rounded-xl border border-[#2563eb]/30 bg-white px-5 py-3 text-base font-semibold text-[#2563eb] shadow-sm transition hover:bg-blue-50"
                   >
                     <FileText className="h-5 w-5" />
-                    Open full PDF
+                    {pickLang(language, "Open full PDF", "Buksan ang buong PDF", "Ablihi ang tibuok PDF")}
                   </button>
                 ) : null}
                 <CharterCloseButton onClick={onCloseOffice} />
               </div>
             </div>
             <p className="mt-4 max-w-4xl text-[15px] leading-relaxed text-slate-600">
-              {officeBlurb(group)}
+              {officeBlurb(group, language)}
             </p>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -1711,8 +1906,17 @@ function OfficeModal({
                   <FileText className="h-5 w-5" />
                 </span>
                 <div>
-                  <p className="text-sm font-extrabold text-kiosk-navy">{serviceCount} services</p>
-                  <p className="text-xs text-slate-500">Documented services</p>
+                  <p className="text-sm font-extrabold text-kiosk-navy">
+                    {serviceCount} {pickLang(language, "services", "serbisyo", "ka serbisyo")}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {pickLang(
+                      language,
+                      "Documented services",
+                      "Mga nakadokumentong serbisyo",
+                      "Mga serbisyo nga nadokumento"
+                    )}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3 rounded-2xl bg-[#f3f7fb] px-4 py-3">
@@ -1721,7 +1925,9 @@ function OfficeModal({
                 </span>
                 <div>
                   <p className="line-clamp-1 text-sm font-extrabold text-kiosk-navy">{whoMayAvail}</p>
-                  <p className="text-xs text-slate-500">For whom</p>
+                  <p className="text-xs text-slate-500">
+                    {pickLang(language, "For whom", "Para kanino", "Para kang kinsa")}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3 rounded-2xl bg-[#f3f7fb] px-4 py-3">
@@ -1730,9 +1936,16 @@ function OfficeModal({
                 </span>
                 <div>
                   <p className="text-sm font-extrabold text-kiosk-navy">
-                    Complete {edition.year} Charter
+                    {pickLang(
+                      language,
+                      `Complete ${edition.year} Charter`,
+                      `Kumpletong ${edition.year} Charter`,
+                      `Kompletong ${edition.year} Charter`
+                    )}
                   </p>
-                  <p className="text-xs text-slate-500">Source</p>
+                  <p className="text-xs text-slate-500">
+                    {pickLang(language, "Source", "Pinagmulan", "Gigikanan")}
+                  </p>
                 </div>
               </div>
             </div>
@@ -1744,9 +1957,21 @@ function OfficeModal({
             fadeClassName="from-[#f7f9fc] via-[#f7f9fc]/80"
           >
             <div className="mb-4 flex items-end justify-between gap-3">
-              <h3 className="text-lg font-extrabold text-kiosk-navy">Documented services</h3>
+              <h3 className="text-lg font-extrabold text-kiosk-navy">
+                {pickLang(
+                  language,
+                  "Documented services",
+                  "Mga nakadokumentong serbisyo",
+                  "Mga serbisyo nga nadokumento"
+                )}
+              </h3>
               <p className="text-xs font-medium text-slate-500">
-                {services.length} {services.length === 1 ? "service" : "services"} shown
+                {pickLang(
+                  language,
+                  `${services.length} ${services.length === 1 ? "service" : "services"} shown`,
+                  `${services.length} serbisyong ipinapakita`,
+                  `${services.length} ka serbisyo ang gipakita`
+                )}
               </p>
             </div>
 
@@ -1784,7 +2009,12 @@ function OfficeModal({
                         ) : null}
                         {service.pageNumber != null ? (
                           <span className="rounded-full bg-[#ccfbf1] px-2 py-0.5 text-[10px] font-bold text-[#0f766e]">
-                            Charter p. {service.pageNumber}
+                            {pickLang(
+                              language,
+                              `Charter p. ${service.pageNumber}`,
+                              `Pahina ${service.pageNumber} ng Charter`,
+                              `Panid ${service.pageNumber} sa Charter`
+                            )}
                           </span>
                         ) : null}
                       </div>
@@ -1797,17 +2027,24 @@ function OfficeModal({
                         <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-[9px] font-black text-[#0d9488]">
                           ₱
                         </span>
-                        Published Fee
+                        {pickLang(language, "Published Fee", "Nakalathalang Bayarin", "Gipatik nga Bayranan")}
                       </p>
-                      <p className="mt-1 text-sm font-bold text-kiosk-navy">{publishedFee(service)}</p>
+                      <p className="mt-1 text-sm font-bold text-kiosk-navy">
+                        {publishedFee(service, language)}
+                      </p>
                     </div>
                     <div className="rounded-xl bg-[#eef4fa] px-3 py-2.5">
                       <p className="flex items-center gap-1 text-[9px] font-bold tracking-[0.12em] text-slate-500 uppercase">
                         <Clock className="h-3.5 w-3.5 text-[#0d9488]" />
-                        Total Processing Time
+                        {pickLang(
+                          language,
+                          "Total Processing Time",
+                          "Kabuuang Tagal ng Pagproseso",
+                          "Kinatibuk-ang Gidugayon sa Pagproseso"
+                        )}
                       </p>
                       <p className="mt-1 text-sm font-bold text-kiosk-navy">
-                        {totalProcessingTime(service)}
+                        {totalProcessingTime(service, language)}
                       </p>
                     </div>
                   </div>
@@ -1846,13 +2083,14 @@ function OfficeModal({
                 </p>
                 <p className="truncate text-xs text-slate-500">
                   {edition.year}
-                  {edition.editionLabel ? ` · ${edition.editionLabel}` : ""} · Full PDF
+                  {edition.editionLabel ? ` · ${edition.editionLabel}` : ""} ·{" "}
+                  {pickLang(language, "Full PDF", "Buong PDF", "Tibuok PDF")}
                 </p>
               </div>
               <CharterCloseButton
                 onClick={() => setPdfOpen(false)}
                 size="md"
-                ariaLabel="Close PDF"
+                ariaLabel={pickLang(language, "Close PDF", "Isara ang PDF", "Isira ang PDF")}
               />
             </header>
             <div className="min-h-0 flex-1 bg-slate-100">
@@ -1880,15 +2118,25 @@ function ServiceDetailModal({
   isClosing: boolean;
   onClose: () => void;
 }) {
+  const { language } = useKiosk();
   const requirements = service.requirements;
   const steps = service.steps;
   const medicines = service.medicines;
   const metaRows = (
     [
-      ["Office or Division:", service.officeOrDivision],
-      ["Classification:", service.classification],
-      ["Type of Transaction:", service.typeOfTransaction],
-      ["Who may avail:", service.whoMayAvail],
+      [
+        pickLang(language, "Office or Division:", "Opisina o Dibisyon:", "Opisina o Dibisyon:"),
+        service.officeOrDivision,
+      ],
+      [pickLang(language, "Classification:", "Klasipikasyon:", "Klasipikasyon:"), service.classification],
+      [
+        pickLang(language, "Type of Transaction:", "Uri ng Transaksyon:", "Matang sa Transaksyon:"),
+        service.typeOfTransaction,
+      ],
+      [
+        pickLang(language, "Who may avail:", "Sino ang maaaring mag-avail:", "Kinsa ang mahimong maka-avail:"),
+        service.whoMayAvail,
+      ],
     ] as const
   ).filter(([, value]) => Boolean(value));
 
@@ -1912,7 +2160,14 @@ function ServiceDetailModal({
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold tracking-wider text-kiosk-green uppercase">
               {officeName}
-              {service.pageNumber != null ? ` · p. ${service.pageNumber}` : ""}
+              {service.pageNumber != null
+                ? pickLang(
+                    language,
+                    ` · p. ${service.pageNumber}`,
+                    ` · Pahina ${service.pageNumber}`,
+                    ` · Panid ${service.pageNumber}`
+                  )
+                : ""}
             </p>
             <h3 id="charter-service-title" className="mt-1 font-bold text-kiosk-navy">
               {service.name}
@@ -1921,7 +2176,12 @@ function ServiceDetailModal({
           <CharterCloseButton
             onClick={onClose}
             size="md"
-            ariaLabel="Close service details"
+            ariaLabel={pickLang(
+              language,
+              "Close service details",
+              "Isara ang detalye ng serbisyo",
+              "Isira ang detalye sa serbisyo"
+            )}
           />
         </header>
 
@@ -1964,10 +2224,15 @@ function ServiceDetailModal({
             <div className="overflow-hidden rounded-lg ring-1 ring-gray-200">
               <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
                 <p className="bg-kiosk-navy px-3 py-2 text-[10px] font-bold tracking-wider text-white uppercase">
-                  Checklist of Requirements
+                  {pickLang(
+                    language,
+                    "Checklist of Requirements",
+                    "Listahan ng mga Kinakailangan",
+                    "Listahan sa mga Kinahanglanon"
+                  )}
                 </p>
                 <p className="bg-kiosk-green px-3 py-2 text-[10px] font-bold tracking-wider text-white uppercase">
-                  Where to Secure
+                  {pickLang(language, "Where to Secure", "Saan Makukuha", "Asa Makuha")}
                 </p>
               </div>
               {requirements.map((item) => {
@@ -2001,8 +2266,12 @@ function ServiceDetailModal({
             </div>
           ) : (
             <p className="rounded-xl border border-dashed border-gray-200 p-4 text-sm text-gray-500">
-              No checklist details are available for this service. Open the full charter PDF for the
-              official page.
+              {pickLang(
+                language,
+                "No checklist details are available for this service. Open the full charter PDF for the official page.",
+                "Walang available na detalye ng listahan para sa serbisyong ito. Buksan ang buong charter PDF para sa opisyal na pahina.",
+                "Walay detalye sa listahan nga anaa para niini nga serbisyo. Ablihi ang tibuok charter PDF para sa opisyal nga panid."
+              )}
             </p>
           )}
 
@@ -2011,11 +2280,21 @@ function ServiceDetailModal({
               <table className="w-full min-w-[720px] border-collapse text-left">
                 <thead>
                   <tr className="bg-kiosk-navy text-[10px] font-bold tracking-wider text-white uppercase">
-                    <th className="px-3 py-2 font-bold">Client Steps</th>
-                    <th className="px-3 py-2 font-bold">Agency Actions</th>
-                    <th className="px-3 py-2 font-bold">Fees to be Paid</th>
-                    <th className="px-3 py-2 font-bold">Processing Time</th>
-                    <th className="px-3 py-2 font-bold">Person Responsible</th>
+                    <th className="px-3 py-2 font-bold">
+                      {pickLang(language, "Client Steps", "Mga Hakbang ng Kliyente", "Mga Lakang sa Kliyente")}
+                    </th>
+                    <th className="px-3 py-2 font-bold">
+                      {pickLang(language, "Agency Actions", "Mga Aksyon ng Ahensya", "Mga Aksyon sa Ahensya")}
+                    </th>
+                    <th className="px-3 py-2 font-bold">
+                      {pickLang(language, "Fees to be Paid", "Mga Babayaran", "Mga Bayranan")}
+                    </th>
+                    <th className="px-3 py-2 font-bold">
+                      {pickLang(language, "Processing Time", "Tagal ng Pagproseso", "Gidugayon sa Pagproseso")}
+                    </th>
+                    <th className="px-3 py-2 font-bold">
+                      {pickLang(language, "Person Responsible", "Taong Responsable", "Tawo nga Responsable")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2052,20 +2331,38 @@ function ServiceDetailModal({
             <div className="overflow-hidden rounded-lg ring-1 ring-gray-200">
               <div className="bg-kiosk-navy px-3 py-2.5">
                 <p className="text-[10px] font-bold tracking-wider text-white uppercase">
-                  List of Medicine available in the Hospital
+                  {pickLang(
+                    language,
+                    "List of Medicine available in the Hospital",
+                    "Listahan ng mga Gamot na Mayroon sa Ospital",
+                    "Listahan sa mga Tambal nga Anaa sa Ospital"
+                  )}
                 </p>
                 <p className="mt-0.5 text-[11px] text-white/75">
-                  See Price List — fees vary by item below
+                  {pickLang(
+                    language,
+                    "See Price List — fees vary by item below",
+                    "Tingnan ang Listahan ng Presyo — nag-iiba ang bayarin bawat item sa ibaba",
+                    "Tan-awa ang Listahan sa Presyo — magkalahi ang bayranan matag item sa ubos"
+                  )}
                 </p>
               </div>
               <div className="max-h-[420px] overflow-auto">
                 <table className="w-full border-collapse text-left">
                   <thead className="sticky top-0 z-10">
                     <tr className="bg-slate-100 text-[10px] font-bold tracking-wider text-kiosk-navy uppercase">
-                      <th className="px-3 py-2 font-bold">Name of Drugs</th>
-                      <th className="px-3 py-2 font-bold">Preparation</th>
-                      <th className="px-3 py-2 font-bold">Brand Name</th>
-                      <th className="px-3 py-2 text-right font-bold">Price</th>
+                      <th className="px-3 py-2 font-bold">
+                        {pickLang(language, "Name of Drugs", "Pangalan ng Gamot", "Ngalan sa Tambal")}
+                      </th>
+                      <th className="px-3 py-2 font-bold">
+                        {pickLang(language, "Preparation", "Preparasyon", "Preparasyon")}
+                      </th>
+                      <th className="px-3 py-2 font-bold">
+                        {pickLang(language, "Brand Name", "Pangalan ng Brand", "Ngalan sa Brand")}
+                      </th>
+                      <th className="px-3 py-2 text-right font-bold">
+                        {pickLang(language, "Price", "Presyo", "Presyo")}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>

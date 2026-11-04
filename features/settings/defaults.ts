@@ -38,7 +38,7 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   gov_prefix_fil: "Pamahalaang Panlalawigan ng",
   gov_prefix_bis: "Provincial Government sa",
   tagline_en: "The Island Born of Fire",
-  tagline_fil: "Ang Pulo na Pinanganakan ng Apoy",
+  tagline_fil: "Ang Islang Isinilang sa Apoy",
   tagline_bis: "Ang Pulo nga Gipanganak sa Kalayo",
   welcome_en:
     "This kiosk provides information to help you easily access government services and explore the Province of Camiguin.",
@@ -58,6 +58,7 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   contact_email: "info@camiguin.gov.ph",
   contact_address: "Mambajao, Camiguin",
   building_floor_plan_uploaded: "true",
+  building_map_2d: "false",
   indoor_map_v2: "false",
   building_name_en: CAPITOL_BUILDING_NAME_EN,
   building_name_fil: CAPITOL_BUILDING_NAME_FIL,
@@ -90,7 +91,7 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   building_kiosk_floor: "1",
   building_page_title_en: "Building Directory",
   building_page_title_fil: "Direktoryo ng Gusali",
-  building_page_title_bis: "Direktoryo sa Building",
+  building_page_title_bis: "Direktoryo sa Bilding",
   building_page_description_en:
     "Find rooms, offices, and facilities with step-by-step indoor navigation.",
   building_page_description_fil:

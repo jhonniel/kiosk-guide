@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useKiosk } from "@/hooks/use-kiosk";
 import { localized, pickLang, type Language } from "@/lib/i18n/translations";
+import { formatLocalized } from "@/lib/i18n/date-format";
 import { cn } from "@/lib/utils";
 import {
   getEventDetailPack,
@@ -65,15 +66,15 @@ const CATEGORY_META: Record<
   notice: {
     en: "Notice",
     fil: "Abiso",
-    bis: "Abiso",
+    bis: "Pahibalo",
     dot: "bg-blue-500",
     badge: "bg-blue-500 text-white",
     pill: "bg-blue-50 text-blue-700 ring-blue-100",
   },
   advisory: {
     en: "Advisory",
-    fil: "Advisory",
-    bis: "Advisory",
+    fil: "Paalala",
+    bis: "Pahimangno",
     dot: "bg-rose-500",
     badge: "bg-rose-500 text-white",
     pill: "bg-rose-50 text-rose-700 ring-rose-100",
@@ -136,11 +137,11 @@ function eventTone(title: string) {
   };
 }
 
-function formatEventWhen(start: Date, end: Date | null) {
+function formatEventWhen(start: Date, end: Date | null, language: Language) {
   if (end && !isSameDay(start, end)) {
-    return `${format(start, "MMM d")} – ${format(end, "MMM d, yyyy")}`;
+    return `${formatLocalized(start, "MMM d", language)} – ${formatLocalized(end, "MMM d, yyyy", language)}`;
   }
-  return format(start, "MMM d, yyyy");
+  return formatLocalized(start, "MMM d, yyyy", language);
 }
 
 function pickField(language: Language, en?: string, fil?: string, bis?: string) {
@@ -329,7 +330,7 @@ export function EventsClient({ events }: { events: Event[] }) {
                   type="button"
                   onClick={() => setQuery("")}
                   className="absolute top-1/2 right-3 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                  aria-label={pickLang(language, "Clear search", "I-clear ang search", "I-clear ang search")}
+                  aria-label={pickLang(language, "Clear search", "Burahin ang hinahanap", "Papasa ang gipangita")}
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -379,7 +380,7 @@ export function EventsClient({ events }: { events: Event[] }) {
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
-                  <p className="text-sm font-bold text-kiosk-navy">{format(month, "MMM yyyy")}</p>
+                  <p className="text-sm font-bold text-kiosk-navy">{formatLocalized(month, "MMMM yyyy", language)}</p>
                   <button
                     type="button"
                     onClick={() => setMonth((value) => addMonths(value, 1))}
@@ -449,7 +450,7 @@ export function EventsClient({ events }: { events: Event[] }) {
 
               <div className="mt-4 shrink-0 rounded-2xl bg-white p-4 ring-1 ring-slate-200/80">
                 <p className="text-[10px] font-bold tracking-[0.16em] text-slate-400 uppercase">
-                  {pickLang(language, "Legend", "Legend", "Legend")}
+                  {pickLang(language, "Legend", "Leyenda", "Leyenda")}
                 </p>
                 <ul className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5">
                   {(Object.keys(CATEGORY_META) as EventCategory[]).map((key) => (
@@ -474,9 +475,9 @@ export function EventsClient({ events }: { events: Event[] }) {
                   >
                     {pickLang(
                       language,
-                      `Showing ${format(selectedDay, "MMM d")} · Clear day`,
-                      `Ipinapakita ang ${format(selectedDay, "MMM d")} · I-clear`,
-                      `Gipakita ang ${format(selectedDay, "MMM d")} · I-clear`
+                      `Showing ${formatLocalized(selectedDay, "MMM d", language)} · Clear day`,
+                      `Ipinapakita ang ${formatLocalized(selectedDay, "MMM d", language)} · Alisin ang petsa`,
+                      `Gipakita ang ${formatLocalized(selectedDay, "MMM d", language)} · Kuhaa ang petsa`
                     )}
                   </button>
                 ) : null}
@@ -486,16 +487,16 @@ export function EventsClient({ events }: { events: Event[] }) {
             <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-white p-4 sm:p-5">
               <div className="mb-3 shrink-0">
                 <p className="text-[11px] font-semibold tracking-[0.16em] text-slate-400 uppercase">
-                  {pickLang(language, "Timeline", "Timeline", "Timeline")}
+                  {pickLang(language, "Timeline", "Talaan ng Iskedyul", "Lista sa Iskedyul")}
                 </p>
                 <h3 className="mt-0.5 text-base font-bold text-kiosk-navy">
                   {selectedDay
-                    ? format(selectedDay, "EEEE, MMM d, yyyy")
+                    ? formatLocalized(selectedDay, "EEEE, MMM d, yyyy", language)
                     : pickLang(
                         language,
                         "Upcoming public schedule",
                         "Paparating na pampublikong iskedyul",
-                        "Umaabot nga pampublikong iskedyul"
+                        "Umaabot nga iskedyul alang sa publiko"
                       )}
                 </h3>
               </div>
@@ -506,8 +507,8 @@ export function EventsClient({ events }: { events: Event[] }) {
                   {pickLang(
                     language,
                     "No events match your filters.",
-                    "Walang tumugmang kaganapan sa filter.",
-                    "Walay mohaum nga kalihokan sa filter."
+                    "Walang kaganapang tumutugma sa iyong filter.",
+                    "Walay kalihokan nga mohaom sa imong filter."
                   )}
                 </div>
               ) : (
@@ -531,7 +532,7 @@ export function EventsClient({ events }: { events: Event[] }) {
                           )}
                         >
                           <span className="text-[9px] font-bold tracking-wide uppercase leading-none">
-                            {format(start, "MMM")}
+                            {formatLocalized(start, "MMM", language)}
                           </span>
                           <span className="text-sm font-extrabold leading-none sm:text-base">
                             {format(start, "d")}
@@ -557,7 +558,7 @@ export function EventsClient({ events }: { events: Event[] }) {
                                 {end && isSameDay(start, end) ? ` – ${format(end, "h:mm a")}` : ""}
                                 {!end || isSameDay(start, end)
                                   ? ""
-                                  : ` · ${formatEventWhen(start, end)}`}
+                                  : ` · ${formatEventWhen(start, end, language)}`}
                               </span>
                               {event.location ? (
                                 <span className="inline-flex items-center gap-1.5">
@@ -692,7 +693,7 @@ function EventDetailModal({
           <div className="mt-4 flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold backdrop-blur-sm">
               <CalendarDays className="h-3.5 w-3.5" />
-              {formatEventWhen(start, end)}
+              {formatEventWhen(start, end, language)}
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold backdrop-blur-sm">
               <Clock3 className="h-3.5 w-3.5" />
@@ -715,7 +716,7 @@ function EventDetailModal({
             <section className="mt-6">
               <h3 className="flex items-center gap-2 text-sm font-extrabold tracking-wide text-kiosk-navy uppercase">
                 <Sparkles className="h-4 w-4 text-amber-500" />
-                {pickLang(language, "Highlights", "Mga Highlight", "Mga Highlight")}
+                {pickLang(language, "Highlights", "Mga Tampok", "Mga Hinungdanong Bahin")}
               </h3>
               <ul className="mt-3 grid gap-2 sm:grid-cols-2">
                 {highlights.map((item, index) => (
@@ -775,7 +776,7 @@ function DayScheduleSection({
     <section className="mt-7">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <h3 className="text-sm font-extrabold tracking-wide text-kiosk-navy uppercase">
-          {pickLang(language, "Detailed Schedule", "Detalyadong Iskedyul", "Detalyadong Iskedyul")}
+          {pickLang(language, "Detailed Schedule", "Detalyadong Iskedyul", "Detalyado nga Iskedyul")}
         </h3>
         {selectedDay && (
           <p className="text-xs font-semibold text-slate-500">

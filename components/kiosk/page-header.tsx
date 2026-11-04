@@ -46,7 +46,7 @@ export function PageHeader({
         <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
           {showBack ? <KioskBackButton href="/">{backLabel}</KioskBackButton> : null}
           {showTitle ? (
-            <h1 className="min-w-0 flex-1 truncate text-2xl font-bold tracking-tight text-kiosk-navy">
+            <h1 className="min-w-0 flex-1 text-[clamp(1.125rem,1.9cqw,1.5rem)] leading-tight font-bold tracking-tight text-balance text-kiosk-navy">
               {title}
             </h1>
           ) : null}
@@ -68,12 +68,12 @@ export function PageHeader({
       <div className="relative z-10 min-w-0 flex-1 pr-2">
         <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-4">
           {showBack ? <KioskBackButton href="/">{backLabel}</KioskBackButton> : null}
-          <h1 className="min-w-0 truncate text-3xl font-bold tracking-tight text-kiosk-navy">
+          <h1 className="min-w-0 text-[clamp(1.375rem,2.2cqw,1.875rem)] leading-tight font-bold tracking-tight text-balance text-kiosk-navy">
             {title}
           </h1>
         </div>
         {description ? (
-          <p className="mt-1 line-clamp-2 text-base text-gray-600">{description}</p>
+          <p className="mt-1 text-base text-gray-600">{description}</p>
         ) : null}
       </div>
     </div>

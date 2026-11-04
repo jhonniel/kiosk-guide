@@ -1,5 +1,5 @@
 import { pickLang, pickLocalizedText, type Language } from "@/lib/i18n/translations";
-import { getLocationDisplay } from "./location-display";
+import { getLocationDisplay, getRoomDisplay, localizePlaceLabel } from "./location-display";
 import type { BuildingLocationData, GuideContext, GuideResponse } from "./types";
 
 function normalize(text: string): string {
@@ -76,8 +76,8 @@ function buildFoundResponse(
     ? pickLang(
         lang,
         `Room ${location.room} on the ${floor}`,
-        `Silid ${location.room} sa ${floor}`,
-        `${pickLang(lang, "Room", "Room", "Kwarto")} ${location.room} sa ${floor}`
+        `${getRoomDisplay(location.room, lang)}, ${floor}`,
+        `${getRoomDisplay(location.room, lang)}, ${floor}`
       )
     : floor;
 
@@ -102,7 +102,7 @@ function buildFoundResponse(
       name,
       room: location.room,
       floor,
-      nearbyLandmarks: location.nearbyLandmarks,
+      nearbyLandmarks: location.nearbyLandmarks.map((landmark) => localizePlaceLabel(landmark, lang)),
     },
     directions,
   };
@@ -117,7 +117,8 @@ function findSimilar(locations: BuildingLocationData[], query: string, lang: Lan
 
   return scored.map(({ loc }) => {
     const { name, floor } = localizeLocation(loc, lang);
-    return loc.room ? `${name} (${loc.room}, ${floor})` : `${name} (${floor})`;
+    const room = loc.room && (lang === "en" ? loc.room : getRoomDisplay(loc.room, lang));
+    return room ? `${name} (${room}, ${floor})` : `${name} (${floor})`;
   });
 }
 
@@ -135,8 +136,8 @@ export function askBuildingGuide(
     const helpText = pickLang(
       lang,
       'Ask me about any room or office — for example: "Where is the Treasurer\'s Office?" or "Where is Room 108?"',
-      'Tanungin kung nasaan ang silid o opisina — halimbawa: "Nasaan ang Treasurer\'s Office?" o "Nasaan ang Room 108?"',
-      'Pangutana asa ang kwarto o opisina — pananglitan: "Asa ang Treasurer\'s Office?" o "Asa ang Room 108?"'
+      'Itanong sa akin kung nasaan ang anumang silid o opisina — halimbawa: "Nasaan ang Treasurer\'s Office?" o "Nasaan ang Silid 108?"',
+      'Pangutan-a ko kung asa ang bisan unsang kwarto o opisina — pananglitan: "Asa ang Treasurer\'s Office?" o "Asa ang Kwarto 108?"'
     );
     return {
       type: "demo_notice",
@@ -161,8 +162,8 @@ export function askBuildingGuide(
           pickLang(
             lang,
             "For your safety, please follow official emergency procedures and building announcements.\n\n",
-            "Para sa iyong kaligtasan, sundin ang opisyal na emergency procedures at mga anunsyo sa gusali.\n\n",
-            "Para sa imong kaluwasan, sunda ang opisyal nga emergency procedures ug mga anunsyo sa building.\n\n"
+            "Para sa iyong kaligtasan, sundin ang opisyal na mga pamamaraan sa emergency at ang mga anunsyo sa gusali.\n\n",
+            "Para sa imong kaluwasan, palihug sunda ang opisyal nga mga lakang sa emergency ug ang mga pahibalo sa building.\n\n"
           ) +
           response.message,
       };
@@ -180,7 +181,7 @@ export function askBuildingGuide(
 
     const lines = relevant.map((r) => {
       const { name, floor } = localizeLocation(r, lang);
-      const landmark = r.nearbyLandmarks[0];
+      const landmark = r.nearbyLandmarks[0] && localizePlaceLabel(r.nearbyLandmarks[0], lang);
       if (landmark) {
         return pickLang(
           lang,
@@ -202,8 +203,8 @@ export function askBuildingGuide(
         pickLang(
           lang,
           "Here are the restrooms in the building:\n\n",
-          "Narito ang mga restroom sa gusali:\n\n",
-          "Ania ang mga CR sa building:\n\n"
+          "Narito ang mga comfort room sa gusali:\n\n",
+          "Ania ang mga comfort room sa building:\n\n"
         ) +
         lines.join("\n"),
       suggestions: relevant.map((r) => localizeLocation(r, lang).name),
@@ -237,8 +238,8 @@ export function askBuildingGuide(
         pickLang(
           lang,
           "I found multiple locations that match your search. Which one do you mean?",
-          "Nakita ko ang maraming lokasyon na tumutugma sa iyong paghahanap. Alin ang ibig mong sabihin?",
-          "Nakita nako ang daghang lokasyon nga match sa imong pagpangita. Asa sa imong gipasabot?"
+          "Maraming lokasyon ang tumugma sa iyong hinahanap. Alin dito ang ibig mong sabihin?",
+          "Daghan kog nakit-an nga lokasyon nga nahiuyon sa imong gipangita. Asa man niini ang imong gipasabot?"
         ),
       matches: closeMatches.map(({ loc }) => {
         const { name, floor } = localizeLocation(loc, lang);
@@ -259,8 +260,8 @@ export function askBuildingGuide(
   const notFoundSuffix = pickLang(
     lang,
     "Please visit the Information Desk for further assistance, or try searching for a room number or office name.",
-    "Mangyaring bisitahin ang Information Desk para sa karagdagang tulong, o subukang maghanap ng room number o pangalan ng opisina.",
-    "Palihog bisitaha ang Information Desk para sa dugang tabang, o sulayi pangitaa ang room number o ngalan sa opisina."
+    "Mangyaring pumunta sa Information Desk para sa karagdagang tulong, o subukang hanapin ang numero ng silid o pangalan ng opisina.",
+    "Palihug adto sa Information Desk para sa dugang tabang, o sulayi pagpangita ang numero sa kwarto o ngalan sa opisina."
   );
 
   const message = missingMessage || notFoundSuffix;

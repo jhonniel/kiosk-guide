@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { format } from "date-fns";
+import { formatLocalized } from "@/lib/i18n/date-format";
 import { Calendar, Megaphone, X } from "lucide-react";
 import type { Announcement } from "@prisma/client";
 import { localized, pickLang, type Language } from "@/lib/i18n/translations";
@@ -19,8 +19,18 @@ export function newsCategoryBadgeClass(category: string | null) {
   return CATEGORY_BADGES[(category ?? "announcement").toLowerCase()] ?? "bg-orange-500";
 }
 
-export function newsCategoryLabel(category: string | null) {
-  return (category?.trim() || "Announcement").toUpperCase();
+const CATEGORY_LABELS: Record<string, { en: string; fil: string; bis: string }> = {
+  advisory: { en: "Advisory", fil: "Paalala", bis: "Pahimangno" },
+  program: { en: "Program", fil: "Programa", bis: "Programa" },
+  "public notice": { en: "Public Notice", fil: "Pampublikong Abiso", bis: "Pahibalo sa Publiko" },
+  announcement: { en: "Announcement", fil: "Anunsyo", bis: "Pahibalo" },
+};
+
+export function newsCategoryLabel(category: string | null, language: Language = "en") {
+  const raw = category?.trim() || "Announcement";
+  const known = CATEGORY_LABELS[raw.toLowerCase()];
+  const label = known ? pickLang(language, known.en, known.fil, known.bis) : raw;
+  return label.toUpperCase();
 }
 
 export function NewsThumb({
@@ -113,11 +123,11 @@ export function NewsDetailModal({
                 newsCategoryBadgeClass(item.category)
               )}
             >
-              {newsCategoryLabel(item.category)}
+              {newsCategoryLabel(item.category, language)}
             </span>
             <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
               <Calendar className="h-3.5 w-3.5" />
-              {format(new Date(item.publishedAt), "MMMM d, yyyy")}
+              {formatLocalized(new Date(item.publishedAt), "MMMM d, yyyy", language)}
             </p>
           </div>
           <h2

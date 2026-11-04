@@ -24,7 +24,7 @@ export function MapWarmupOverlay({ language }: Props) {
           language,
           "Loading graphics for smooth zoom and pan.",
           "Nilo-load ang graphics para sa maayos na zoom at galaw.",
-          "Nag-load ang graphics aron hapsay ang zoom ug galaw."
+          "Nagkarga sa graphics aron hapsay ang zoom ug paglihok."
         )}
       </p>
     </div>

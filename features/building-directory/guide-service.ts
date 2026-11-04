@@ -4,7 +4,7 @@ import {
   CAPITOL_BUILDING_LOCATIONS,
   CAPITOL_BUILDING_NAME_EN,
 } from "./capitol-building";
-import { getLocationDisplay } from "./location-display";
+import { getLocationDisplay, getRoomDisplay } from "./location-display";
 import {
   getLocalizedSetting,
   getResolvedSettings,
@@ -127,7 +127,7 @@ export async function searchBuildingLocations(query: string, lang: Language = "e
       const { name, floor } = getLocationDisplay(loc, lang);
       return {
         id: loc.id,
-        title: loc.room ? `${name} (Room ${loc.room})` : name,
+        title: loc.room ? `${name} (${getRoomDisplay(loc.room, lang)})` : name,
         description: floor,
         href: `/building-directory?q=${encodeURIComponent(name)}`,
         floor,

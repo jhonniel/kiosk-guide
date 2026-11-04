@@ -9,7 +9,7 @@ import { useOffline } from "@/components/providers/offline-provider";
 import { searchAllOffline } from "@/features/offline/client-services";
 import { formatSearchType } from "@/features/search/kiosk-catalog";
 import type { CamiChatResponse } from "@/features/cami/types";
-import { t, SMART_SEARCH_EXAMPLES } from "@/lib/i18n/translations";
+import { pickLang, t, SMART_SEARCH_EXAMPLES } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
 import { kioskSyncFetch } from "@/lib/kiosk-sync-fetch";
 import { loadCitizensCharterOfflineData } from "@/lib/offline/idb";
@@ -347,7 +347,9 @@ export function SmartSearch() {
                   {camiBusy && <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />}
                 </div>
                 {camiBusy && !camiReply?.reply ? (
-                  <p className="text-sm text-slate-500">Thinking…</p>
+                  <p className="text-sm text-slate-500">
+                    {pickLang(language, "Thinking…", "Nag-iisip…", "Naghunahuna…")}
+                  </p>
                 ) : (
                   <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-700">
                     {camiReply?.reply}
@@ -373,7 +375,7 @@ export function SmartSearch() {
             {results.filter((result) => Boolean(normalizeKioskHref(result.href))).length > 0 && (
               <div>
                 <p className="px-5 pt-3 pb-1 text-[10px] font-bold tracking-[0.16em] text-slate-400 uppercase">
-                  Related pages
+                  {pickLang(language, "Related pages", "Mga kaugnay na pahina", "Mga may kalabutan nga panid")}
                 </p>
                 {results
                   .filter((result) => Boolean(normalizeKioskHref(result.href)))

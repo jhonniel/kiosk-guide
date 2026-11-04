@@ -30,6 +30,8 @@ import {
   type KioskLocationConfig,
 } from "@/features/building-directory/navigation/building-3d";
 import { resolveFloorRouteProgress } from "@/features/building-directory/navigation/routing-engine";
+import { localizePlaceLabel } from "@/features/building-directory/location-display";
+import { pickLang, type Language } from "@/lib/i18n/translations";
 import {
   DestinationCallout,
   HALL_ISO,
@@ -60,6 +62,7 @@ interface Building3DSceneProps {
   isNavigating?: boolean;
   hasArrived?: boolean;
   kioskLabel?: string;
+  language?: Language;
   navigationMapMode?: boolean;
   onLocationClick?: (locationId: string, floor?: number, label?: string) => void;
   selectedNode?: NavNode | null;
@@ -145,11 +148,13 @@ function RealisticRoom({
   node,
   graph,
   highlighted,
+  language = "en",
   onClick,
 }: {
   node: NavNode;
   graph: NavigationGraph;
   highlighted: boolean;
+  language?: Language;
   onClick?: () => void;
 }) {
   const { w, d, h } = nodeSize(node);
@@ -198,7 +203,7 @@ function RealisticRoom({
         maxWidth={w + 1.5}
         renderOrder={20}
       >
-        {node.type === "room" ? node.label.replace("Room ", "R") : node.label}
+        {roomLabel(node, language)}
       </Text>
       <RoomClickTarget width={w} depth={d} onClick={onClick} />
     </group>
@@ -242,8 +247,8 @@ function KioskSpot({ position, label }: { position: [number, number, number]; la
   );
 }
 
-function roomLabel(node: NavNode) {
-  return node.type === "room" ? node.label.replace("Room ", "R") : node.label;
+function roomLabel(node: NavNode, language: Language = "en") {
+  return node.type === "room" ? node.label.replace("Room ", "R") : localizePlaceLabel(node.label, language);
 }
 
 function getActivePlanOrFirst(graph: NavigationGraph, viewFloor: number): FloorPlanConfig | undefined {
@@ -450,7 +455,15 @@ function BelowFloorWell({
 }
 
 /** Floor text on the open white bay just north of the male room. */
-function FireExitFloorLabel({ graph, viewFloor }: { graph: NavigationGraph; viewFloor: number }) {
+function FireExitFloorLabel({
+  graph,
+  viewFloor,
+  language = "en",
+}: {
+  graph: NavigationGraph;
+  viewFloor: number;
+  language?: Language;
+}) {
   const pos = map2DToFloorPlan3D(112, 184, graph, viewFloor);
   return (
     <Text
@@ -465,7 +478,7 @@ function FireExitFloorLabel({ graph, viewFloor }: { graph: NavigationGraph; view
       outlineWidth={0.02}
       outlineColor="#ffffff"
     >
-      FIRE EXIT
+      {pickLang(language, "FIRE EXIT", "LABASAN PANG-EMERGENCY", "GAWASANAN SA EMERGENCY")}
     </Text>
   );
 }
@@ -546,6 +559,7 @@ export function Building3DScene({
   isNavigating = false,
   hasArrived = false,
   kioskLabel = "You are here",
+  language = "en",
   navigationMapMode = false,
   onLocationClick,
   selectedNode,
@@ -557,7 +571,8 @@ export function Building3DScene({
   locationClickRef.current = onLocationClick;
   const highlightNode = findNode(graph, highlightLocationId);
   const destNode = highlightNode ?? (activeRoute ? findNode(graph, activeRoute.toLocationId) : undefined);
-  const destinationLabel = activeRoute?.destinationName ?? destNode?.label ?? "";
+  const destinationLabel =
+    activeRoute?.destinationName ?? (destNode ? localizePlaceLabel(destNode.label, language) : "");
   const imageBased = graphHasFloorPlanImages(graph);
 
   const floorPlan = graph.floorPlans.find((f) => f.floor === viewFloor);
@@ -585,8 +600,12 @@ export function Building3DScene({
     );
     if (ownRooms.length > 0) return [...ownRooms, ...structure];
 
-    const floorName =
-      viewFloor === 2 ? "Second Floor" : viewFloor === 3 ? "Third Floor" : `Floor ${viewFloor}`;
+    const floorName = pickLang(
+      language,
+      viewFloor === 2 ? "Second Floor" : viewFloor === 3 ? "Third Floor" : `Floor ${viewFloor}`,
+      viewFloor === 2 ? "Ikalawang Palapag" : viewFloor === 3 ? "Ikatlong Palapag" : `Ika-${viewFloor} na Palapag`,
+      viewFloor === 2 ? "Ikaduhang Andana" : viewFloor === 3 ? "Ikatulong Andana" : `Ika-${viewFloor} nga Andana`
+    );
     const groundRooms = graph.nodes
       .filter((n) => n.floor === 1 && n.type === "room" && imagePlanRoomColumn(n, graph))
       .sort((a, b) => {
@@ -600,11 +619,16 @@ export function Building3DScene({
           ...n,
           id: `${n.id}__f${viewFloor}`,
           floor: viewFloor,
-          label: `${floorName} Office ${index + 1}`,
+          label: pickLang(
+            language,
+            `${floorName} Office ${index + 1}`,
+            `Opisina ${index + 1} sa ${floorName}`,
+            `Opisina ${index + 1} sa ${floorName}`
+          ),
         })
       );
     return [...groundRooms, ...structure];
-  }, [graph, viewFloor]);
+  }, [graph, viewFloor, language]);
 
   const routePoints = useMemo((): [number, number, number][] => {
     if (!activeRoute) return [];
@@ -796,7 +820,7 @@ export function Building3DScene({
       {useImageView ? (
         <>
           <ImageFloorBuilding graph={graph} viewFloor={viewFloor} />
-          <FireExitFloorLabel graph={graph} viewFloor={viewFloor} />
+          <FireExitFloorLabel graph={graph} viewFloor={viewFloor} language={language} />
         </>
       ) : (
         <>
@@ -891,6 +915,7 @@ export function Building3DScene({
                 position={[pos.x, 0, pos.z]}
                 size={[w, h, d]}
                 highlighted={highlighted || selectedNode?.id === node.id}
+                language={language}
                 onClick={handleClick}
               />
             );
@@ -939,6 +964,7 @@ export function Building3DScene({
               parts={roomParts?.parts}
               highlighted={highlighted || selectedNode?.id === node.id}
               hideLabel={selectedNode?.id === node.id}
+              language={language}
               onClick={handleClick}
             />
           );
@@ -953,6 +979,7 @@ export function Building3DScene({
               position={[pos.x, 0, pos.z]}
               size={[w, h, d]}
               highlighted={highlighted || selectedNode?.id === node.id}
+              language={language}
               onClick={handleClick}
             />
           );
@@ -968,7 +995,7 @@ export function Building3DScene({
               node={node}
               position={[pos.x, 0, pos.z]}
               size={[w, ISO_WALL_H, d]}
-              label={roomLabel(node)}
+              label={roomLabel(node, language)}
               highlighted={highlighted && !isDestination}
               isDestination={isDestination}
               onClick={handleClick}
@@ -982,12 +1009,13 @@ export function Building3DScene({
             node={node}
             graph={graph}
             highlighted={highlighted}
+            language={language}
             onClick={handleClick}
           />
         );
       })}
 
-      {showKiosk && imageBased && <ImagePlanKiosk position={kioskPos} label="You're Here" />}
+      {showKiosk && imageBased && <ImagePlanKiosk position={kioskPos} label={pickLang(language, "You're Here", "Nandito ka", "Ania ka")} />}
       {showKiosk && !imageBased && !navigationMapMode && <KioskSpot position={kioskPos} label={kioskLabel} />}
 
       {routePoints.length > 1 && (navigationMapMode || (imageBased && activeRoute)) && (

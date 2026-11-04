@@ -12,10 +12,16 @@ export default function OfficeHoursPage() {
       icon="Clock"
       titleEn="Office Hours"
       titleFil="Oras ng Opisina"
+      titleBis="Oras sa Opisina"
       descriptionEn="Provincial government office operating hours."
-      descriptionFil="Mga oras ng operasyon ng tanggapan ng pamahalaang panlalawigan."
+      descriptionFil="Mga oras ng operasyon ng mga opisina ng pamahalaang panlalawigan."
+      descriptionBis="Mga oras sa operasyon sa mga opisina sa provincial nga gobyerno."
+      fit
     >
-      <OfficeHoursClient settings={data.settings} />
+      {/* Only the content scrolls; the banner above stays in place. */}
+      <div className="kiosk-main-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pb-1">
+        <OfficeHoursClient settings={data.settings} />
+      </div>
     </ModulePageClient>
   );
 }

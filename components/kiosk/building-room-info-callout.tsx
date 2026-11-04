@@ -7,6 +7,8 @@ import {
   findLocationById,
   getLocationDisplay,
   getNodeFallbackDisplay,
+  getRoomDisplay,
+  localizePlaceLabel,
 } from "@/features/building-directory/location-display";
 import {
   FLOOR_LAYERS,
@@ -62,7 +64,7 @@ export function BuildingRoomInfoCard({
   const canNavigate = !!onStartNavigation && node.locationId !== "f1-kiosk";
 
   const floorLine = location?.room
-    ? `${uiText(language, "roomLabel")} ${location.room} · ${display.floor}`
+    ? `${getRoomDisplay(location.room, language)} · ${display.floor}`
     : display.floor;
 
   return (
@@ -78,7 +80,7 @@ export function BuildingRoomInfoCard({
           type="button"
           onClick={onClose}
           className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm hover:text-gray-700"
-          aria-label="Close"
+          aria-label={uiText(language, "closeLabel")}
         >
           <X className="h-3 w-3" />
         </button>
@@ -89,7 +91,7 @@ export function BuildingRoomInfoCard({
         {(location?.nearbyLandmarks?.[0] || display.directions[0]) && (
           <p className="mt-1.5 line-clamp-2 text-[10px] leading-tight text-gray-600">
             {location?.nearbyLandmarks?.[0]
-              ? `${uiText(language, "nearLabel")} ${location.nearbyLandmarks[0]}`
+              ? `${uiText(language, "nearLabel")} ${localizePlaceLabel(location.nearbyLandmarks[0], language)}`
               : display.directions[0]}
           </p>
         )}

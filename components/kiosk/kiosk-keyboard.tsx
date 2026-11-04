@@ -435,7 +435,7 @@ export function KioskKeyboard() {
     <div
       ref={panelRef}
       role="group"
-      aria-label="On-screen keyboard"
+      aria-label={pickLang(language, "On-screen keyboard", "Keyboard sa screen", "Keyboard sa screen")}
       aria-hidden={!visible}
       onPointerDown={startDrag}
       onPointerMove={moveDrag}
@@ -546,7 +546,7 @@ export function KioskKeyboard() {
             <button
               type="button"
               tabIndex={-1}
-              aria-label="Backspace"
+              aria-label={pickLang(language, "Backspace", "Burahin", "Papasa")}
               onPointerDown={(event) => press("backspace", event)}
               onPointerUp={stopRepeat}
               onPointerLeave={stopRepeat}
@@ -592,7 +592,7 @@ export function KioskKeyboard() {
             pressed === " " && "scale-[0.98] bg-kiosk-navy text-white"
           )}
         >
-          space
+          {pickLang(language, "space", "espasyo", "espasyo")}
         </button>
       </div>
     </div>,

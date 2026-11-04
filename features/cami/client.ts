@@ -64,8 +64,8 @@ function offlineReply(
       reply: pickLang(
         replyLang,
         "Hi! I’m Cami. Ask me about Camiguin—tourism, services, events, emergency contacts, or other info on this kiosk.",
-        "Kumusta! Ako si Cami. Magtanong tungkol sa Camiguin—turismo, serbisyo, events, emergency contacts, o iba pang impormasyon sa kiosk.",
-        "Kumusta! Ako si Cami. Pangutana bahin sa Camiguin—turismo, serbisyo, events, emergency contacts, o ubang impormasyon sa kiosk."
+        "Kumusta! Ako si Cami. Magtanong tungkol sa Camiguin—turismo, mga serbisyo, mga kaganapan, mga emergency contact, o iba pang impormasyon sa kiosk na ito.",
+        "Kumusta! Ako si Cami. Pangutana bahin sa Camiguin—turismo, mga serbisyo, mga kalihokan, mga emergency contact, o uban pang impormasyon niining kiosk."
       ),
       citations: [],
       source: "offline",
@@ -108,8 +108,8 @@ function errorReply(language: Language): CamiChatResponse {
     reply: pickLang(
       replyLang,
       "I couldn’t reach the assistant service just now. Please try again.",
-      "Hindi maabot ang assistant service sa ngayon. Subukan ulit.",
-      "Dili maabot ang assistant service karon. Sulayi pag-usab."
+      "Hindi ko maabot ang serbisyo ng katulong sa ngayon. Pakisubukang muli.",
+      "Dili nako maabot ang serbisyo sa katabang karon. Palihug sulayi pag-usab."
     ),
     citations: [],
     source: "offline",

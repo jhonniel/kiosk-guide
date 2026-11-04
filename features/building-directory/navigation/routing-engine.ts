@@ -11,6 +11,12 @@ import {
   stairHallApproachPlanPoints,
 } from "./building-3d";
 import { prepareShortestPathGraph } from "./shortest-path-graph";
+import { pickLang, type Language } from "@/lib/i18n/translations";
+import {
+  localizeFloorLabel,
+  localizePlaceLabel,
+  localizeRouteInstruction,
+} from "../location-display";
 
 const WALKING_SPEED_M_PER_MIN = 75;
 const VERTICAL_EDGE_METERS = 5;
@@ -104,8 +110,8 @@ function getEdge(graph: NavigationGraph, from: string, to: string): NavEdge | un
   return graph.edges.find((e) => e.from === from && e.to === to);
 }
 
-function floorLabel(graph: NavigationGraph, floor: number): string {
-  return graph.floorPlans.find((f) => f.floor === floor)?.label ?? `Floor ${floor}`;
+function floorLabel(graph: NavigationGraph, floor: number, lang: Language): string {
+  return localizeFloorLabel(graph.floorPlans.find((f) => f.floor === floor)?.label, floor, lang);
 }
 
 function turnDirection(
@@ -136,7 +142,8 @@ function buildVoiceInstructions(
   graph: NavigationGraph,
   nodeIds: string[],
   destinationName: string,
-  totalDistance: number
+  totalDistance: number,
+  lang: Language = "en"
 ): { voiceInstructions: string[]; instructionProgress: number[] } {
   const voiceInstructions: string[] = [];
   const instructionProgress: number[] = [];
@@ -147,6 +154,22 @@ function buildVoiceInstructions(
   }
 
   let walked = 0;
+  let arrived = false;
+  const place = (node: NavNode) => localizePlaceLabel(node.label, lang);
+  const walkStraight = (meters: number) =>
+    pickLang(
+      lang,
+      `Walk straight for about ${meters} meters.`,
+      `Dumiretso nang mga ${meters} metro.`,
+      `Diretso lang mga ${meters} ka metros.`
+    );
+  const arrivedAt = () =>
+    pickLang(
+      lang,
+      `You have arrived at ${destinationName}.`,
+      `Nakarating ka na sa ${destinationName}.`,
+      `Niabot na ka sa ${destinationName}.`
+    );
 
   const pushInstruction = (text: string, atDistance: number) => {
     voiceInstructions.push(text);
@@ -157,8 +180,18 @@ function buildVoiceInstructions(
   if (start) {
     pushInstruction(
       start.locationId === "gf-kiosk"
-        ? "You are at the Directory Kiosk. Follow the highlighted pink path."
-        : `Start at the ${start.label}. Follow the highlighted path.`,
+        ? pickLang(
+            lang,
+            "You are at the Directory Kiosk. Follow the highlighted pink path.",
+            "Nandito ka sa Directory Kiosk. Sundan ang naka-highlight na kulay-rosas na daan.",
+            "Ania ka sa Directory Kiosk. Sunda ang naka-highlight nga pink nga agianan."
+          )
+        : pickLang(
+            lang,
+            `Start at the ${start.label}. Follow the highlighted path.`,
+            `Magsimula sa ${place(start)}. Sundan ang naka-highlight na daan.`,
+            `Sugod sa ${place(start)}. Sunda ang naka-highlight nga agianan.`
+          ),
       0
     );
   }
@@ -174,16 +207,25 @@ function buildVoiceInstructions(
     walked += edgeWeight(edge);
 
     if (edge?.vertical) {
-      const targetFloor = floorLabel(graph, curr.floor);
+      const targetFloor = floorLabel(graph, curr.floor, lang);
       pushInstruction(
-        edge.instruction ?? `Take the ${curr.label} to ${targetFloor}.`,
+        edge.instruction
+          ? localizeRouteInstruction(edge.instruction, lang)
+          : pickLang(
+              lang,
+              `Take the ${curr.label} to ${targetFloor}.`,
+              `Gamitin ang ${place(curr)} papunta sa ${targetFloor}.`,
+              `Gamita ang ${place(curr)} paingon sa ${targetFloor}.`
+            ),
         legStart
       );
+      arrived = /arrived/i.test(edge.instruction ?? "");
       continue;
     }
 
     if (edge?.instruction) {
-      pushInstruction(edge.instruction, legStart);
+      pushInstruction(localizeRouteInstruction(edge.instruction, lang), legStart);
+      arrived = /arrived/i.test(edge.instruction);
       continue;
     }
 
@@ -192,41 +234,71 @@ function buildVoiceInstructions(
     if (isDestination) {
       if (edge && edge.distanceMeters >= 8) {
         pushInstruction(
-          `Continue straight for about ${Math.round(edge.distanceMeters)} meters.`,
+          pickLang(
+            lang,
+            `Continue straight for about ${Math.round(edge.distanceMeters)} meters.`,
+            `Dumiretso nang mga ${Math.round(edge.distanceMeters)} metro.`,
+            `Diretso lang mga ${Math.round(edge.distanceMeters)} ka metros.`
+          ),
           legStart
         );
       }
-      pushInstruction(`You have arrived at ${destinationName}.`, walked);
+      pushInstruction(arrivedAt(), walked);
+      arrived = true;
       continue;
     }
 
     if (next && (curr.landmark || curr.type === "intersection")) {
       const turn = turnDirection(prev, curr, next);
       if (turn === "left") {
-        pushInstruction(`Turn left at the ${curr.label}.`, legStart);
+        pushInstruction(
+          pickLang(
+            lang,
+            `Turn left at the ${curr.label}.`,
+            `Lumiko sa kaliwa pagdating sa ${place(curr)}.`,
+            `Liko sa wala pag-abot sa ${place(curr)}.`
+          ),
+          legStart
+        );
+        arrived = false;
         continue;
       }
       if (turn === "right") {
-        pushInstruction(`Turn right at the ${curr.label}.`, legStart);
+        pushInstruction(
+          pickLang(
+            lang,
+            `Turn right at the ${curr.label}.`,
+            `Lumiko sa kanan pagdating sa ${place(curr)}.`,
+            `Liko sa tuo pag-abot sa ${place(curr)}.`
+          ),
+          legStart
+        );
+        arrived = false;
         continue;
       }
       if (curr.landmark && curr.type !== "intersection") {
-        pushInstruction(`Continue past the ${curr.label}.`, legStart);
+        pushInstruction(
+          pickLang(
+            lang,
+            `Continue past the ${curr.label}.`,
+            `Dumiretso lampas sa ${place(curr)}.`,
+            `Diretso lang lapas sa ${place(curr)}.`
+          ),
+          legStart
+        );
+        arrived = false;
         continue;
       }
     }
 
     if (edge && edge.distanceMeters >= 12) {
-      pushInstruction(
-        `Walk straight for about ${Math.round(edge.distanceMeters)} meters.`,
-        legStart
-      );
+      pushInstruction(walkStraight(Math.round(edge.distanceMeters)), legStart);
+      arrived = false;
     }
   }
 
-  const last = voiceInstructions[voiceInstructions.length - 1] ?? "";
-  if (!last.toLowerCase().includes("arrived")) {
-    pushInstruction(`You have arrived at ${destinationName}.`, totalDistance);
+  if (!arrived) {
+    pushInstruction(arrivedAt(), totalDistance);
   }
 
   return { voiceInstructions, instructionProgress };
@@ -492,7 +564,7 @@ export function calculateRoute(
   toNodeId: string,
   toLocationId: string,
   destinationName: string,
-  options: { accessible?: boolean; isDemoMode?: boolean } = {}
+  options: { accessible?: boolean; isDemoMode?: boolean; lang?: Language } = {}
 ): NavigationRoute | null {
   const accessible = options.accessible ?? false;
   const walkGraph = prepareShortestPathGraph(graph);
@@ -513,7 +585,8 @@ export function calculateRoute(
     walkGraph,
     path.nodeIds,
     destinationName,
-    path.totalDistance
+    path.totalDistance,
+    options.lang ?? "en"
   );
 
   return {

@@ -54,7 +54,9 @@ export default async function AdminDashboard() {
             <ul className="space-y-3">
               {recentFeedback.map((item) => (
                 <li key={item.id} className="border-b pb-3 last:border-0">
-                  <p className="text-sm text-gray-700">{item.message}</p>
+                  <p className="text-sm text-gray-700">
+                    {item.message || (item.rating ? `Rated ${item.rating}/5 on the kiosk survey` : "—")}
+                  </p>
                   <p className="text-xs text-gray-400">{item.createdAt.toLocaleString()}</p>
                 </li>
               ))}

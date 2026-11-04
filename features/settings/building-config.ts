@@ -20,6 +20,8 @@ export interface BuildingUiConfig {
   guideSubtitle: string;
   guidePlaceholder: string;
   quickQuestions: string[];
+  /** Admin choice for the Building Directory map. */
+  mapView: "2d" | "3d";
   kioskLocation: {
     floor: number;
     x: number;
@@ -55,6 +57,7 @@ export function buildBuildingUiConfig(
       getLocalizedSetting(settings, "building_quick_questions", lang),
       quickQuestionDefaults
     ),
+    mapView: getSetting(settings, "building_map_2d", "false") === "true" ? "2d" : "3d",
     kioskLocation: {
       floor: Number(getSetting(settings, "building_kiosk_floor", "1")) || 1,
       x: Number(getSetting(settings, "building_kiosk_x", "468")) || 468,

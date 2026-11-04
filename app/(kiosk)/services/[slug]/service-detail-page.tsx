@@ -17,7 +17,12 @@ export function ServiceDetailPage() {
   }
 
   return (
-    <ModulePageClient titleEn={service.titleEn} titleFil={service.titleFil} icon={service.icon ?? undefined}>
+    <ModulePageClient
+      titleEn={service.titleEn}
+      titleFil={service.titleFil}
+      titleBis={service.titleBis ?? undefined}
+      icon={service.icon ?? undefined}
+    >
       <ServiceDetailClient service={service} />
     </ModulePageClient>
   );

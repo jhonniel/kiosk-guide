@@ -24,10 +24,10 @@ export function BuildingNavigationStopButton({
         "inline-flex items-center gap-1.5 rounded-lg border border-red-200/80 bg-white/95 px-3 py-1.5 text-xs font-semibold text-red-700 shadow-sm backdrop-blur-sm transition-colors hover:bg-red-50 active:bg-red-100",
         className
       )}
-      aria-label={lang === "en" ? "Stop navigation" : "Itigil ang navigation"}
+      aria-label={pickLang(lang, "Stop navigation", "Ihinto ang paggabay", "Hunonga ang paggiya")}
     >
       <Square className="h-3 w-3 fill-current" />
-      {lang === "en" ? "Stop" : "Itigil"}
+      {pickLang(lang, "Stop", "Ihinto", "Hunonga")}
     </button>
   );
 }
@@ -62,7 +62,7 @@ export function BuildingNavigationHud({
           </div>
           <div className="min-w-0 max-w-[16rem] shrink-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-kiosk-green">
-              {lang === "en" ? "Navigating" : "Nag-navigate"}
+              {pickLang(lang, "Navigating", "Ginagabayan", "Gigiyahan")}
             </p>
             <p className="truncate text-sm font-semibold text-kiosk-navy">{destinationName}</p>
           </div>
@@ -110,7 +110,7 @@ export function BuildingArrivalModal({
 }: BuildingArrivalModalProps) {
   if (typeof document === "undefined") return null;
 
-  const title = pickLang(lang, "Navigation ends here", "Dito nagtatapos ang navigation", "Dinhi mahuman ang navigation");
+  const title = pickLang(lang, "Navigation ends here", "Dito nagtatapos ang paggabay", "Diri na mahuman ang paggiya");
   const doneLabel = pickLang(lang, "Done", "Tapos", "Human na");
 
   return createPortal(

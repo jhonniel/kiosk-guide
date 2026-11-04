@@ -84,9 +84,9 @@ export async function answerWithCami(opts: {
     return {
       reply:
         language === "fil"
-          ? "Magtanong tungkol sa Camiguin o sa impormasyon ng kiosk."
+          ? "Magtanong tungkol sa Camiguin o sa impormasyon ng kiosk na ito."
           : language === "bis"
-            ? "Pangutana bahin sa Camiguin o sa impormasyon sa kiosk."
+            ? "Pangutana bahin sa Camiguin o sa impormasyon niining kiosk."
             : "Ask me about Camiguin or this kiosk’s information.",
       citations: [],
       source: "local",
@@ -368,30 +368,30 @@ export async function answerWithCami(opts: {
 
 function missingCamiguinInfoReply(language: Language) {
   if (language === "fil") {
-    return "Wala pa akong detalyadong sagot diyan para sa Camiguin. Subukan magtanong tungkol sa turismo, serbisyo, events, o emergency contacts sa isla.";
+    return "Wala pa akong detalyadong sagot diyan tungkol sa Camiguin. Subukang magtanong tungkol sa turismo, mga serbisyo, mga kaganapan, o mga emergency contact sa isla.";
   }
   if (language === "bis") {
-    return "Wala pa koy detalyadong tubag ana para sa Camiguin. Sulayi pangutana bahin sa turismo, serbisyo, events, o emergency contacts sa isla.";
+    return "Wala pa koy klarong tubag ana bahin sa Camiguin. Sulayi og pangutana bahin sa turismo, mga serbisyo, mga kalihokan, o mga emergency contact sa isla.";
   }
   return "I don’t have that Camiguin detail yet. Try asking about tourism, services, events, or emergency contacts on the island.";
 }
 
 function unknownPersonReply(language: Language) {
   if (language === "fil") {
-    return "Hindi ko mahanap ang taong iyan sa impormasyon ng Camiguin o ng kiosk na ito. Magtanong tungkol sa opisyal, opisina, o iba pang paksang Camiguin.";
+    return "Hindi ko mahanap ang taong iyan sa impormasyon tungkol sa Camiguin o sa kiosk na ito. Magtanong tungkol sa mga lokal na opisyal, opisina, o iba pang paksa tungkol sa Camiguin.";
   }
   if (language === "bis") {
-    return "Wala nako makita ang tawo ana sa impormasyon sa Camiguin o niining kiosk. Pangutana bahin sa opisyal, opisina, o ubang topiko sa Camiguin.";
+    return "Wala nako makit-i ang maong tawo sa impormasyon bahin sa Camiguin o niining kiosk. Pangutana bahin sa mga lokal nga opisyal, opisina, o uban pang hisgutanan bahin sa Camiguin.";
   }
   return "I couldn’t find that person in Camiguin’s or this kiosk’s information. Ask about local officials, offices, or other Camiguin topics.";
 }
 
 function pickLangGreeting(language: Language) {
   if (language === "fil") {
-    return "Kumusta! Ako si Cami. Magtanong tungkol sa Camiguin—turismo, serbisyo, events, emergency contacts, o iba pang impormasyon sa kiosk.";
+    return "Kumusta! Ako si Cami. Magtanong tungkol sa Camiguin—turismo, mga serbisyo, mga kaganapan, mga emergency contact, o iba pang impormasyon sa kiosk na ito.";
   }
   if (language === "bis") {
-    return "Kumusta! Ako si Cami. Pangutana bahin sa Camiguin—turismo, serbisyo, events, emergency contacts, o ubang impormasyon sa kiosk.";
+    return "Kumusta! Ako si Cami. Pangutana bahin sa Camiguin—turismo, mga serbisyo, mga kalihokan, mga emergency contact, o uban pang impormasyon niining kiosk.";
   }
   return "Hi! I’m Cami. Ask me about Camiguin—tourism, services, events, emergency contacts, or other info on this kiosk.";
 }

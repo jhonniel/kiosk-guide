@@ -12,6 +12,7 @@ type Props = {
   labelOf: (a: Attraction) => string;
   placeholder: string;
   recentLabel: string;
+  clearLabel?: string;
   onPick: (attraction: Attraction) => void;
   onPickRecent: (label: string) => void;
 };
@@ -25,6 +26,7 @@ export function MapSearch({
   labelOf,
   placeholder,
   recentLabel,
+  clearLabel = "Clear",
   onPick,
   onPickRecent,
 }: Props) {
@@ -52,7 +54,7 @@ export function MapSearch({
             type="button"
             onClick={() => onQueryChange("")}
             className="rounded-full p-1 text-slate-400 hover:bg-slate-100"
-            aria-label="Clear"
+            aria-label={clearLabel}
           >
             <X className="h-4 w-4" />
           </button>

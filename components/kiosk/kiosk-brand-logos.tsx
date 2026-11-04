@@ -5,6 +5,8 @@ import {
   resolveBrandingCaringLogoUrl,
   resolveBrandingLogoUrl,
 } from "@/lib/branding";
+import { useKiosk } from "@/hooks/use-kiosk";
+import { pickLang } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
 import { resolveKioskAssetUrl } from "@/lib/kiosk-sync-url";
 
@@ -16,6 +18,7 @@ type KioskBrandLogosProps = {
 
 /** Sidebar: seal with Caring Camiguin stacked below. Cover: logos side by side. */
 export function KioskBrandLogos({ settings = {}, variant, className }: KioskBrandLogosProps) {
+  const { language } = useKiosk();
   const sealUrl = resolveBrandingLogoUrl(settings);
   const caringUrl = resolveBrandingCaringLogoUrl(settings);
 
@@ -52,7 +55,7 @@ export function KioskBrandLogos({ settings = {}, variant, className }: KioskBran
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={resolveKioskAssetUrl(sealUrl)}
-          alt="Government logo"
+          alt={pickLang(language, "Government logo", "Logo ng pamahalaan", "Logo sa gobyerno")}
           className="h-full w-full object-contain p-0.5"
           loading="eager"
           decoding="async"

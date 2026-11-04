@@ -278,14 +278,14 @@ export function CamiguinTourismMap({ data }: Props) {
   }, [attractions, selected]);
 
   const detailLabels: DetailLabels = {
-    fee: pickLang(language, "Entrance fee", "Entrance fee", "Entrance fee"),
+    fee: pickLang(language, "Entrance fee", "Bayad sa Pagpasok", "Bayad sa Pagsulod"),
     hours: pickLang(language, "Hours", "Oras", "Oras"),
-    tips: pickLang(language, "Travel tips", "Mga tip", "Mga tip"),
+    tips: pickLang(language, "Travel tips", "Mga tip sa biyahe", "Mga tip sa pagbiyahe"),
     directions: pickLang(language, "Directions", "Direksyon", "Direksyon"),
-    share: pickLang(language, "Share", "I-share", "I-share"),
+    share: pickLang(language, "Share", "Ibahagi", "Ipaambit"),
     favorite: pickLang(language, "Favorite", "Paborito", "Paborito"),
-    travelTime: pickLang(language, "Travel time", "Oras ng biyahe", "Oras sa biyahe"),
-    distance: pickLang(language, "Distance", "Layo", "Kalayo"),
+    travelTime: pickLang(language, "Travel time", "Oras ng biyahe", "Gidugayon sa biyahe"),
+    distance: pickLang(language, "Distance", "Layo", "Gilay-on"),
     nearby: pickLang(language, "Nearby", "Malapit", "Duol"),
   };
 
@@ -453,7 +453,8 @@ export function CamiguinTourismMap({ data }: Props) {
                   "Maghanap ng White Island, talon, pantalan…",
                   "Pangita og White Island, busay, pantalan…"
                 )}
-                recentLabel={pickLang(language, "Recent", "Kamakailan", "Bagbag-o")}
+                recentLabel={pickLang(language, "Recent", "Kamakailan", "Bag-o lang")}
+                clearLabel={pickLang(language, "Clear", "Burahin", "Papasa")}
                 onPick={(a) => {
                   search.setQuery(labelOf(language, a));
                   selectAttraction(a.id);
@@ -495,14 +496,14 @@ export function CamiguinTourismMap({ data }: Props) {
                 onToggleNight={() => setNightMode((v) => !v)}
                 onFullscreen={toggleFullscreen}
                 labels={{
-                  zoomIn: pickLang(language, "Zoom in", "Mag-zoom in", "Mag-zoom in"),
-                  zoomOut: pickLang(language, "Zoom out", "Mag-zoom out", "Mag-zoom out"),
+                  zoomIn: pickLang(language, "Zoom in", "Palakihin", "Padak-a"),
+                  zoomOut: pickLang(language, "Zoom out", "Paliitin", "Pagamaya"),
                   reset: pickLang(language, "Reset", "I-reset", "I-reset"),
                   route: routeStart
-                    ? pickLang(language, "Pick end", "Pili ng dulo", "Pili og katapusan")
+                    ? pickLang(language, "Pick end", "Piliin ang dulo", "Pilia ang kataposan")
                     : pickLang(language, "Route", "Ruta", "Ruta"),
                   theme: pickLang(language, "Day / night", "Araw / gabi", "Adlaw / gabii"),
-                  fullscreen: pickLang(language, "Fullscreen", "Fullscreen", "Fullscreen"),
+                  fullscreen: pickLang(language, "Fullscreen", "Buong screen", "Tibuok screen"),
                 }}
               />
             </div>
@@ -513,14 +514,14 @@ export function CamiguinTourismMap({ data }: Props) {
                 ? pickLang(
                     language,
                     "Tap a destination to draw the route.",
-                    "Pindutin ang destinasyon para iguhit ang ruta.",
-                    "Pindota ang destinasyon aron idrowing ang ruta."
+                    "Pindutin ang destinasyon para ipakita ang ruta.",
+                    "Pindota ang destinasyon aron ipakita ang ruta."
                   )
                 : pickLang(
                     language,
                     "Route mode: tap a start attraction.",
-                    "Route mode: pindutin ang panimulang attraction.",
-                    "Route mode: pindota ang sinugdanan nga attraction."
+                    "Ruta: pindutin ang pasyalang pagsisimulan.",
+                    "Ruta: pindota ang destinasyon nga sugdanan."
                   )}
             </p>
           )}
@@ -581,6 +582,7 @@ export function CamiguinTourismMap({ data }: Props) {
                   nightMode={nightMode}
                   annotations={terrainAnnotations}
                   municipalityLabels={municipalityLabels}
+                  language={language}
                 />
                 <RouteLayer route={activeRoute} />
                 {visible.map((a) =>
@@ -675,13 +677,15 @@ export function CamiguinTourismMap({ data }: Props) {
         <div className="pointer-events-none absolute bottom-9 left-3 z-30 sm:bottom-10 sm:left-4">
           <Legend
             language={language}
-            title={pickLang(language, "Legend", "Alamat", "Legenda")}
+            title={pickLang(language, "Legend", "Leyenda", "Leyenda")}
           />
         </div>
 
         {activeRoute && (
           <div className="pointer-events-none absolute bottom-10 left-1/2 z-20 -translate-x-1/2 rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-kiosk-navy shadow-lg backdrop-blur">
-            {activeRoute.kind === "boat" ? "Boat · " : "Road · "}
+            {activeRoute.kind === "boat"
+              ? pickLang(language, "Boat · ", "Bangka · ", "Bangka · ")
+              : pickLang(language, "Road · ", "Kalsada · ", "Dalan · ")}
             {language === "fil"
               ? activeRoute.travelTime.fil
               : language === "bis"
@@ -694,6 +698,7 @@ export function CamiguinTourismMap({ data }: Props) {
           ref={statusBarRef}
           municipalityLabel={municipalityStatusLabel}
           islandLabel={islandStatusLabel}
+          language={language}
         />
 
         <AttractionPopup
@@ -745,7 +750,7 @@ export function CamiguinTourismMap({ data }: Props) {
                 <p className="text-[10px] font-bold uppercase tracking-wider text-kiosk-green">
                   {selectedPlace.kind === "hotel"
                     ? pickLang(language, "Hotel", "Hotel", "Hotel")
-                    : pickLang(language, "Restaurant", "Restawran", "Restawran")}
+                    : pickLang(language, "Restaurant", "Kainan", "Kan-anan")}
                 </p>
                 <h3 className="font-bold text-kiosk-navy">
                   {pickLang(
@@ -761,7 +766,7 @@ export function CamiguinTourismMap({ data }: Props) {
                 type="button"
                 onClick={closeDetail}
                 className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
-                aria-label="Close"
+                aria-label={pickLang(language, "Close", "Isara", "Isira")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -815,7 +820,7 @@ export function CamiguinTourismMap({ data }: Props) {
                 type="button"
                 onClick={() => setAnnotationInfo(null)}
                 className="rounded-lg p-1 text-slate-500 hover:bg-slate-100"
-                aria-label="Close"
+                aria-label={pickLang(language, "Close", "Isara", "Isira")}
               >
                 <X className="h-4 w-4" />
               </button>

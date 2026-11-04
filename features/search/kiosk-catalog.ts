@@ -1,4 +1,4 @@
-import type { Language } from "@/lib/i18n/translations";
+import { pickLang, type Language } from "@/lib/i18n/translations";
 import type { CharterEditionView } from "@/features/citizens-charter/types";
 import type { SearchResult } from "@/features/search/search-service";
 
@@ -58,7 +58,7 @@ export function searchKioskModules(query: string, lang: Language): SearchResult[
       description: {
         en: "Explore municipalities, landmarks, and key locations.",
         fil: "Tuklasin ang mga munisipalidad, landmark, at mahahalagang lugar.",
-        bis: "Susiha ang mga lungsod, landmark, ug importante nga lugar.",
+        bis: "Suroya ang mga lungsod, timailhan, ug importanteng lugar.",
       },
       href: "/map",
       keywords: ["map", "municipality", "island", "landmark", "location", "camiguin"],
@@ -83,12 +83,12 @@ export function searchKioskModules(query: string, lang: Language): SearchResult[
       title: {
         en: "News & Announcements",
         fil: "Balita at Anunsyo",
-        bis: "Balita ug Anunsyo",
+        bis: "Balita ug Pahibalo",
       },
       description: {
         en: "Latest advisories, programs, and public notices.",
-        fil: "Pinakabagong advisories, programa, at pampublikong abiso.",
-        bis: "Pinakabag-ong advisories, programa, ug pampublikong pahibalo.",
+        fil: "Pinakabagong abiso, programa, at pampublikong paalala.",
+        bis: "Pinakabag-ong mga abiso, programa, ug pahibalo sa publiko.",
       },
       href: "/news",
       keywords: ["news", "announcement", "advisory", "notice", "program"],
@@ -118,7 +118,7 @@ export function searchKioskModules(query: string, lang: Language): SearchResult[
       description: {
         en: "Attractions, activities, and travel tips.",
         fil: "Mga atraksyon, aktibidad, at tip sa paglalakbay.",
-        bis: "Mga atraksyon, aktibidad, ug tip sa biyahe.",
+        bis: "Mga atraksyon, kalihokan, ug mga tip sa pagbiyahe.",
       },
       href: "/tourism",
       keywords: ["tourism", "attraction", "travel", "beach", "falls", "island"],
@@ -142,13 +142,13 @@ export function searchKioskModules(query: string, lang: Language): SearchResult[
       id: "module-events",
       title: {
         en: "Events Calendar",
-        fil: "Kalendaryo ng Mga Kaganapan",
-        bis: "Kalendaryo sa Mga Hitabo",
+        fil: "Kalendaryo ng mga Kaganapan",
+        bis: "Kalendaryo sa mga Kalihokan",
       },
       description: {
         en: "Upcoming festivals, meetings, and activities.",
-        fil: "Papalapit na pista, meeting, at mga aktibidad.",
-        bis: "Umaabot nga pista, meeting, ug mga aktibidad.",
+        fil: "Mga paparating na pista, pulong, at aktibidad.",
+        bis: "Umaabot nga mga pista, miting, ug kalihokan.",
       },
       href: "/events",
       keywords: ["event", "festival", "calendar", "meeting", "activity"],
@@ -158,7 +158,7 @@ export function searchKioskModules(query: string, lang: Language): SearchResult[
       title: {
         en: "Frequently Asked Questions",
         fil: "Mga Madalas Itanong",
-        bis: "Mga Kanunayng Pangutana",
+        bis: "Mga Kanunay nga Pangutana",
       },
       description: {
         en: "Camiguin FAQs and chat with Cami.",
@@ -236,7 +236,8 @@ export function searchKioskModules(query: string, lang: Language): SearchResult[
 
 export function searchCitizensCharterEdition(
   edition: CharterEditionView | null | undefined,
-  query: string
+  query: string,
+  lang: Language = "en"
 ): SearchResult[] {
   const q = query.toLowerCase().trim();
   if (!q || !edition) return [];
@@ -265,7 +266,12 @@ export function searchCitizensCharterEdition(
         id: `charter-office-${office.id}`,
         type: "citizens-charter",
         title: office.name,
-        description: "Citizens' Charter office",
+        description: pickLang(
+          lang,
+          "Citizens' Charter office",
+          "Opisinang nasa Citizens' Charter",
+          "Opisina nga naa sa Citizens' Charter"
+        ),
         href: "/citizens-charter",
       });
     }
@@ -306,7 +312,7 @@ export const SEARCH_RESULT_LIMIT = 30;
 
 export function formatSearchType(type: string, lang: Language = "en"): string {
   const labels: Record<string, Record<Language, string>> = {
-    module: { en: "Module", fil: "Module", bis: "Module" },
+    module: { en: "Module", fil: "Seksyon", bis: "Seksyon" },
     service: { en: "Service", fil: "Serbisyo", bis: "Serbisyo" },
     directory: { en: "Directory", fil: "Direktoryo", bis: "Direktoryo" },
     building: { en: "Building", fil: "Gusali", bis: "Bilding" },
@@ -316,11 +322,12 @@ export function formatSearchType(type: string, lang: Language = "en"): string {
     announcement: { en: "News", fil: "Balita", bis: "Balita" },
     tourism: { en: "Tourism", fil: "Turismo", bis: "Turismo" },
     emergency: { en: "Emergency", fil: "Emergency", bis: "Emergency" },
-    event: { en: "Event", fil: "Event", bis: "Hitabo" },
+    event: { en: "Event", fil: "Kaganapan", bis: "Kalihokan" },
     page: { en: "Page", fil: "Pahina", bis: "Panid" },
     "citizens-charter": { en: "Charter", fil: "Charter", bis: "Charter" },
-    "quick-link": { en: "Quick Link", fil: "Quick Link", bis: "Quick Link" },
-    "home-card": { en: "Home", fil: "Home", bis: "Home" },
+    "quick-link": { en: "Quick Link", fil: "Mabilis na Link", bis: "Dali nga Link" },
+    "home-card": { en: "Home", fil: "Tahanan", bis: "Unang Panid" },
+    "indoor-room": { en: "Room", fil: "Silid", bis: "Kwarto" },
   };
   return labels[type]?.[lang] ?? type;
 }

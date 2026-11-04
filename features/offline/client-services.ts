@@ -259,7 +259,7 @@ export function searchAllOffline(
     }
   }
 
-  results.push(...searchCitizensCharterEdition(citizensCharter ?? data.citizensCharter, q));
+  results.push(...searchCitizensCharterEdition(citizensCharter ?? data.citizensCharter, q, lang));
 
   for (const match of searchBuildingLocationsFromContext(q, guideContext, lang)) {
     results.push({
