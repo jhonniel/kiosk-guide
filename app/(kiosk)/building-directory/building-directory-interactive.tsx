@@ -12,6 +12,7 @@ import {
   getLocationDisplay,
 } from "@/features/building-directory/location-display";
 import { useKiosk } from "@/hooks/use-kiosk";
+import { KIOSK_IDLE_ATTRACT_EVENT } from "@/lib/kiosk-events";
 import type { BuildingUiConfig } from "@/features/settings/building-config";
 import type { BuildingLocationData } from "@/features/building-directory/types";
 import type { NavigationGraph } from "@/features/building-directory/navigation/types";
@@ -58,6 +59,19 @@ export function BuildingDirectoryInteractive({
   const [pickedLabel, setPickedLabel] = useState<string | null>(null);
   const [navTarget, setNavTarget] = useState<NavTarget | null>(null);
   const navStartedRef = useRef<string | null>(null);
+  // Visitors may switch between 2D and 3D; the admin setting is the starting view.
+  const [mapView, setMapView] = useState<BuildingUiConfig["mapView"]>(uiConfig.mapView);
+
+  useEffect(() => {
+    setMapView(uiConfig.mapView);
+  }, [uiConfig.mapView]);
+
+  // The next visitor starts from the admin's choice again.
+  useEffect(() => {
+    const reset = () => setMapView(uiConfig.mapView);
+    window.addEventListener(KIOSK_IDLE_ATTRACT_EVENT, reset);
+    return () => window.removeEventListener(KIOSK_IDLE_ATTRACT_EVENT, reset);
+  }, [uiConfig.mapView]);
 
   const useLeafletIndoor =
     indoorMapV2 &&
@@ -150,7 +164,8 @@ export function BuildingDirectoryInteractive({
             navigationGraph={navigationGraph}
             locations={locations}
             kioskLocation={uiConfig.kioskLocation}
-            flatView={uiConfig.mapView === "2d"}
+            flatView={mapView === "2d"}
+            onFlatViewChange={(flat) => setMapView(flat ? "2d" : "3d")}
             highlightLocationId={highlightLocationId}
             pickedNode={pickedNode}
             onLocationClick={handleLocationClick}
