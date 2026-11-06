@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FileText, Info, Mail, QrCode, TrendingUp } from "lucide-react";
 import { useKiosk } from "@/hooks/use-kiosk";
 import { localized, pickLang, type Language } from "@/lib/i18n/translations";
@@ -83,27 +83,29 @@ export function DownloadCenterClient({
 
   const deliveryEnabled = deliverySettings.qrEnabled || deliverySettings.emailEnabled;
 
-  useEffect(() => {
-    let active = true;
+  const mountedRef = useRef(true);
 
-    async function refreshRankings() {
-      try {
-        const response = await kioskSyncFetch("/api/downloads/rankings", { cache: "no-store" });
-        if (!response.ok) return;
-        const latest = (await response.json()) as DownloadModel[];
-        if (active) setRankedDownloads(latest);
-      } catch {
-        // Keep using the offline bundle when the rankings endpoint is unavailable.
-      }
+  // Live list: also drops downloads switched off since the offline bundle was made.
+  const refreshRankings = useCallback(async () => {
+    try {
+      const response = await kioskSyncFetch("/api/downloads/rankings", { cache: "no-store" });
+      if (!response.ok) return;
+      const latest = (await response.json()) as DownloadModel[];
+      if (mountedRef.current) setRankedDownloads(latest);
+    } catch {
+      // Keep using the offline bundle when the rankings endpoint is unavailable.
     }
+  }, []);
 
+  useEffect(() => {
+    mountedRef.current = true;
     void refreshRankings();
     const interval = window.setInterval(refreshRankings, 30_000);
     return () => {
-      active = false;
+      mountedRef.current = false;
       window.clearInterval(interval);
     };
-  }, []);
+  }, [refreshRankings]);
 
   const categories = useMemo(() => {
     const unique = new Map<string, string>();
@@ -285,6 +287,10 @@ export function DownloadCenterClient({
         open={dialogOpen}
         initialStep={deliveryMethod}
         onOpenChange={setDialogOpen}
+        onUnavailable={(downloadId) => {
+          setRankedDownloads((items) => items.filter((item) => item.id !== downloadId));
+          void refreshRankings();
+        }}
       />
     </div>
   );

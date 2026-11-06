@@ -30,6 +30,8 @@ interface DownloadDeliveryDialogProps {
   open: boolean;
   initialStep?: "choose" | "qr" | "email";
   onOpenChange: (open: boolean) => void;
+  /** The server switched this download off (broken file); the list should drop it. */
+  onUnavailable?: (downloadId: string) => void;
 }
 
 function formatCountdown(ms: number) {
@@ -45,6 +47,7 @@ export function DownloadDeliveryDialog({
   open,
   initialStep = "choose",
   onOpenChange,
+  onUnavailable,
 }: DownloadDeliveryDialogProps) {
   const { language } = useKiosk();
   const { isOnline } = useOffline();
@@ -147,9 +150,12 @@ export function DownloadDeliveryDialog({
     "Dili available kining file karon. Palihug pangayo og kopya sa opisina."
   );
 
-  /** Broken files are switched off by the server; show the visitor a plain message instead. */
+  /** Broken files are switched off by the server; show the visitor a plain message and drop the card. */
   function deliveryError(data: { error?: string; code?: string }, fallback: string) {
-    return data.code === "FILE_UNAVAILABLE" ? fileUnavailableMessage : data.error ?? fallback;
+    if (data.code !== "FILE_UNAVAILABLE") return data.error ?? fallback;
+    if (download) onUnavailable?.(download.id);
+    onOpenChange(false);
+    return fileUnavailableMessage;
   }
 
   async function startQrFlow() {
