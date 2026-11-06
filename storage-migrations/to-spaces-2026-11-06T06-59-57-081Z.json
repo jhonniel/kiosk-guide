@@ -1,0 +1,269 @@
+{
+  "migratedAt": "2026-11-06T06:59:57.081Z",
+  "bucket": "infosoft",
+  "entries": [
+    {
+      "localUrl": "/downloads/citizens-charter.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948387483-citizens-charter.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9c004cvkec3317bor9",
+          "label": "Citizens' Charter Handbook"
+        },
+        {
+          "table": "CharterEdition",
+          "id": "cmshdzvge007ovkeccd53m2ds",
+          "label": "Provincial Government of Camiguin Citizens' Charter (PUBLISHED)"
+        },
+        {
+          "table": "CharterEdition",
+          "id": "cmshdzvou02jhvkecyibolc01",
+          "label": "Provincial Government of Camiguin Citizens' Charter (DRAFT)"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/real-property-tax-declaration.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948392423-real-property-tax-declaration.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9f004fvkec43zksnf8",
+          "label": "Real Property Tax Declaration Form"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/sanitary-permit-application.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948392644-sanitary-permit-application.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9h004hvkecmxfc4pql",
+          "label": "Sanitary Permit Application"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/zoning-clearance-form.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948392858-zoning-clearance-form.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9i004ivkecgfz2ahe0",
+          "label": "Zoning Clearance Form"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/occupancy-permit-checklist.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948393077-occupancy-permit-checklist.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9j004jvkec3jfw5zba",
+          "label": "Occupancy Permit Checklist"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/job-order-application.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948393270-job-order-application.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9l004lvkec8svqqezj",
+          "label": "Job Order Application Form"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/scholarship-application-form.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948393469-scholarship-application-form.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9m004mvkec4c479wos",
+          "label": "Scholarship Application Form"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/senior-citizen-id-application.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948393663-senior-citizen-id-application.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9n004nvkeceykseg44",
+          "label": "Senior Citizen ID Application"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/pwd-id-application.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948393898-pwd-id-application.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9o004ovkecuk0a59uk",
+          "label": "PWD ID Application Form"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/solid-waste-management-ordinance.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948394105-solid-waste-management-ordinance.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9p004qvkecfji5q5fl",
+          "label": "Solid Waste Management Ordinance Summary"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/investment-incentives-brochure.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948394333-investment-incentives-brochure.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9q004rvkecq5oe3y9s",
+          "label": "Investment Incentives Brochure"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/camiguin-tourism-brochure.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948394566-camiguin-tourism-brochure.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9r004svkecetza5d6y",
+          "label": "Camiguin Tourism Brochure"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/cedula-application-form.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948394819-cedula-application-form.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9d004dvkecjv6cdicf",
+          "label": "Cedula / Community Tax Application"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/barangay-clearance-request.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948395031-barangay-clearance-request.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9e004evkecyt1tx6gf",
+          "label": "Barangay Clearance Request Form"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/public-hearing-schedule.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948395296-public-hearing-schedule.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9w004wvkec3pqg9pat",
+          "label": "Public Hearing Schedule"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/business-permit-form.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948395488-business-permit-form.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv99004avkectxc1f7xy",
+          "label": "Business Permit Application Form"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/building-permit-form.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948395661-building-permit-form.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9b004bvkecsdsbn2qi",
+          "label": "Building Permit Application"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/marriage-license-requirements.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948395856-marriage-license-requirements.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9g004gvkec902i2y5c",
+          "label": "Marriage License Requirements Checklist"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/tourism-accreditation-form.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948396065-tourism-accreditation-form.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9k004kvkec1x9ar7l0",
+          "label": "Tourism Accreditation Application"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/disaster-preparedness-guide.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948396253-disaster-preparedness-guide.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9o004pvkec22hw6tby",
+          "label": "Disaster Preparedness Guide"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/annual-investment-program-summary.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948396465-annual-investment-program-summary.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9s004tvkecy7vbzvmr",
+          "label": "Annual Investment Program Summary"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/gender-development-plan-highlights.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948396691-gender-development-plan-highlights.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9t004uvkecn3rehhbd",
+          "label": "Gender and Development Plan Highlights"
+        }
+      ]
+    },
+    {
+      "localUrl": "/downloads/office-directory.pdf",
+      "spacesUrl": "https://infosoft.sgp1.digitaloceanspaces.com/kiosk-downloads/1793948396903-office-directory.pdf",
+      "references": [
+        {
+          "table": "Download",
+          "id": "cmshdzv9v004vvkech1ek5bpk",
+          "label": "Capitol Office Directory"
+        }
+      ]
+    }
+  ]
+}

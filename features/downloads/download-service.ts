@@ -151,10 +151,13 @@ export async function sendDownloadByEmail(
   );
   const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
   const token = generateToken();
-  const baseUrl = resolvePublicBaseUrl(settings, requestOrigin, clientOrigin);
-  const downloadUrl = baseUrl
-    ? buildPublicAppUrl(baseUrl, `/api/downloads/file/${token}`)
-    : "";
+  // Recipients open the link from anywhere, so files on Spaces link straight to Spaces.
+  const spacesUrl = await createSpacesSignedUrl(settings, download.fileUrl, {
+    expiresInSeconds: expiryMinutes * 60,
+  });
+  const baseUrl = spacesUrl ? "" : resolvePublicBaseUrl(settings, requestOrigin, clientOrigin);
+  const downloadUrl =
+    spacesUrl ?? (baseUrl ? buildPublicAppUrl(baseUrl, `/api/downloads/file/${token}`) : "");
 
   const { sendDownloadEmail } = await import("@/features/downloads/email-service");
   const title = localized(download, lang, "title");

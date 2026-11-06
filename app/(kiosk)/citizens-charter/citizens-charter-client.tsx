@@ -50,6 +50,7 @@ import {
 } from "@/features/kiosk/charter-quick-start";
 import { getKioskSessionId } from "@/features/kiosk/visit-tracking";
 import { formatPeso, totalCharterFees } from "@/features/citizens-charter/fees";
+import { getBoolSetting } from "@/features/settings/settings-helpers";
 import { useQuickStartVisits } from "@/components/kiosk/quick-start-visit-provider";
 import { pickLang, t, type Language } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
@@ -545,6 +546,8 @@ function OverviewView({
   const [emailSent, setEmailSent] = useState(false);
   const [coverLoaded, setCoverLoaded] = useState(false);
   const coverRef = useRef<HTMLImageElement>(null);
+  // Admin → Download Center → "Enable email delivery" also governs emailing the charter.
+  const [emailEnabled, setEmailEnabled] = useState(() => getBoolSetting(settings, "download_email_enabled"));
 
   useEffect(() => {
     if (coverRef.current?.complete) {
@@ -552,7 +555,27 @@ function OverviewView({
     }
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await kioskSyncFetch(`/api/downloads/delivery-settings?lang=${language}&t=${Date.now()}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { emailEnabled?: boolean };
+        if (!cancelled && typeof data.emailEnabled === "boolean") setEmailEnabled(data.emailEnabled);
+      } catch {
+        // Offline: keep the setting from the offline bundle.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [language]);
+
   function openEmailDialog() {
+    if (!emailEnabled) return;
     setEmail("");
     setEmailSent(false);
     setEmailSending(false);
@@ -659,7 +682,7 @@ function OverviewView({
                 "Kompletong Citizens' Charter"
               )}
             </p>
-            {edition.pdfUrl ? (
+            {edition.pdfUrl && emailEnabled ? (
               <button
                 type="button"
                 onClick={openEmailDialog}
@@ -670,6 +693,13 @@ function OverviewView({
                 <span className="font-normal text-slate-300">|</span>
                 <span className="font-medium text-slate-500">5.3 MB</span>
               </button>
+            ) : edition.pdfUrl ? (
+              <div className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[#f1f5f9] text-[13px] font-semibold text-slate-500">
+                <FileText className="h-4 w-4 text-slate-400" />
+                <span>{pickLang(language, "PDF Document", "Dokumentong PDF", "Dokumento nga PDF")}</span>
+                <span className="font-normal text-slate-300">|</span>
+                <span className="font-medium text-slate-400">5.3 MB</span>
+              </div>
             ) : null}
           </div>
         </article>
