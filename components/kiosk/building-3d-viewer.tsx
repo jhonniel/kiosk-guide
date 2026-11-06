@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useTexture } from "@react-three/drei";
-import { Check, Layers, Minus, Plus } from "lucide-react";
+import { Box, Check, Layers, Map as MapIcon, Minus, Plus } from "lucide-react";
 import { BuildingMapLoader } from "@/components/kiosk/building-map-loader";
 import { BuildingArrivalModal, BuildingNavigationHud } from "@/components/kiosk/building-navigation-panel";
 import { BuildingOfficeRail } from "@/components/kiosk/building-directory-guide";
@@ -36,6 +36,8 @@ interface Building3DViewerProps {
   kioskLocation?: KioskLocationConfig;
   /** Top-down floor plan instead of the tilted 3D view. */
   flatView?: boolean;
+  /** Shows the 2D / 3D switch when provided. */
+  onFlatViewChange?: (flat: boolean) => void;
   currentFloor?: number;
   highlightLocationId?: string;
   route?: NavigationRoute | null;
@@ -118,6 +120,7 @@ export function Building3DViewer({
   graph,
   kioskLocation: kioskLocationProp,
   flatView = false,
+  onFlatViewChange,
   currentFloor = 1,
   highlightLocationId,
   route,
@@ -476,26 +479,60 @@ export function Building3DViewer({
           />
         )}
 
-        {(!navigationMapMode || imageIsoMode) && (
-          <div className="absolute right-3 bottom-3 z-20 flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={() => zoomOrbitControls(controlsRef.current, 0.82)}
-              className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-kiosk-navy shadow-md ring-1 ring-slate-200 transition hover:bg-slate-50 active:scale-95"
-              aria-label={uiText(language, "mapZoomIn")}
+        <div className="absolute right-3 bottom-3 z-20 flex flex-col items-end gap-2">
+          {onFlatViewChange ? (
+            <div
+              className="flex flex-col gap-0.5 rounded-xl bg-white p-1 shadow-md ring-1 ring-slate-200"
+              role="radiogroup"
+              aria-label={pickLang(language, "Map view", "Tingin ng mapa", "Pagtan-aw sa mapa")}
             >
-              <Plus className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => zoomOrbitControls(controlsRef.current, 1.22)}
-              className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-kiosk-navy shadow-md ring-1 ring-slate-200 transition hover:bg-slate-50 active:scale-95"
-              aria-label={uiText(language, "mapZoomOut")}
-            >
-              <Minus className="h-5 w-5" />
-            </button>
-          </div>
-        )}
+              {(
+                [
+                  { flat: false, label: "3D", Icon: Box },
+                  { flat: true, label: "2D", Icon: MapIcon },
+                ] as const
+              ).map(({ flat, label, Icon }) => {
+                const selected = flatView === flat;
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => onFlatViewChange(flat)}
+                    className={cn(
+                      "flex h-11 w-11 flex-col items-center justify-center rounded-lg text-[11px] leading-none font-bold transition-colors duration-300 active:scale-95",
+                      selected ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"
+                    )}
+                  >
+                    <Icon className="mb-0.5 h-4 w-4" aria-hidden />
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+          {(!navigationMapMode || imageIsoMode) && (
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => zoomOrbitControls(controlsRef.current, 0.82)}
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-kiosk-navy shadow-md ring-1 ring-slate-200 transition hover:bg-slate-50 active:scale-95"
+                aria-label={uiText(language, "mapZoomIn")}
+              >
+                <Plus className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => zoomOrbitControls(controlsRef.current, 1.22)}
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-kiosk-navy shadow-md ring-1 ring-slate-200 transition hover:bg-slate-50 active:scale-95"
+                aria-label={uiText(language, "mapZoomOut")}
+              >
+                <Minus className="h-5 w-5" />
+              </button>
+            </div>
+          )}
+        </div>
 
         {!isNavigating && (
           <div className="pointer-events-none absolute top-3 left-64 z-20 flex h-9 w-max items-center gap-2 text-sm text-gray-500">

@@ -15,6 +15,8 @@ interface BuildingLayoutPanelProps {
   kioskLocation: BuildingUiConfig["kioskLocation"];
   /** Top-down floor plan instead of the tilted 3D view. */
   flatView?: boolean;
+  /** Shows the 2D / 3D switch on the map when provided. */
+  onFlatViewChange?: (flat: boolean) => void;
   highlightLocationId?: string | null;
   pickedNode?: NavNode | null;
   onLocationClick?: (locationId: string, floor?: number, label?: string) => void;
@@ -38,6 +40,7 @@ export function BuildingLayoutPanel({
   locations,
   kioskLocation,
   flatView = false,
+  onFlatViewChange,
   highlightLocationId,
   pickedNode,
   onLocationClick,
@@ -65,6 +68,7 @@ export function BuildingLayoutPanel({
         graph={navigationGraph}
         kioskLocation={kioskLocation}
         flatView={flatView}
+        onFlatViewChange={onFlatViewChange}
         currentFloor={currentFloor}
         highlightLocationId={highlightLocationId ?? undefined}
         onLocationClick={onLocationClick}
