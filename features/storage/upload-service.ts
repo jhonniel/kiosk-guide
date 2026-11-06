@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { getResolvedSettings } from "@/features/settings/resolve-settings";
+import { checkDownloadFile } from "@/features/downloads/file-integrity";
 import {
   ALLOWED_UPLOAD_EXTENSIONS,
   ALLOWED_UPLOAD_MIME_TYPES,
@@ -30,6 +31,10 @@ export async function uploadDownloadFile(file: File) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
+  const check = checkDownloadFile(buffer, file.name);
+  if (!check.ok) {
+    throw new Error(`${check.reason} Please upload a working copy of the document.`);
+  }
   const fileName = sanitizeFileName(file.name);
   const contentType = file.type || "application/octet-stream";
   const settings = await getResolvedSettings();

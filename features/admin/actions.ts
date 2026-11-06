@@ -44,7 +44,38 @@ function coerceRecord(
     result[field.key] = parseFieldValue(data[field.key], field.type);
   }
 
+  // The document upload field ("fileAsset") stores its result in these columns.
+  if (resource === "downloads") {
+    for (const key of ["fileUrl", "fileName", "fileSize"] as const) {
+      if (key in data) result[key] = String(data[key] ?? "");
+    }
+  }
+
   return result;
+}
+
+/** A download switched off for a broken file comes back on only with a newly uploaded file. */
+async function downloadUpdateData(
+  id: string,
+  payload: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const current = await db.download.findUnique({
+    where: { id },
+    select: { fileUrl: true, fileProblem: true },
+  });
+  if (!current) throw new Error("Download not found.");
+  if (!current.fileProblem) return payload;
+
+  const replacedFile = typeof payload.fileUrl === "string" && payload.fileUrl !== "" && payload.fileUrl !== current.fileUrl;
+  if (replacedFile) {
+    return { ...payload, isActive: true, fileProblem: null, fileProblemAt: null };
+  }
+  if (payload.isActive === true) {
+    throw new Error(
+      `This download was turned off because its file is broken (${current.fileProblem}) Upload a working file to turn it back on.`
+    );
+  }
+  return payload;
 }
 
 export async function updateSettings(
@@ -181,7 +212,7 @@ export async function updateResource(
         await db.directory.update({ where: { id }, data: payload as never });
         break;
       case "downloads":
-        await db.download.update({ where: { id }, data: payload as never });
+        await db.download.update({ where: { id }, data: (await downloadUpdateData(id, payload)) as never });
         break;
       case "announcements":
         await db.announcement.update({ where: { id }, data: payload as never });

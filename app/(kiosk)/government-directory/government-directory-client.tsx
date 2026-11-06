@@ -27,11 +27,6 @@ import { localized, pickLang } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
 import type { Directory } from "@prisma/client";
 
-function telHref(phone: string) {
-  const digits = phone.replace(/[^\d+]/g, "");
-  return digits ? `tel:${digits}` : undefined;
-}
-
 function departmentIcon(name: string): LucideIcon {
   const lower = name.toLowerCase();
   if (lower.includes("administrator")) return Landmark;
@@ -143,7 +138,6 @@ export function GovernmentDirectoryClient({ directories }: { directories: Direct
             const officeName = localized(dir, language, "name");
             const Icon = departmentIcon(officeName);
             const phone = dir.contactNumber?.trim() || null;
-            const href = phone ? telHref(phone) : undefined;
             const email = dir.email?.trim() || null;
 
             return (
@@ -195,14 +189,12 @@ export function GovernmentDirectoryClient({ directories }: { directories: Direct
                     <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
                       {pickLang(language, "Email", "Email", "Email")}
                     </p>
+                    {/* Shown for reading only: a kiosk has no phone or mail app to hand off to. */}
                     {email ? (
-                      <a
-                        href={`mailto:${email}`}
-                        className="flex items-start gap-2 text-[13px] font-semibold text-kiosk-navy hover:underline"
-                      >
+                      <p className="flex items-start gap-2 text-[13px] font-semibold text-kiosk-navy">
                         <Mail className="mt-0.5 h-4 w-4 shrink-0 text-kiosk-navy/55" />
                         <span className="line-clamp-2 break-all">{email}</span>
-                      </a>
+                      </p>
                     ) : (
                       <p className="flex items-start gap-2 text-[13px] font-medium text-slate-400">
                         <Mail className="mt-0.5 h-4 w-4 shrink-0" />
@@ -213,20 +205,10 @@ export function GovernmentDirectoryClient({ directories }: { directories: Direct
 
                   <div className="mt-auto shrink-0">
                     {phone ? (
-                      href ? (
-                        <a
-                          href={href}
-                          className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-kiosk-navy px-3 py-2 text-sm font-bold text-white transition-transform duration-150 hover:bg-kiosk-navy/90 active:scale-[0.98]"
-                        >
-                          <Phone className="h-4 w-4 shrink-0 opacity-90" />
-                          {phone}
-                        </a>
-                      ) : (
-                        <span className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-kiosk-navy px-3 py-2 text-sm font-bold text-white">
-                          <Phone className="h-4 w-4 shrink-0 opacity-90" />
-                          {phone}
-                        </span>
-                      )
+                      <p className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-kiosk-navy px-3 py-2 text-sm font-bold text-white">
+                        <Phone className="h-4 w-4 shrink-0 opacity-90" />
+                        {phone}
+                      </p>
                     ) : (
                       <div className="inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-400">
                         {pickLang(

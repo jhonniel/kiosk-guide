@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createQrDownloadLink } from "@/features/downloads/download-service";
+import { isDownloadFileUnavailable } from "@/features/downloads/file-health";
 import { downloadQrRequestSchema } from "@/lib/validations";
 
 function getRequestOrigin(request: NextRequest) {
@@ -31,6 +32,9 @@ export async function POST(request: NextRequest) {
       expiryMinutes: Math.round((link.expiresAt.getTime() - Date.now()) / 60000),
     });
   } catch (error) {
+    if (isDownloadFileUnavailable(error)) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: 409 });
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to create QR link" },
       { status: 400 }

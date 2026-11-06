@@ -140,6 +140,18 @@ export function DownloadDeliveryDialog({
     "Wala napadala ang email"
   );
 
+  const fileUnavailableMessage = pickLang(
+    language,
+    "This file is unavailable right now. Please ask the office for a copy.",
+    "Hindi available ang file na ito ngayon. Mangyaring humingi ng kopya sa opisina.",
+    "Dili available kining file karon. Palihug pangayo og kopya sa opisina."
+  );
+
+  /** Broken files are switched off by the server; show the visitor a plain message instead. */
+  function deliveryError(data: { error?: string; code?: string }, fallback: string) {
+    return data.code === "FILE_UNAVAILABLE" ? fileUnavailableMessage : data.error ?? fallback;
+  }
+
   async function startQrFlow() {
     if (!download) return;
     if (!isOnline) {
@@ -162,7 +174,7 @@ export function DownloadDeliveryDialog({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? qrFailedMessage);
+      if (!res.ok) throw new Error(deliveryError(data, qrFailedMessage));
 
       const expiry = new Date(data.expiresAt);
       setExpiresAt(expiry);
@@ -214,7 +226,7 @@ export function DownloadDeliveryDialog({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? emailFailedMessage);
+      if (!res.ok) throw new Error(deliveryError(data, emailFailedMessage));
       setStep("email-sent");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : emailFailedMessage);

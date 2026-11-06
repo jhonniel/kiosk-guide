@@ -4,10 +4,13 @@ import {
   buildDownloadDeliverySettings,
   interpolateDownloadTemplate,
 } from "@/features/downloads/download-settings";
+import { resolveDownloadFileContent } from "@/features/downloads/file-resolver";
 import {
-  assertDownloadFileAvailable,
-  resolveDownloadFileContent,
-} from "@/features/downloads/file-resolver";
+  DownloadFileUnavailableError,
+  disableBrokenDownload,
+  loadHealthyDownloadFile,
+} from "@/features/downloads/file-health";
+import { checkDownloadFile } from "@/features/downloads/file-integrity";
 import { getBoolSetting, getNumberSetting, getResolvedSettings } from "@/features/settings/resolve-settings";
 import { buildPublicAppUrl, resolvePublicAppBaseUrl } from "@/lib/public-app-url";
 import { createSpacesSignedUrl } from "@/lib/storage/spaces";
@@ -17,6 +20,14 @@ import type { Download } from "@prisma/client";
 
 function generateToken(): string {
   return createHash("sha256").update(randomBytes(32)).digest("hex").slice(0, 48);
+}
+
+/** A switched-off download (by an admin, or automatically for a broken file) is not handed out. */
+async function findDeliverableDownload(downloadId: string): Promise<Download> {
+  const download = await db.download.findUnique({ where: { id: downloadId } });
+  if (!download) throw new Error("Download not found.");
+  if (!download.isActive) throw new DownloadFileUnavailableError();
+  return download;
 }
 
 export function resolvePublicBaseUrl(
@@ -37,12 +48,8 @@ export async function createQrDownloadLink(
     throw new Error("QR downloads are disabled.");
   }
 
-  const download = await db.download.findFirst({
-    where: { id: downloadId, isActive: true },
-  });
-  if (!download) throw new Error("Download not found.");
-
-  await assertDownloadFileAvailable(download);
+  const download = await findDeliverableDownload(downloadId);
+  await loadHealthyDownloadFile(download);
 
   const expiryMinutes = Math.max(
     5,
@@ -99,6 +106,11 @@ export async function validateDownloadToken(token: string) {
 
   const file = await resolveDownloadFileContent(record.download);
   if (!file) return null;
+  const check = checkDownloadFile(file.buffer, record.download.fileName || record.download.fileUrl);
+  if (!check.ok) {
+    await disableBrokenDownload(record.downloadId, check.reason);
+    return null;
+  }
 
   await db.$transaction([
     db.downloadToken.update({
@@ -133,12 +145,8 @@ export async function sendDownloadByEmail(
     throw new Error("Email delivery is disabled.");
   }
 
-  const download = await db.download.findFirst({
-    where: { id: downloadId, isActive: true },
-  });
-  if (!download) throw new Error("Download not found.");
-
-  const file = await assertDownloadFileAvailable(download);
+  const download = await findDeliverableDownload(downloadId);
+  const file = await loadHealthyDownloadFile(download);
 
   const delivery = buildDownloadDeliverySettings(settings, lang);
   if (!delivery.smtpConfigured) {

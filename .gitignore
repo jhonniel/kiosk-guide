@@ -17,6 +17,7 @@
 /.next/
 /.next-update/
 /.next-previous/
+/.next-verify/
 /out/
 
 # production

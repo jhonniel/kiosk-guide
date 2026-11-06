@@ -115,6 +115,9 @@ model Download {
   isActive       Boolean         @default(true)
   sortOrder      Int             @default(0)
   downloadCount  Int             @default(0)
+  /// Why the file was automatically disabled (broken or not a real document); cleared by re-uploading.
+  fileProblem    String?
+  fileProblemAt  DateTime?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   tokens         DownloadToken[]
