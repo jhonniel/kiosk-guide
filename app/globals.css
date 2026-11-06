@@ -285,10 +285,70 @@ html.kiosk-lowered .fixed.inset-0:not([data-kiosk-fullscreen]) {
   top: var(--kiosk-lowered-top) !important;
 }
 
+/* Panels sized for the full screen (e.g. 92vh) must fit the shorter lowered area; their bodies scroll. */
+html.kiosk-lowered .fixed.inset-0:not([data-kiosk-fullscreen]) > * {
+  max-height: 100%;
+}
+
+/* A pop-up opened inside another pop-up is already within the lowered area. */
+html.kiosk-lowered .fixed.inset-0 .fixed.inset-0:not([data-kiosk-fullscreen]) {
+  top: 0 !important;
+}
+
 html.kiosk-lowered [data-slot="dialog-content"] {
   top: calc(var(--kiosk-lowered-top) + (100dvh - var(--kiosk-lowered-top)) / 2) !important;
   max-height: calc(100dvh - var(--kiosk-lowered-top) - 2rem);
   overflow-y: auto;
+}
+
+/* Kiosk dialogs scroll by touch; the scrollbar itself stays hidden. */
+[data-slot="dialog-content"] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+[data-slot="dialog-content"]::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* The weather panel scales to fit (KioskFitPanel) instead of scrolling. */
+html.kiosk-lowered [data-slot="dialog-content"].kiosk-weather-details {
+  overflow: hidden;
+}
+
+/* The lowered area is short but wide: hero on the left, details on the right, so text stays large. */
+html.kiosk-lowered .kiosk-weather-details {
+  width: min(60rem, calc(100vw - 2rem));
+}
+
+html.kiosk-lowered .kiosk-weather-details__body {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  grid-template-rows: auto 1fr auto;
+}
+
+html.kiosk-lowered .kiosk-weather-details__hero {
+  grid-row: 1 / span 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+html.kiosk-lowered .kiosk-weather-details__body > :not(.kiosk-weather-details__hero) {
+  grid-column: 2;
+}
+
+/* Clear the dialog's close button, which now sits above the right column. */
+html.kiosk-lowered .kiosk-weather-details__facts {
+  padding-top: 3.25rem;
+  border-top: 0;
+}
+
+html.kiosk-lowered .kiosk-weather-details__art {
+  width: 8.5rem;
+  height: 8.5rem;
 }
 
 /* !important: the kiosk sets the root font size inline to fit the screen. */
@@ -347,22 +407,387 @@ html.kiosk-large-text {
   width: clamp(2.25rem, min(52cqw, 40cqh), 6.25rem);
 }
 
+/* px minimums: rem would grow with Large Text and stop the text shrinking to fit a short card. */
 .kiosk-service-card__title {
-  font-size: clamp(0.6rem, min(7.4cqw, 8.4cqh), 0.95rem);
+  font-size: clamp(9px, min(7.4cqw, 8.4cqh), 0.95rem);
 }
 
 .kiosk-service-card__desc {
-  font-size: clamp(0.58rem, min(6.4cqw, 6.6cqh), 0.85rem);
+  font-size: clamp(9px, min(6.4cqw, 6.6cqh), 0.85rem);
+}
+
+/* Weather illustrations (components/kiosk/weather-art.tsx): motion follows the weather. */
+.wx-glow,
+.wx-sun,
+.wx-moon,
+.wx-rays,
+.wx-twinkle,
+.wx-flash,
+.wx-cloud-flash {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.wx-glow {
+  animation: wx-glow 3s ease-in-out infinite;
+}
+
+/* Sunny: rays turn, the sun bobs while its glow breathes. */
+.wx-rays {
+  animation: wx-spin 18s linear infinite;
+}
+
+.wx-sun {
+  animation: wx-bob 4.5s ease-in-out infinite;
+}
+
+/* Partly cloudy: the sun / moon peeks out from behind the drifting cloud. */
+.wx-peek {
+  animation: wx-peek 6s ease-in-out infinite;
+}
+
+.wx-moon {
+  animation: wx-rock 6s ease-in-out infinite;
+}
+
+.wx-cloud-float {
+  animation: wx-cloud-float 4.5s ease-in-out infinite;
+}
+
+.wx-cloud-drift {
+  animation: wx-cloud-drift 7s ease-in-out infinite;
+}
+
+.wx-cloud-drift-back {
+  animation: wx-cloud-drift 9s ease-in-out infinite reverse;
+}
+
+/* Storms: the cloud rumbles in time with the lightning. */
+.wx-cloud-rumble {
+  animation: wx-rumble 3.2s ease-in-out infinite;
+}
+
+.wx-drop {
+  animation: wx-drop 0.9s linear infinite;
+}
+
+.wx-drop-slant {
+  animation: wx-drop-slant 0.62s linear infinite;
+}
+
+.wx-snow {
+  animation: wx-snow 2.8s ease-in-out infinite;
+}
+
+.wx-flash {
+  animation: wx-strike 3.2s ease-out infinite;
+}
+
+.wx-cloud-flash {
+  opacity: 0;
+  animation: wx-cloud-flash 3.2s ease-out infinite;
+}
+
+.wx-twinkle {
+  animation: wx-twinkle 2.2s ease-in-out infinite;
+}
+
+.wx-mist {
+  animation: wx-mist 5s ease-in-out infinite alternate;
+}
+
+.wx-mist-back {
+  animation: wx-mist 6s ease-in-out infinite alternate-reverse;
+}
+
+.wx-pop {
+  animation: wx-pop 620ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes wx-glow {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(0.88);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.14);
+  }
+}
+
+@keyframes wx-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes wx-bob {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.04);
+  }
+}
+
+@keyframes wx-peek {
+  0%,
+  100% {
+    transform: translate(0, 4px);
+  }
+  50% {
+    transform: translate(-3px, -5px);
+  }
+}
+
+@keyframes wx-rock {
+  0%,
+  100% {
+    transform: rotate(-7deg) translateY(0);
+  }
+  50% {
+    transform: rotate(7deg) translateY(-3px);
+  }
+}
+
+@keyframes wx-cloud-float {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(3px, -5px);
+  }
+}
+
+@keyframes wx-cloud-drift {
+  0%,
+  100% {
+    transform: translate(-7px, 0);
+  }
+  50% {
+    transform: translate(7px, -3px);
+  }
+}
+
+@keyframes wx-rumble {
+  0%,
+  50%,
+  76%,
+  100% {
+    transform: translate(0, 0);
+  }
+  54% {
+    transform: translate(-2px, 1px);
+  }
+  58% {
+    transform: translate(2px, -1px);
+  }
+  62% {
+    transform: translate(-1.5px, 0);
+  }
+  70% {
+    transform: translate(1px, 1px);
+  }
+}
+
+@keyframes wx-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+}
+
+@keyframes wx-drop-slant {
+  0% {
+    opacity: 0;
+    transform: translate(4px, -8px) skewX(-12deg);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-6px, 24px) skewX(-12deg);
+  }
+}
+
+@keyframes wx-snow {
+  0% {
+    opacity: 0;
+    transform: translate(0, -6px);
+  }
+  20% {
+    opacity: 1;
+  }
+  50% {
+    transform: translate(4px, 8px);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-3px, 22px);
+  }
+}
+
+@keyframes wx-strike {
+  0%,
+  48% {
+    opacity: 0;
+    transform: scale(0.9) translateY(-4px);
+  }
+  52% {
+    opacity: 1;
+    transform: scale(1.08) translateY(0);
+  }
+  57% {
+    opacity: 0.35;
+  }
+  61% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  78%,
+  100% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes wx-cloud-flash {
+  0%,
+  48%,
+  70%,
+  100% {
+    opacity: 0;
+  }
+  52%,
+  61% {
+    opacity: 0.85;
+  }
+  57% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes wx-twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.55) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2) rotate(45deg);
+  }
+}
+
+@keyframes wx-mist {
+  from {
+    opacity: 0.55;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(10px);
+  }
+}
+
+@keyframes wx-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.14) rotate(-3deg);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wx-glow,
+  .wx-rays,
+  .wx-sun,
+  .wx-peek,
+  .wx-moon,
+  .wx-cloud-float,
+  .wx-cloud-drift,
+  .wx-cloud-drift-back,
+  .wx-cloud-rumble,
+  .wx-drop,
+  .wx-drop-slant,
+  .wx-snow,
+  .wx-flash,
+  .wx-cloud-flash,
+  .wx-twinkle,
+  .wx-mist,
+  .wx-mist-back,
+  .wx-pop {
+    animation: none;
+  }
+
+  .wx-flash {
+    opacity: 1;
+  }
+}
+
+/*
+ * Top-right cluster: weather, date, clock. Page headers reserve --kiosk-datetime-w for it, so the
+ * cluster and the reserve narrow together: medium screens fold the date into the clock card,
+ * narrow ones (small screen, Large Text) keep only the clock.
+ */
+.kiosk-main-frame {
+  container-name: kiosk-main;
+  --kiosk-datetime-w: 46rem;
+}
+
+.kiosk-datetime__clock-date {
+  display: none;
+}
+
+@container kiosk-main (max-width: 72rem) {
+  .kiosk-main-frame > * {
+    --kiosk-datetime-w: 31rem;
+  }
+
+  .kiosk-datetime__date {
+    display: none;
+  }
+
+  .kiosk-datetime__clock-date {
+    display: block;
+  }
+}
+
+@container kiosk-main (max-width: 42rem) {
+  .kiosk-main-frame > * {
+    --kiosk-datetime-w: 13rem;
+  }
+
+  .kiosk-weather {
+    display: none;
+  }
 }
 
 /*
  * Short main area (small screens, or wheelchair mode lowering the kiosk): drop the big title,
  * keep every card tall enough for its icon and title, and let the card grid scroll instead of squeezing.
  */
-.kiosk-main-frame {
-  container-name: kiosk-main;
-}
-
 @container kiosk-main (max-height: 38rem) {
   .kiosk-home-header {
     display: none;
@@ -370,7 +795,7 @@ html.kiosk-large-text {
 
   /* The date/time widget sits in this row once the title is hidden. */
   .kiosk-home-search {
-    padding-right: 27.5rem;
+    padding-right: var(--kiosk-datetime-w);
   }
 
   /* Give the search field the room; the search icon still marks it. */
@@ -399,32 +824,449 @@ html.kiosk-large-text {
   }
 
   .kiosk-service-card__icon {
-    width: clamp(2rem, min(52cqw, 48cqh), 6.25rem);
+    width: clamp(24px, min(52cqw, 44cqh), 6.25rem);
   }
 
   .kiosk-service-card__title {
-    font-size: clamp(0.58rem, min(7.4cqw, 11cqh), 0.95rem);
+    font-size: clamp(9px, min(7.4cqw, 13cqh), 0.95rem);
   }
 }
 
-/* Very short cards: icon beside the title so the whole name still fits on one or two lines. */
-@container (max-height: 6.75rem) {
-  .kiosk-service-card {
+/*
+ * Sidebar: the province name shrinks with the sidebar width; on short screens (wheelchair mode,
+ * Large Text) the decorative footer and then the welcome sentence step aside for Quick Start.
+ */
+.kiosk-sidebar {
+  container: kiosk-sidebar / size;
+}
+
+.kiosk-sidebar__gov {
+  font-size: clamp(16px, 9.2cqw, 26px);
+}
+
+@container kiosk-sidebar (max-height: 36rem) {
+  .kiosk-sidebar__footer {
+    display: none;
+  }
+}
+
+@container kiosk-sidebar (max-height: 30rem) {
+  .kiosk-sidebar__welcome-text {
+    display: none;
+  }
+}
+
+@container kiosk-sidebar (max-height: 22rem) {
+  .kiosk-sidebar__welcome {
+    display: none;
+  }
+}
+
+/*
+ * Bottom bar: rem thresholds, so Large Text (bigger rem) steps it down sooner. Drops the hint,
+ * then tightens spacing, then shortens the language names — the buttons themselves always fit.
+ */
+.kiosk-bottom-nav {
+  container: kiosk-bottom-nav / inline-size;
+}
+
+.kiosk-bottom-nav__row {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.kiosk-bottom-nav__short {
+  display: none;
+}
+
+@container kiosk-bottom-nav (max-width: 86rem) {
+  .kiosk-bottom-nav__hint {
+    display: none;
+  }
+}
+
+@container kiosk-bottom-nav (max-width: 68rem) {
+  .kiosk-bottom-nav__row {
+    gap: 0.5rem;
+    padding-inline: 1rem;
+  }
+
+  .kiosk-bottom-nav__home {
+    padding-inline: 1.1rem;
+  }
+
+  .kiosk-bottom-nav__actions {
+    gap: 0.25rem;
+  }
+
+  .kiosk-bottom-nav__button {
+    padding-inline: 0.6rem;
+  }
+
+  .kiosk-bottom-nav__divider {
+    margin-inline: 0.35rem;
+  }
+}
+
+@container kiosk-bottom-nav (max-width: 58rem) {
+  .kiosk-bottom-nav__label {
+    display: none;
+  }
+
+  .kiosk-bottom-nav__short {
+    display: inline;
+  }
+}
+
+/*
+ * Citizens' Charter overview: sized from its own box, so wheelchair mode, Large Text and small
+ * screens all get the compact layout (rem thresholds grow with Large Text). If it still cannot
+ * fit, the overview scrolls instead of hiding the bottom rows.
+ */
+.charter-overview {
+  container: charter-overview / size;
+}
+
+.charter-overview__footer {
+  flex-wrap: wrap;
+}
+
+.charter-overview__notice {
+  min-width: min(100%, 17rem);
+}
+
+@container charter-overview (max-height: 44rem) or (max-width: 62rem) {
+  .charter-overview__intro {
+    display: none;
+  }
+
+  .charter-overview__header {
+    padding-block: 0.5rem;
+  }
+
+  .charter-overview__body,
+  .charter-overview__main,
+  .charter-overview__cards {
+    gap: 0.75rem;
+  }
+
+  /* The cover fills whatever height the row has instead of setting it. */
+  .charter-overview__cover-image {
+    min-height: 6rem;
+  }
+
+  .charter-overview__cover-img {
+    position: absolute;
+    inset: 0;
+    min-height: 0;
+  }
+
+  .charter-overview__card {
+    min-height: 0;
+    gap: 1rem;
+    padding: 0.7rem 1.1rem;
+  }
+
+  .charter-overview__card-icon {
+    width: 4rem;
+    height: 4rem;
+  }
+
+  .charter-overview__card-title {
+    font-size: 1.25rem;
+  }
+
+  .charter-overview__card-text {
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
+  }
+
+  .charter-overview__qr {
+    width: 6.5rem;
+    gap: 0.35rem;
+  }
+
+  .charter-overview__qr-code {
+    width: 4.5rem;
+    height: 4.5rem;
+  }
+
+  .charter-overview__qr button {
+    padding-block: 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .charter-overview__topics {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+  }
+
+  .charter-overview__topic {
+    width: 5.25rem;
+    height: 5.25rem;
+    gap: 0.35rem;
+  }
+
+  .charter-overview__topic-icon {
+    width: 2.6rem;
+    height: 2.6rem;
+  }
+
+  /* Keep the note beside the topic tiles instead of wrapping below them. */
+  .charter-overview__notice {
+    min-width: min(100%, 11rem);
+    padding: 0.75rem;
+  }
+
+  .charter-overview__notice > span {
+    display: none;
+  }
+
+  .charter-overview__notice p:first-child {
+    font-size: 0.9rem;
+  }
+
+  .charter-overview__notice p + p {
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Very short (wheelchair mode on a small screen, or with Large Text): cards side by side, topic chips. */
+@container charter-overview (max-height: 30rem) {
+  .charter-overview__title {
+    font-size: 1.5rem;
+  }
+
+  /* Cards take the full width on top; the edition / PDF block moves beside the topics. */
+  .charter-overview__body {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "cards cards"
+      "cover footer";
+  }
+
+  .charter-overview__main {
+    display: contents;
+  }
+
+  .charter-overview__cards {
+    grid-area: cards;
+  }
+
+  .charter-overview__footer {
+    grid-area: footer;
+    margin-top: 0;
+  }
+
+  .charter-overview__notice {
+    min-width: 0;
+  }
+
+  .charter-overview__cover {
+    grid-area: cover;
+    width: auto;
+    max-width: 13rem;
+    justify-content: center;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .charter-overview__cover-image,
+  .charter-overview__card-icon {
+    display: none;
+  }
+
+  .charter-overview__cards {
+    grid-template-rows: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .charter-overview__card {
+    padding: 0.75rem 0.9rem;
+  }
+
+  .charter-overview__card-title {
+    font-size: 1.05rem;
+  }
+
+  .charter-overview__card-text {
+    font-size: 0.8rem;
+  }
+
+  .charter-overview__qr {
+    width: 5.5rem;
+  }
+
+  .charter-overview__qr-code {
+    width: 4.25rem;
+    height: 4.25rem;
+  }
+
+  .charter-overview__topics {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+  }
+
+  .charter-overview__topic {
+    width: auto;
+    height: 2.75rem;
     flex-direction: row;
     justify-content: flex-start;
-    gap: 0.6rem;
-    padding-inline: 0.75rem;
-    text-align: left;
+    gap: 0.45rem;
+    padding-inline: 0.6rem 0.8rem;
   }
 
-  .kiosk-service-card__icon {
-    width: clamp(1.75rem, 66cqh, 3.25rem);
+  .charter-overview__topic-icon {
+    width: 1.9rem;
+    height: 1.9rem;
   }
 
-  .kiosk-service-card__title {
-    flex: 1 1 0%;
-    font-size: clamp(0.58rem, min(6.2cqw, 20cqh), 0.85rem);
-    text-wrap: balance;
+  .charter-overview__topic-label {
+    white-space: nowrap;
+  }
+}
+
+/* Office pop-up in a short space (wheelchair mode): the office details scroll, the services list keeps the rest. */
+.charter-office {
+  container: charter-office / size;
+}
+
+@container charter-office (max-height: 36rem) {
+  .charter-office__header {
+    max-height: 50%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-block: 0.75rem;
+  }
+
+  .charter-office__header h2 {
+    font-size: 1.35rem;
+  }
+}
+
+/* Citizens' Charter browse view: same idea — compact cards first, the fit panel shrinks the rest. */
+.charter-browse {
+  container: charter-browse / size;
+}
+
+@container charter-browse (max-height: 40rem) or (max-width: 62rem) {
+  .charter-browse__desc {
+    display: none;
+  }
+
+  .charter-browse__title {
+    font-size: 1.6rem;
+  }
+
+  .charter-browse__card {
+    min-height: 0;
+    padding: 0.9rem 1rem;
+  }
+
+  .charter-browse__card-icon {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+
+  .charter-browse__card-title {
+    padding-top: 0.25rem;
+    font-size: 1rem;
+  }
+
+  .charter-browse__card-text {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .charter-browse__card-meta {
+    margin-top: 0.5rem;
+  }
+
+  .charter-browse__requested {
+    padding: 0.6rem 0.9rem;
+  }
+
+  .charter-browse__requested h2 {
+    margin-bottom: 0.4rem;
+  }
+
+  .charter-browse__requested button {
+    min-height: 2.5rem;
+    padding-block: 0.35rem;
+  }
+}
+
+/*
+ * Very short: the header (back button + title) is already taller than the date/time cards, so the
+ * mode chips can use the full width. The Most Requested strip repeats the "Most Requested" chip.
+ */
+@container charter-browse (max-height: 28rem) {
+  .charter-browse__title {
+    font-size: 1.3rem;
+  }
+
+  .charter-browse__modes {
+    margin-bottom: 0.5rem;
+    padding-right: 0;
+  }
+
+  .charter-browse__card-text,
+  .charter-browse__requested {
+    display: none;
+  }
+}
+
+/*
+ * Extreme (Large Text in wheelchair mode on a small screen): keep every action and heading,
+ * drop the one-line descriptions so nothing has to scroll.
+ */
+@container charter-overview (max-height: 22rem) {
+  .charter-overview__header {
+    padding-block: 0.35rem;
+  }
+
+  .charter-overview__title {
+    font-size: 1.2rem;
+  }
+
+  .charter-overview__card-text,
+  .charter-overview__notice p + p,
+  .charter-overview__topics-label {
+    display: none;
+  }
+
+  .charter-overview__qr {
+    width: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .charter-overview__qr-code {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+
+  .charter-overview__topics {
+    grid-template-columns: repeat(4, auto);
+  }
+
+  .charter-overview__footer {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .charter-overview__notice {
+    flex-basis: 100%;
+    padding: 0.45rem 0.75rem;
+  }
+}
+
+@container charter-overview (max-width: 62rem) {
+  .charter-overview__cover {
+    width: 14rem;
   }
 }
 

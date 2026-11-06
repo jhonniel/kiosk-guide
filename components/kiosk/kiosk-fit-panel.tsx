@@ -37,6 +37,9 @@ export function KioskFitPanel({
     contentW: 0,
     contentH: 0,
   });
+  // Height-only scaling widens the content, which re-wraps text and changes its height, so the
+  // scale can flip between two values. Count changes per available size and lock to the smallest.
+  const settleRef = useRef({ availableW: 0, availableH: 0, changes: 0, minScale: 1, lastScale: 1 });
 
   const update = useCallback(() => {
     const container = containerRef.current;
@@ -52,10 +55,22 @@ export function KioskFitPanel({
       return;
     }
 
-    const nextScale =
+    let nextScale =
       fit === "height"
         ? Math.min(1, availableH / neededH)
         : Math.min(1, availableW / neededW, availableH / neededH);
+
+    const settle = settleRef.current;
+    if (settle.availableW !== availableW || settle.availableH !== availableH) {
+      settleRef.current = { availableW, availableH, changes: 0, minScale: 1, lastScale: settle.lastScale };
+    }
+    const tracker = settleRef.current;
+    if (Math.abs(tracker.lastScale - nextScale) >= 0.001) {
+      tracker.changes += 1;
+      tracker.minScale = Math.min(tracker.minScale, nextScale);
+    }
+    if (tracker.changes > 6) nextScale = tracker.minScale;
+    tracker.lastScale = nextScale;
 
     setFit((prev) => {
       if (
@@ -70,6 +85,7 @@ export function KioskFitPanel({
   }, [fit]);
 
   useLayoutEffect(() => {
+    settleRef.current = { availableW: 0, availableH: 0, changes: 0, minScale: 1, lastScale: 1 };
     setFit({ scale: 1, contentW: 0, contentH: 0 });
   }, [measureKey, fit]);
 

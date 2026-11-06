@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import dynamic from "next/dynamic";
 import { KioskBackButton } from "@/components/kiosk/kiosk-back-button";
+import type { CharterPdfContentsSection } from "@/components/kiosk/charter-pdf-viewer";
 import QRCode from "qrcode";
 import {
   Briefcase,
@@ -47,6 +49,7 @@ import {
   charterServiceVisitKey,
 } from "@/features/kiosk/charter-quick-start";
 import { getKioskSessionId } from "@/features/kiosk/visit-tracking";
+import { formatPeso, totalCharterFees } from "@/features/citizens-charter/fees";
 import { useQuickStartVisits } from "@/components/kiosk/quick-start-visit-provider";
 import { pickLang, t, type Language } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
@@ -109,6 +112,34 @@ function serviceMatches(service: CharterServiceView, query: string) {
     ],
     query
   );
+}
+
+const CharterPdfViewer = dynamic(
+  () => import("@/components/kiosk/charter-pdf-viewer").then((mod) => mod.CharterPdfViewer),
+  { ssr: false, loading: () => <div className="min-h-0 flex-1 bg-slate-100" /> }
+);
+
+/** Offices and their services in PDF order, for the viewer's table of contents. */
+function charterPdfContents(offices: CharterOfficeView[]): CharterPdfContentsSection[] {
+  const sections: CharterPdfContentsSection[] = [];
+  for (const office of offices) {
+    if (!office.isActive) continue;
+    const seen = new Set<string>();
+    const entries = office.categories
+      .filter((category) => category.isActive)
+      .flatMap((category) => category.services)
+      .filter((service) => service.isActive && service.pageNumber != null)
+      .map((service) => ({ title: service.name, page: service.pageNumber as number }))
+      .filter((entry) => {
+        const key = `${entry.page}|${entry.title}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => a.page - b.page);
+    if (entries.length > 0) sections.push({ title: office.name, entries });
+  }
+  return sections.sort((a, b) => a.entries[0].page - b.entries[0].page);
 }
 
 const CHARTER_PDF_PUBLIC_PATH = "/api/citizens-charter/pdf";
@@ -529,16 +560,16 @@ function OverviewView({
   }
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent">
-      <header className={cn("relative z-10 shrink-0 px-1 pt-4 pb-3", kioskDateTimeReserveClass)}>
+    <div className="charter-overview relative flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent">
+      <header className={cn("charter-overview__header relative z-10 shrink-0 px-1 pt-4 pb-3", kioskDateTimeReserveClass)}>
         <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-4">
           <KioskBackButton href="/">{languageBackLabel}</KioskBackButton>
-          <h1 className="min-w-0 text-[1.85rem] leading-none font-black tracking-tight text-kiosk-navy uppercase lg:text-[2.15rem]">
+          <h1 className="charter-overview__title min-w-0 text-[1.85rem] leading-none font-black tracking-tight text-kiosk-navy uppercase lg:text-[2.15rem]">
             Citizens&apos; Charter
           </h1>
         </div>
 
-        <div className="mt-1.5 min-w-0 max-w-xl">
+        <div className="charter-overview__intro mt-1.5 min-w-0 max-w-xl">
           <p className="text-[11px] font-bold tracking-[0.34em] text-[#0f766e] uppercase">
             {pickLang(language, "Overview", "Pangkalahatang-ideya", "Kinatibuk-ang Pagtan-aw")}
           </p>
@@ -553,10 +584,13 @@ function OverviewView({
         </div>
       </header>
 
+      {/* Last resort after the compact layouts: shrink slightly instead of cutting anything off.
+          The header stays unscaled so it keeps clear of the date/time cards. */}
+      <KioskFitPanel fit="height" className="min-h-0 flex-1" contentClassName="flex min-h-full flex-col self-stretch">
       {/* Classic overview: cover | (equal Browse/QR + topics) */}
-      <div className="relative z-10 flex min-h-0 w-full flex-1 flex-row items-stretch gap-5 px-1 pb-2">
-        <article className="flex w-[300px] shrink-0 flex-col rounded-[20px] border-0 bg-white p-3.5 shadow-[0_10px_28px_-16px_rgba(15,35,70,0.32)] ring-0 lg:w-[320px]">
-          <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-[16px] bg-[#0b3d6e]">
+      <div className="charter-overview__body relative z-10 flex w-full flex-1 flex-row items-stretch gap-5 px-1 pb-2">
+        <article className="charter-overview__cover flex w-[300px] shrink-0 flex-col rounded-[20px] border-0 bg-white p-3.5 shadow-[0_10px_28px_-16px_rgba(15,35,70,0.32)] ring-0 lg:w-[320px]">
+          <div className="charter-overview__cover-image relative min-h-[320px] flex-1 overflow-hidden rounded-[16px] bg-[#0b3d6e]">
             {!coverLoaded ? (
               <div
                 aria-hidden="true"
@@ -578,7 +612,7 @@ function OverviewView({
               decoding="async"
               onLoad={() => setCoverLoaded(true)}
               className={cn(
-                "block h-full min-h-[320px] w-full object-cover object-top transition-opacity duration-300",
+                "charter-overview__cover-img block h-full min-h-[320px] w-full object-cover object-top transition-opacity duration-300",
                 coverLoaded ? "opacity-100" : "opacity-0"
               )}
             />
@@ -611,19 +645,19 @@ function OverviewView({
           </div>
         </article>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
+        <div className="charter-overview__main flex min-w-0 flex-1 flex-col gap-4">
           {/* Browse + QR share equal natural height (not stretched sparse) */}
-          <div className="grid shrink-0 grid-rows-2 gap-4">
+          <div className="charter-overview__cards grid shrink-0 grid-rows-2 gap-4">
             <button
               type="button"
               onClick={onBrowse}
-              className="flex h-full min-h-[9.5rem] items-center gap-6 rounded-[22px] border-0 bg-white px-6 py-5 text-left shadow-[0_8px_24px_-16px_rgba(15,35,70,0.28)] ring-0 transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.995]"
+              className="charter-overview__card flex h-full min-h-[9.5rem] items-center gap-6 rounded-[22px] border-0 bg-white px-6 py-5 text-left shadow-[0_8px_24px_-16px_rgba(15,35,70,0.28)] ring-0 transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.995]"
             >
-              <span className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#0d9488] text-white">
-                <Landmark className="h-12 w-12" strokeWidth={2} />
+              <span className="charter-overview__card-icon flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#0d9488] text-white">
+                <Landmark className="h-1/2 w-1/2" strokeWidth={2} />
               </span>
               <div className="min-w-0 flex-1">
-                <h2 className="text-[1.5rem] leading-tight font-extrabold text-kiosk-navy lg:text-[1.75rem]">
+                <h2 className="charter-overview__card-title text-[1.5rem] leading-tight font-extrabold text-kiosk-navy lg:text-[1.75rem]">
                   {pickLang(
                     language,
                     "Browse By Department / Category",
@@ -631,7 +665,7 @@ function OverviewView({
                     "Tan-awa sumala sa Departamento / Kategorya"
                   )}
                 </h2>
-                <p className="mt-2 text-base leading-snug text-slate-500 lg:text-lg">
+                <p className="charter-overview__card-text mt-2 text-base leading-snug text-slate-500 lg:text-lg">
                   {pickLang(
                     language,
                     "Browse official services, published fees, processing time, and source pages.",
@@ -645,13 +679,13 @@ function OverviewView({
               </span>
             </button>
 
-            <div className="flex h-full min-h-[9.5rem] items-center gap-6 rounded-[22px] border-0 bg-white px-6 py-5 shadow-[0_8px_24px_-16px_rgba(15,35,70,0.2)] outline outline-2 outline-dashed outline-[#14b8a6] ring-0">
+            <div className="charter-overview__card flex h-full min-h-[9.5rem] items-center gap-6 rounded-[22px] border-0 bg-white px-6 py-5 shadow-[0_8px_24px_-16px_rgba(15,35,70,0.2)] outline outline-2 outline-dashed outline-[#14b8a6] ring-0">
               <div className="flex min-w-0 flex-1 items-center gap-6">
-                <span className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#7c3aed] text-white">
-                  <QrCode className="h-12 w-12" strokeWidth={2} />
+                <span className="charter-overview__card-icon flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#7c3aed] text-white">
+                  <QrCode className="h-1/2 w-1/2" strokeWidth={2} />
                 </span>
                 <div className="min-w-0">
-                  <h2 className="text-[1.5rem] leading-tight font-extrabold text-kiosk-navy lg:text-[1.75rem]">
+                  <h2 className="charter-overview__card-title text-[1.5rem] leading-tight font-extrabold text-kiosk-navy lg:text-[1.75rem]">
                     {pickLang(
                       language,
                       "Scan QR to Open the Document",
@@ -659,7 +693,7 @@ function OverviewView({
                       "I-scan ang QR aron Ablihan ang Dokumento"
                     )}
                   </h2>
-                  <p className="mt-2 max-w-xl text-base leading-snug text-slate-500 lg:text-lg">
+                  <p className="charter-overview__card-text mt-2 max-w-xl text-base leading-snug text-slate-500 lg:text-lg">
                     {pickLang(
                       language,
                       `Scan the QR code to view or download the complete ${edition.year} Citizens' Charter.`,
@@ -669,7 +703,7 @@ function OverviewView({
                   </p>
                 </div>
               </div>
-              <div className="flex w-[148px] shrink-0 flex-col items-center gap-2.5">
+              <div className="charter-overview__qr flex w-[148px] shrink-0 flex-col items-center gap-2.5">
                 <div className="rounded-xl bg-white p-2 ring-1 ring-slate-200">
                   {qrDataUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -681,10 +715,10 @@ function OverviewView({
                         "QR code ng Citizens' Charter PDF",
                         "QR code sa Citizens' Charter PDF"
                       )}
-                      className="h-[7.75rem] w-[7.75rem]"
+                      className="charter-overview__qr-code h-[7.75rem] w-[7.75rem]"
                     />
                   ) : (
-                    <div className="flex h-[7.75rem] w-[7.75rem] items-center justify-center rounded-md bg-slate-100 text-xs text-slate-400">
+                    <div className="charter-overview__qr-code flex h-[7.75rem] w-[7.75rem] items-center justify-center rounded-md bg-slate-100 text-xs text-slate-400">
                       QR
                     </div>
                   )}
@@ -702,9 +736,9 @@ function OverviewView({
             </div>
           </div>
 
-          <div className="mt-auto flex shrink-0 items-stretch gap-3.5">
+          <div className="charter-overview__footer mt-auto flex shrink-0 items-stretch gap-3.5">
             <div className="min-w-0 shrink-0">
-              <p className="mb-2 text-[11px] font-bold tracking-[0.18em] text-slate-400 uppercase">
+              <p className="charter-overview__topics-label mb-2 text-[11px] font-bold tracking-[0.18em] text-slate-400 uppercase">
                 {pickLang(
                   language,
                   "Core Charter Topics",
@@ -712,7 +746,7 @@ function OverviewView({
                   "Mga Panguna nga Hilisgutan sa Charter"
                 )}
               </p>
-              <div className="flex gap-2.5">
+              <div className="charter-overview__topics flex flex-wrap gap-2.5">
                 {CHARTER_CORE_TOPICS.map((topic) => {
                   const Icon = topic.icon;
                   const selected = topic.id === activeTopicId;
@@ -725,7 +759,7 @@ function OverviewView({
                         setTopicOpen(true);
                       }}
                       className={cn(
-                        "flex h-[7.25rem] w-[7.25rem] flex-col items-center justify-center gap-2 overflow-hidden rounded-[16px] border-0 bg-white px-1.5 text-center shadow-[0_6px_18px_-12px_rgba(15,35,70,0.3)] ring-0 transition",
+                        "charter-overview__topic flex h-[7.25rem] w-[7.25rem] flex-col items-center justify-center gap-2 overflow-hidden rounded-[16px] border-0 bg-white px-1.5 text-center shadow-[0_6px_18px_-12px_rgba(15,35,70,0.3)] ring-0 transition",
                         selected
                           ? "outline outline-2 outline-[#f59e0b] outline-offset-0"
                           : "hover:-translate-y-0.5 hover:shadow-md"
@@ -733,14 +767,14 @@ function OverviewView({
                     >
                       <span
                         className={cn(
-                          "flex h-14 w-14 items-center justify-center rounded-full",
+                          "charter-overview__topic-icon flex h-14 w-14 shrink-0 items-center justify-center rounded-full",
                           topic.soft,
                           topic.accent
                         )}
                       >
-                        <Icon className="h-7 w-7" strokeWidth={2.25} />
+                        <Icon className="h-1/2 w-1/2" strokeWidth={2.25} />
                       </span>
-                      <span className="px-0.5 text-[11px] leading-tight font-extrabold tracking-wide text-kiosk-navy uppercase">
+                      <span className="charter-overview__topic-label px-0.5 text-[11px] leading-tight font-extrabold tracking-wide text-kiosk-navy uppercase">
                         {pickLang(language, topic.title, topic.titleFil, topic.titleBis)}
                       </span>
                     </button>
@@ -749,7 +783,7 @@ function OverviewView({
               </div>
             </div>
 
-            <aside className="flex min-w-0 flex-1 items-start gap-4 rounded-[16px] border-0 bg-[#eef5ff] px-4 py-4 shadow-none ring-0">
+            <aside className="charter-overview__notice flex min-w-0 flex-1 items-start gap-4 rounded-[16px] border-0 bg-[#eef5ff] px-4 py-4 shadow-none ring-0">
               <span className="mt-0.5 flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#2563eb] text-white">
                 <Info className="h-6 w-6" strokeWidth={2.5} />
               </span>
@@ -775,6 +809,7 @@ function OverviewView({
           </div>
         </div>
       </div>
+      </KioskFitPanel>
 
       {topicOpen && (
         <div
@@ -830,7 +865,7 @@ function OverviewView({
                     "I-download pinaagi sa QR"
                   )}
                 </DialogTitle>
-                <DialogDescription className="mt-0.5 truncate text-xs">
+                <DialogDescription className="mt-0.5 text-xs break-words">
                   {editionLabel} · Citizens&apos; Charter PDF
                 </DialogDescription>
               </div>
@@ -888,7 +923,7 @@ function OverviewView({
                 <DialogTitle className="text-kiosk-navy">
                   {pickLang(language, "Send via Email", "Ipadala sa Email", "Ipadala sa Email")}
                 </DialogTitle>
-                <DialogDescription className="mt-0.5 truncate text-xs">
+                <DialogDescription className="mt-0.5 text-xs break-words">
                   {editionLabel} · Citizens&apos; Charter PDF
                 </DialogDescription>
               </div>
@@ -1021,8 +1056,8 @@ function BrowseView({
       : pickLang(language, "Services", "Mga Serbisyo", "Mga Serbisyo");
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <header className={cn("flex shrink-0 flex-wrap items-start gap-3 pt-1 sm:gap-4", kioskDateTimeReserveClass)}>
+    <div className="charter-browse flex min-h-0 flex-1 flex-col overflow-hidden">
+      <header className={cn("charter-browse__header flex shrink-0 flex-wrap items-start gap-3 pt-1 sm:gap-4", kioskDateTimeReserveClass)}>
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-4">
             <KioskBackButton onClick={onBack}>
@@ -1033,7 +1068,7 @@ function BrowseView({
                 "Balik sa Kinatibuk-ang Pagtan-aw"
               )}
             </KioskBackButton>
-            <h1 className="min-w-0 text-2xl font-black tracking-tight text-kiosk-navy uppercase sm:text-3xl lg:text-4xl">
+            <h1 className="charter-browse__title min-w-0 text-2xl font-black tracking-tight text-kiosk-navy uppercase sm:text-3xl lg:text-4xl">
               {browseMode === "requested"
                 ? pickLang(
                     language,
@@ -1044,7 +1079,7 @@ function BrowseView({
                 : pickLang(language, "Browse Services", "Tingnan ang mga Serbisyo", "Tan-awa ang mga Serbisyo")}
             </h1>
           </div>
-          <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+          <p className="charter-browse__desc mt-1 text-xs text-slate-500 sm:text-sm">
             {browseMode === "requested"
               ? pickLang(
                   language,
@@ -1064,7 +1099,7 @@ function BrowseView({
 
       <div
         className={cn(
-          "relative z-10 mb-3 flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2.5 sm:mb-4",
+          "charter-browse__modes relative z-10 mb-3 flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2.5 sm:mb-4",
           kioskDateTimeReserveClass
         )}
       >
@@ -1110,20 +1145,20 @@ function BrowseView({
                   key={category.id}
                   type="button"
                   onClick={() => onOpenCategory(category.id)}
-                  className="kiosk-hover-lift flex min-h-[14rem] flex-col justify-between rounded-[20px] bg-white p-6 text-left shadow-[0_10px_28px_-18px_rgba(15,35,70,0.35)]"
+                  className="charter-browse__card kiosk-hover-lift flex min-h-[14rem] flex-col justify-between rounded-[20px] bg-white p-6 text-left shadow-[0_10px_28px_-18px_rgba(15,35,70,0.35)]"
                 >
                   <div className="flex items-start gap-5">
-                    <Icon className="h-24 w-24 shrink-0" />
+                    <Icon className="charter-browse__card-icon h-24 w-24 shrink-0" />
                     <h3
                       className={cn(
-                        "line-clamp-2 pt-2 text-xl leading-snug font-extrabold tracking-wide uppercase",
+                        "charter-browse__card-title pt-2 text-xl leading-snug font-extrabold tracking-wide uppercase",
                         category.titleColor
                       )}
                     >
                       {pickLang(language, category.title, category.titleFil, category.titleBis)}
                     </h3>
                   </div>
-                  <p className="mt-5 line-clamp-3 text-[15px] leading-relaxed text-slate-600">
+                  <p className="charter-browse__card-text mt-5 text-[15px] leading-relaxed text-slate-600">
                     {pickLang(
                       language,
                       category.description,
@@ -1131,7 +1166,7 @@ function BrowseView({
                       category.descriptionBis
                     )}
                   </p>
-                  <div className="mt-5 flex items-center justify-between">
+                  <div className="charter-browse__card-meta mt-5 flex items-center justify-between">
                     <span className="text-base font-bold text-kiosk-navy">
                       {serviceCount} {serviceCountLabel(serviceCount)}
                     </span>
@@ -1154,15 +1189,15 @@ function BrowseView({
                   key={office.id}
                   type="button"
                   onClick={() => onOpenOffice(office.id)}
-                  className="kiosk-hover-lift flex min-h-[14rem] flex-col justify-between rounded-[20px] bg-white p-6 text-left shadow-[0_10px_28px_-18px_rgba(15,35,70,0.35)]"
+                  className="charter-browse__card kiosk-hover-lift flex min-h-[14rem] flex-col justify-between rounded-[20px] bg-white p-6 text-left shadow-[0_10px_28px_-18px_rgba(15,35,70,0.35)]"
                 >
                   <div className="flex items-start gap-5">
                     {theme ? (
-                      <Icon className="h-24 w-24 shrink-0" />
+                      <Icon className="charter-browse__card-icon h-24 w-24 shrink-0" />
                     ) : (
                       <span
                         className={cn(
-                          "flex h-24 w-24 shrink-0 items-center justify-center rounded-full text-white shadow-sm",
+                          "charter-browse__card-icon flex h-24 w-24 shrink-0 items-center justify-center rounded-full text-white shadow-sm",
                           "bg-kiosk-navy"
                         )}
                       >
@@ -1171,14 +1206,14 @@ function BrowseView({
                     )}
                     <h3
                       className={cn(
-                        "line-clamp-2 pt-2 text-xl leading-snug font-extrabold tracking-wide uppercase",
+                        "charter-browse__card-title pt-2 text-xl leading-snug font-extrabold tracking-wide uppercase",
                         theme?.titleColor ?? "text-kiosk-navy"
                       )}
                     >
                       {office.name}
                     </h3>
                   </div>
-                  <p className="mt-5 line-clamp-3 text-[15px] leading-relaxed text-slate-600">
+                  <p className="charter-browse__card-text mt-5 text-[15px] leading-relaxed text-slate-600">
                     {office.categories.map((category) => category.name).slice(0, 2).join(" · ") ||
                       pickLang(
                         language,
@@ -1187,7 +1222,7 @@ function BrowseView({
                         "Mga serbisyo sa opisina sa probinsya"
                       )}
                   </p>
-                  <div className="mt-5 flex items-center justify-between">
+                  <div className="charter-browse__card-meta mt-5 flex items-center justify-between">
                     <span className="text-base font-bold text-kiosk-navy">
                       {serviceCount} {serviceCountLabel(serviceCount)}
                     </span>
@@ -1221,10 +1256,10 @@ function BrowseView({
                       <Icon className="h-5 w-5" strokeWidth={2} />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <h3 className="line-clamp-2 text-[15px] leading-snug font-extrabold text-kiosk-navy">
+                      <h3 className="text-[15px] leading-snug font-extrabold text-kiosk-navy">
                         {meta.label}
                       </h3>
-                      <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{office.name}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">{office.name}</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between border-t border-slate-100 pt-2">
@@ -1245,7 +1280,7 @@ function BrowseView({
       </KioskFitPanel>
 
       {browseMode !== "requested" ? (
-        <section className="shrink-0 rounded-[22px] bg-[#e8eef6]/90 px-4 py-4 sm:px-5">
+        <section className="charter-browse__requested shrink-0 rounded-[22px] bg-[#e8eef6]/90 px-4 py-4 sm:px-5">
           <h2 className="mb-3 text-[13px] font-extrabold tracking-[0.14em] text-kiosk-navy uppercase">
             {pickLang(
               language,
@@ -1266,7 +1301,7 @@ function BrowseView({
                   className="inline-flex min-h-[48px] min-w-0 flex-1 items-center gap-2.5 rounded-2xl bg-white px-3.5 py-2.5 text-left shadow-[0_1px_2px_rgba(15,35,70,0.04)] transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] sm:flex-none sm:px-4"
                 >
                   <Icon className={cn("h-[18px] w-[18px] shrink-0", meta.iconClass)} strokeWidth={2} />
-                  <span className="truncate text-[13px] font-semibold text-kiosk-navy sm:text-sm">
+                  <span className="min-w-0 break-words text-[13px] font-semibold text-kiosk-navy sm:text-sm">
                     {meta.label}
                   </span>
                 </button>
@@ -1616,31 +1651,6 @@ function CharterCloseButton({
   );
 }
 
-function isPublishedFeeAmount(raw: string): boolean {
-  const fee = raw.trim();
-  if (!fee || /^(none|n\/a|free|-|—)$/i.test(fee)) return false;
-  if (/^none\b/i.test(fee) && !/(?:₱|php|\d+(?:\.\d+)?\s*(?:pesos?|php))/i.test(fee)) {
-    return false;
-  }
-
-  if (
-    /as reflected/i.test(fee) ||
-    /see (?:price list|table|cash slip|steps?|charter)/i.test(fee) ||
-    /refer to/i.test(fee)
-  ) {
-    return false;
-  }
-
-  if (/₱|php\.?\s*\d|\bpeso?s?\b/i.test(fee)) return true;
-  if (/\d+(?:\.\d{1,2})?\s*(?:\+|\/)\s*\d+/i.test(fee)) return true;
-  if (/\d+(?:\.\d{1,2})?(?:\s*(?:\/head|\/ copy|per ))/i.test(fee)) return true;
-
-  return (
-    /\d+(?:\.\d{2})\b/.test(fee) &&
-    !/(?:minutes?|mins?|hours?|hrs?|days?|calendar|working day)/i.test(fee)
-  );
-}
-
 function seeStepsLabel(language: Language) {
   return pickLang(language, "See steps", "Tingnan ang mga hakbang", "Tan-awa ang mga lakang");
 }
@@ -1649,14 +1659,23 @@ function seeCharterLabel(language: Language) {
   return pickLang(language, "See charter", "Tingnan ang charter", "Tan-awa ang charter");
 }
 
-function publishedFee(service: CharterServiceView, language: Language) {
-  const fees = service.steps
-    .map((step) => step.fee.trim())
-    .filter(isPublishedFeeAmount);
-  if (!fees.length) return pickLang(language, "None", "Wala", "Wala");
-  const unique = [...new Set(fees)];
-  if (unique.length === 1) return unique[0];
-  return seeStepsLabel(language);
+function feeRateLabel(rate: string, language: Language) {
+  return rate
+    .replace("every additional page", pickLang(language, "every additional page", "bawat dagdag na pahina", "matag dugang nga panid"))
+    .replace("per head", pickLang(language, "per head", "bawat ulo", "matag ulo"))
+    .replace("per sack", pickLang(language, "per sack", "bawat sako", "matag sako"))
+    .replace("per copy", pickLang(language, "per copy", "bawat kopya", "matag kopya"))
+    .replace("per page", pickLang(language, "per page", "bawat pahina", "matag panid"));
+}
+
+/** Sum of the "Fees to be Paid" column; rates and fees published elsewhere are not added in. */
+function totalPublishedFee(service: CharterServiceView, language: Language): string {
+  const result = totalCharterFees(service.steps.map((step) => step.fee));
+  if (result.kind === "none") return pickLang(language, "None", "Wala", "Wala");
+  if (result.kind === "varies") return seeStepsLabel(language);
+  const parts = result.total > 0 ? [formatPeso(result.total)] : [];
+  parts.push(...result.rates.map((rate) => feeRateLabel(rate, language)));
+  return parts.join(" + ");
 }
 
 /** Parse a charter step time string into minutes (best-effort). */
@@ -1778,6 +1797,7 @@ function OfficeModal({
       : pickLang(language, "services", "serbisyo", "ka serbisyo");
   const [pdfOpen, setPdfOpen] = useState(false);
   const pdfSrc = edition.pdfUrl ? charterPdfPublicUrl() : "";
+  const pdfContents = useMemo(() => charterPdfContents(edition.offices), [edition.offices]);
 
   return (
     <div
@@ -1790,7 +1810,7 @@ function OfficeModal({
       onClick={onCloseOffice}
     >
       <section
-        className={`flex h-[min(92vh,920px)] w-full max-w-7xl overflow-hidden rounded-[28px] bg-[#eef3f8] shadow-2xl ring-1 ring-black/5 ${
+        className={`charter-office flex h-[min(92vh,920px)] w-full max-w-7xl overflow-hidden rounded-[28px] bg-[#eef3f8] shadow-2xl ring-1 ring-black/5 ${
           isOfficeClosing ? "charter-modal-panel-out" : "charter-modal-panel-in"
         }`}
         onClick={(event) => event.stopPropagation()}
@@ -1839,7 +1859,7 @@ function OfficeModal({
                     {officeInitials(office.name)}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block line-clamp-2 text-sm font-bold text-kiosk-navy">
+                    <span className="block text-sm font-bold text-kiosk-navy">
                       {office.name}
                     </span>
                     <span className="mt-0.5 block text-xs text-slate-500">
@@ -1854,7 +1874,7 @@ function OfficeModal({
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
-          <header className="shrink-0 border-b border-slate-100 px-5 py-5 sm:px-6">
+          <header className="charter-office__header kiosk-main-scroll shrink-0 border-b border-slate-100 px-5 py-5 sm:px-6">
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 flex-1 items-start gap-4">
                 <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#0d9488] text-lg font-black tracking-wide text-white sm:h-[4.5rem] sm:w-[4.5rem] sm:text-xl">
@@ -1924,7 +1944,7 @@ function OfficeModal({
                   <UserPlus className="h-5 w-5" />
                 </span>
                 <div>
-                  <p className="line-clamp-1 text-sm font-extrabold text-kiosk-navy">{whoMayAvail}</p>
+                  <p className="text-sm font-extrabold break-words text-kiosk-navy">{whoMayAvail}</p>
                   <p className="text-xs text-slate-500">
                     {pickLang(language, "For whom", "Para kanino", "Para kang kinsa")}
                   </p>
@@ -1998,12 +2018,12 @@ function OfficeModal({
                       </p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {service.classification ? (
-                          <span className="max-w-full truncate rounded-full bg-[#ccfbf1] px-2 py-0.5 text-[10px] font-bold text-[#0f766e]">
+                          <span className="max-w-full rounded-full bg-[#ccfbf1] px-2 py-0.5 text-[10px] font-bold break-words text-[#0f766e]">
                             {service.classification}
                           </span>
                         ) : null}
                         {service.typeOfTransaction ? (
-                          <span className="max-w-[14rem] truncate rounded-full bg-[#ccfbf1] px-2 py-0.5 text-[10px] font-bold text-[#0f766e]">
+                          <span className="max-w-[14rem] rounded-full bg-[#ccfbf1] px-2 py-0.5 text-[10px] font-bold break-words text-[#0f766e]">
                             {service.typeOfTransaction}
                           </span>
                         ) : null}
@@ -2027,10 +2047,15 @@ function OfficeModal({
                         <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-[9px] font-black text-[#0d9488]">
                           ₱
                         </span>
-                        {pickLang(language, "Published Fee", "Nakalathalang Bayarin", "Gipatik nga Bayranan")}
+                        {pickLang(
+                          language,
+                          "Total Published Fee",
+                          "Kabuuang Nakalathalang Bayarin",
+                          "Kinatibuk-ang Gipatik nga Bayranan"
+                        )}
                       </p>
                       <p className="mt-1 text-sm font-bold text-kiosk-navy">
-                        {publishedFee(service, language)}
+                        {totalPublishedFee(service, language)}
                       </p>
                     </div>
                     <div className="rounded-xl bg-[#eef4fa] px-3 py-2.5">
@@ -2078,10 +2103,10 @@ function OfficeModal({
           >
             <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
               <div className="min-w-0">
-                <p className="truncate text-sm font-extrabold text-kiosk-navy">
+                <p className="text-sm font-extrabold break-words text-kiosk-navy">
                   {edition.title || "Citizens' Charter"}
                 </p>
-                <p className="truncate text-xs text-slate-500">
+                <p className="text-xs break-words text-slate-500">
                   {edition.year}
                   {edition.editionLabel ? ` · ${edition.editionLabel}` : ""} ·{" "}
                   {pickLang(language, "Full PDF", "Buong PDF", "Tibuok PDF")}
@@ -2093,13 +2118,7 @@ function OfficeModal({
                 ariaLabel={pickLang(language, "Close PDF", "Isara ang PDF", "Isira ang PDF")}
               />
             </header>
-            <div className="min-h-0 flex-1 bg-slate-100">
-              <iframe
-                title="Citizens' Charter PDF"
-                src={`${pdfSrc}#toolbar=1&navpanes=0`}
-                className="h-full w-full border-0"
-              />
-            </div>
+            <CharterPdfViewer src={pdfSrc} contents={pdfContents} />
           </div>
         </div>
       ) : null}
@@ -2122,6 +2141,7 @@ function ServiceDetailModal({
   const requirements = service.requirements;
   const steps = service.steps;
   const medicines = service.medicines;
+  const feeTotal = totalCharterFees(steps.map((step) => step.fee));
   const metaRows = (
     [
       [
@@ -2323,6 +2343,22 @@ function ServiceDetailModal({
                     </tr>
                   ))}
                 </tbody>
+                {feeTotal.kind === "amount" ? (
+                  <tfoot>
+                    <tr className="border-t-2 border-kiosk-navy/20 bg-[#eef4fa] align-top">
+                      <td
+                        colSpan={2}
+                        className="px-3 py-2 text-right text-[10px] font-bold tracking-wider text-kiosk-navy uppercase"
+                      >
+                        {pickLang(language, "Total", "Kabuuan", "Kinatibuk-an")}
+                      </td>
+                      <td className="border-l border-gray-100 px-3 py-2 text-xs font-bold text-kiosk-green">
+                        {totalPublishedFee(service, language)}
+                      </td>
+                      <td colSpan={2} className="border-l border-gray-100" />
+                    </tr>
+                  </tfoot>
+                ) : null}
               </table>
             </div>
           )}

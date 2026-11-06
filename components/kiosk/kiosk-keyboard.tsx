@@ -16,7 +16,10 @@ import { KIOSK_IDLE_ATTRACT_EVENT, type KioskIdleAttractDetail } from "@/lib/kio
 import { pickLang } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
 
-const ROWS = ["1234567890", "qwertyuiop", "asdfghjkl", "zxcvbnm"].map((row) => row.split(""));
+const LETTER_ROWS = ["1234567890", "qwertyuiop", "asdfghjkl", "zxcvbnm"].map((row) => row.split(""));
+/** Same row lengths as the letters, so the keyboard keeps its shape when switching. */
+const SYMBOL_ROWS = ["1234567890", "@#$%&*-+()", "!?\"':;/,.", "_=[]<>ñ"].map((row) => row.split(""));
+const SYMBOLS_TOGGLE = "symbols";
 const EDGE = 12;
 const REPEAT_DELAY_MS = 450;
 const REPEAT_EVERY_MS = 70;
@@ -182,6 +185,7 @@ export function KioskKeyboard() {
   const [visible, setVisible] = useState(false);
   const [position, setPosition] = useState<Position | null>(null);
   const [pressed, setPressed] = useState<string | null>(null);
+  const [symbols, setSymbols] = useState(false);
   // Bumped on every use; restarts the idle-hide countdown.
   const [activity, setActivity] = useState(0);
   const touch = useCallback(() => setActivity((count) => count + 1), []);
@@ -215,6 +219,7 @@ export function KioskKeyboard() {
     restoreInputModeRef.current = null;
     setVisible(false);
     setPressed(null);
+    setSymbols(false);
   }, []);
 
   /** Bottom center, or top center when that would cover the field being typed in. */
@@ -360,6 +365,10 @@ export function KioskKeyboard() {
       if (!target) return;
       touch();
       setPressed(key);
+      if (key === SYMBOLS_TOGGLE) {
+        setSymbols((on) => !on);
+        return;
+      }
       if (key === "enter") {
         pressEnter(target);
         return;
@@ -520,7 +529,7 @@ export function KioskKeyboard() {
           <X className="h-5 w-5" />
         </button>
       </div>
-      {ROWS.map((row, rowIndex) => (
+      {(symbols ? SYMBOL_ROWS : LETTER_ROWS).map((row, rowIndex) => (
         <div key={rowIndex} data-kb-part className={cn(surface, "flex gap-2", rowPadding[rowIndex])}>
           {row.map((key) => (
             <button
@@ -576,7 +585,29 @@ export function KioskKeyboard() {
           ) : null}
         </div>
       ))}
-      <div data-kb-part className={cn(surface, "px-2 pt-1 pb-2")}>
+      <div data-kb-part className={cn(surface, "flex gap-2 px-2 pt-1 pb-2")}>
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-pressed={symbols}
+          aria-label={
+            symbols
+              ? pickLang(language, "Show letters", "Ipakita ang mga titik", "Ipakita ang mga letra")
+              : pickLang(language, "Show special characters", "Ipakita ang mga espesyal na karakter", "Ipakita ang mga espesyal nga karakter")
+          }
+          onPointerDown={(event) => press(SYMBOLS_TOGGLE, event)}
+          onPointerUp={stopRepeat}
+          onPointerLeave={stopRepeat}
+          onPointerCancel={stopRepeat}
+          style={{ height: keySize, width: `calc(${keySize} * 1.6)` }}
+          className={cn(
+            "flex items-center justify-center rounded-full text-base font-bold shadow-[0_2px_4px_rgba(15,26,46,0.22)] ring-1 ring-slate-900/10 select-none transition-[transform,background-color,color] duration-100",
+            symbols ? "bg-kiosk-navy text-white" : "bg-white text-kiosk-navy",
+            pressed === SYMBOLS_TOGGLE && "scale-95"
+          )}
+        >
+          {symbols ? "ABC" : "#+="}
+        </button>
         <button
           type="button"
           tabIndex={-1}
