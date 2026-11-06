@@ -9,6 +9,10 @@ import { getLatestAnnouncements, getOngoingCalendarEvents } from "@/features/off
 import { NewsDetailModal, NewsThumb } from "@/components/kiosk/news-detail-modal";
 import { announceIdleAttract } from "@/lib/kiosk-events";
 import { useKiosk } from "@/hooks/use-kiosk";
+import { useCamiguinWeather } from "@/hooks/use-camiguin-weather";
+import { WeatherArt } from "@/components/kiosk/weather-art";
+import { describeWeather } from "@/features/weather/conditions";
+import type { KioskWeather } from "@/features/weather/types";
 import {
   formatKioskDate,
   formatKioskShortDate,
@@ -138,6 +142,38 @@ function eventWhen(event: Event, language: Language) {
     return `${formatKioskShortDate(start, language)}–${format(end, "d")}`;
   }
   return `${formatKioskShortDate(start, language)}–${formatKioskShortDate(end, language)}`;
+}
+
+/** Current Camiguin weather above the idle clock. */
+function IdleWeather({ weather, language }: { weather: KioskWeather; language: Language }) {
+  const { label, art } = describeWeather(weather.weatherCode, weather.isDay, language);
+  const shadow = "drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]";
+  return (
+    <div className="mb-[2vh] flex items-center gap-5 text-left">
+      <WeatherArt kind={art} className="h-24 w-24 shrink-0 drop-shadow-[0_6px_18px_rgba(0,0,0,0.3)]" />
+      <p className={cn("text-6xl font-light tracking-tight tabular-nums", shadow)}>
+        {Math.round(weather.temperature)}°
+      </p>
+      <div className={cn("min-w-0", shadow)}>
+        <p className="text-2xl font-semibold whitespace-nowrap">{label}</p>
+        <p className="mt-1 flex items-center gap-2 text-lg whitespace-nowrap text-white/80 tabular-nums">
+          <span>{weather.location}</span>
+          <span aria-hidden>·</span>
+          <span>
+            {Math.round(weather.todayMin)}° – {Math.round(weather.todayMax)}°
+          </span>
+          {weather.rainChance != null ? (
+            <>
+              <span aria-hidden>·</span>
+              <span>
+                {pickLang(language, "Rain", "Ulan", "Ulan")} {weather.rainChance}%
+              </span>
+            </>
+          ) : null}
+        </p>
+      </div>
+    </div>
+  );
 }
 
 const STRIP_ROTATE_MS = 20_000;
@@ -360,6 +396,7 @@ export function KioskIdleAttract({
 }: Props) {
   const { language: liveLanguage } = useKiosk();
   const language = liveLanguage || languageProp;
+  const weather = useCamiguinWeather();
   const router = useRouter();
   const pathname = usePathname();
   const [phase, setPhase] = useState<AttractPhase>("watching");
@@ -783,7 +820,8 @@ export function KioskIdleAttract({
           onClick={smoothReturnHome}
           disabled={isExiting}
           className={cn(
-            "absolute inset-0 flex cursor-pointer flex-col items-center justify-center bg-black",
+            // Clock and weather on top, "tap to start" in the space left above the bottom strip.
+            "absolute inset-0 flex cursor-pointer flex-col items-center bg-black pb-[13rem]",
             "transition-[opacity,transform] ease-[cubic-bezier(0.22,1,0.36,1)]",
             isExiting ? "duration-[600ms]" : `duration-[${VIDEO_ENTER_MS}ms]`,
             videoShown && !isExiting ? "opacity-100 scale-100" : "opacity-0 scale-[1.02]",
@@ -823,7 +861,7 @@ export function KioskIdleAttract({
           {now && (
             <div
               className={cn(
-                "pointer-events-none absolute inset-x-0 top-[16vh] z-10 flex flex-col items-center px-8 text-center text-white transition-[opacity,transform] ease-[cubic-bezier(0.22,1,0.36,1)]",
+                "pointer-events-none relative z-10 mt-[9vh] flex shrink-0 flex-col items-center px-8 text-center text-white transition-[opacity,transform] ease-[cubic-bezier(0.22,1,0.36,1)]",
                 videoShown && !isExiting
                   ? "translate-y-0 opacity-100"
                   : "-translate-y-3 opacity-0"
@@ -833,6 +871,7 @@ export function KioskIdleAttract({
                 transitionDelay: videoShown && !isExiting ? "80ms" : "0ms",
               }}
             >
+              {weather ? <IdleWeather weather={weather} language={language} /> : null}
               <p className="text-8xl font-medium tracking-tight text-white tabular-nums drop-shadow-[0_2px_16px_rgba(0,0,0,0.45)]">
                 {format(now, "h:mm:ss a")}
               </p>
@@ -843,7 +882,7 @@ export function KioskIdleAttract({
           )}
           <div
             className={cn(
-              "relative z-10 flex flex-col items-center px-8 text-center transition-[opacity,transform] ease-[cubic-bezier(0.22,1,0.36,1)]",
+              "relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-8 text-center transition-[opacity,transform] ease-[cubic-bezier(0.22,1,0.36,1)]",
               videoShown && !isExiting
                 ? "translate-y-0 opacity-100"
                 : "translate-y-4 opacity-0"

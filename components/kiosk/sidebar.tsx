@@ -32,7 +32,7 @@ export function Sidebar({
   const footerImageUrl = resolveBrandingFooterImageUrl(settings);
 
   return (
-    <aside className="relative flex w-[min(300px,22vw)] min-w-[220px] max-w-[300px] shrink-0 flex-col overflow-hidden bg-kiosk-navy text-white">
+    <aside className="kiosk-sidebar relative flex w-[min(300px,22vw)] min-w-[220px] max-w-[300px] shrink-0 flex-col overflow-hidden bg-kiosk-navy text-white">
       <KioskVisitLogger />
 
       <div className="relative z-10 shrink-0 px-5 pt-6">
@@ -42,7 +42,7 @@ export function Sidebar({
             <p className="text-[10px] font-semibold tracking-[0.14em] text-white/75 uppercase">
               {govPrefix}
             </p>
-            <h1 className="text-[26px] leading-none font-extrabold tracking-wide uppercase">
+            <h1 className="kiosk-sidebar__gov text-[26px] leading-none font-extrabold tracking-wide uppercase">
               {govShort}
             </h1>
             <p
@@ -54,11 +54,11 @@ export function Sidebar({
           </div>
         </div>
 
-        <div className="mb-4">
+        <div className="kiosk-sidebar__welcome mb-4">
           <h2 className="mb-1 text-[28px] leading-none font-extrabold">
             {t(language, "welcome")}
           </h2>
-          <p className="line-clamp-2 text-[13px] leading-relaxed text-white/85">
+          <p className="kiosk-sidebar__welcome-text text-[13px] leading-relaxed text-white/85">
             {welcome}
           </p>
           <div className="mt-3 h-[3px] w-10 rounded-full bg-kiosk-green" />
@@ -83,7 +83,7 @@ export function Sidebar({
         </div>
       </div>
 
-      <div className="relative h-[140px] shrink-0 overflow-hidden">
+      <div className="kiosk-sidebar__footer relative h-[140px] shrink-0 overflow-hidden">
         <SidebarFooterImage src={footerImageUrl} alt={pickLang(language, "Camiguin landscape", "Tanawin ng Camiguin", "Talan-awon sa Camiguin")} />        <div className="absolute inset-0 bg-gradient-to-b from-kiosk-navy via-kiosk-navy/55 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/35 to-transparent" />
         <p
