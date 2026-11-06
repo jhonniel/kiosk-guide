@@ -113,7 +113,7 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   building_navigation_graph: "",
   download_qr_enabled: "true",
   download_email_enabled: "true",
-  download_qr_expiry_minutes: "60",
+  download_qr_expiry_minutes: process.env.DIGITALOCEAN_SPACES_EXPIRATION?.trim() || "60",
   download_public_base_url: "",
   download_modal_title_en: "How would you like to receive this file?",
   download_modal_title_fil: "Paano mo gustong matanggap ang file na ito?",

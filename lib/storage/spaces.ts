@@ -4,6 +4,7 @@ import {
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getBoolSetting, getSetting } from "@/features/settings/resolve-settings";
 
 export interface SpacesConfig {
@@ -26,17 +27,20 @@ function normalizeEndpoint(endpoint: string) {
   return endpoint.replace(/\/$/, "");
 }
 
+/** Admin → Settings → File Storage wins; DIGITALOCEAN_SPACES_* in .env fills any empty field. */
 function resolveSpacesValue(
   settings: Record<string, string>,
   settingKey: string,
   envKeys: string[],
   fallback = ""
 ): string {
+  const fromSettings = getSetting(settings, settingKey).trim();
+  if (fromSettings) return fromSettings;
   for (const envKey of envKeys) {
     const fromEnv = readEnv(envKey);
     if (fromEnv) return fromEnv;
   }
-  return getSetting(settings, settingKey, fallback);
+  return fallback;
 }
 
 export function getSpacesConfig(settings: Record<string, string>): SpacesConfig {
@@ -187,6 +191,44 @@ export async function getFileFromSpaces(
   if (!response.Body) return null;
   const bytes = await response.Body.transformToByteArray();
   return Buffer.from(bytes);
+}
+
+/** S3 / Spaces presigned URLs cannot outlive seven days. */
+const MAX_SIGNED_URL_SECONDS = 7 * 24 * 60 * 60;
+
+/**
+ * Temporary link straight to the Spaces object, for phones that cannot reach the kiosk itself.
+ * Returns null when Spaces is off or the file is not stored there.
+ *
+ * QR codes carry these links, so keep them short: a download file name (response header override)
+ * adds ~100 characters and makes the code noticeably denser. The stored Content-Type already lets
+ * phones open PDFs and images.
+ */
+export async function createSpacesSignedUrl(
+  settings: Record<string, string>,
+  fileUrl: string,
+  options: { expiresInSeconds: number; downloadFileName?: string }
+): Promise<string | null> {
+  const config = getSpacesConfig(settings);
+  if (!isSpacesConfigured(settings) || !isSpacesFileUrl(fileUrl, config)) return null;
+
+  const key = extractSpacesKeyFromUrl(fileUrl, config);
+  if (!key) return null;
+
+  const client = createSpacesClient(config);
+  return getSignedUrl(
+    client,
+    new GetObjectCommand({
+      Bucket: config.bucket,
+      Key: key,
+      ...(options.downloadFileName
+        ? {
+            ResponseContentDisposition: `attachment; filename="${options.downloadFileName.replace(/["\\\r\n]/g, "")}"`,
+          }
+        : {}),
+    }),
+    { expiresIn: Math.min(Math.max(60, Math.round(options.expiresInSeconds)), MAX_SIGNED_URL_SECONDS) }
+  );
 }
 
 export async function deleteFileFromSpaces(settings: Record<string, string>, fileUrl: string) {

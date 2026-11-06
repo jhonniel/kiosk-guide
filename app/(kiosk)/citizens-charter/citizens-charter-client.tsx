@@ -50,6 +50,7 @@ import {
 } from "@/features/kiosk/charter-quick-start";
 import { getKioskSessionId } from "@/features/kiosk/visit-tracking";
 import { formatPeso, totalCharterFees } from "@/features/citizens-charter/fees";
+import { getBoolSetting } from "@/features/settings/settings-helpers";
 import { useQuickStartVisits } from "@/components/kiosk/quick-start-visit-provider";
 import { pickLang, t, type Language } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
@@ -148,6 +149,9 @@ function charterPdfPublicUrl() {
   return resolveKioskPublicFileUrl(CHARTER_PDF_PUBLIC_PATH);
 }
 
+/** Renew a temporary Spaces link this long before it expires, so a scanned code is never stale. */
+const SCAN_LINK_RENEW_MS = 2 * 60 * 1000;
+
 function usePdfQr(pdfAvailable?: boolean | null) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
@@ -157,19 +161,45 @@ function usePdfQr(pdfAvailable?: boolean | null) {
       return;
     }
     let cancelled = false;
-    void QRCode.toDataURL(charterPdfPublicUrl(), {
-      width: 220,
-      margin: 1,
-      color: { dark: "#111827", light: "#ffffff" },
-    })
-      .then((url) => {
-        if (!cancelled) setQrDataUrl(url);
-      })
-      .catch(() => {
+    let renewTimer = 0;
+
+    const render = async () => {
+      // A temporary Spaces link when the PDF is on Spaces; otherwise (or offline) the kiosk link.
+      let target = charterPdfPublicUrl();
+      let expiresAt: number | null = null;
+      try {
+        const res = await kioskSyncFetch("/api/citizens-charter/scan-link", { cache: "no-store" });
+        if (res.ok) {
+          const link = (await res.json()) as { url: string | null; expiresAt: string | null };
+          if (link.url) {
+            target = link.url;
+            expiresAt = link.expiresAt ? Date.parse(link.expiresAt) : null;
+          }
+        }
+      } catch {
+        // Offline: the kiosk link still works on the local network.
+      }
+      try {
+        const dataUrl = await QRCode.toDataURL(target, {
+          width: 440,
+          margin: 1,
+          // Temporary Spaces links are long; low error correction keeps the code coarse enough to scan.
+          errorCorrectionLevel: target.length > 200 ? "L" : "M",
+          color: { dark: "#111827", light: "#ffffff" },
+        });
+        if (!cancelled) setQrDataUrl(dataUrl);
+      } catch {
         if (!cancelled) setQrDataUrl(null);
-      });
+      }
+      if (!cancelled && expiresAt) {
+        renewTimer = window.setTimeout(render, Math.max(30_000, expiresAt - Date.now() - SCAN_LINK_RENEW_MS));
+      }
+    };
+
+    void render();
     return () => {
       cancelled = true;
+      window.clearTimeout(renewTimer);
     };
   }, [pdfAvailable]);
 
@@ -516,6 +546,8 @@ function OverviewView({
   const [emailSent, setEmailSent] = useState(false);
   const [coverLoaded, setCoverLoaded] = useState(false);
   const coverRef = useRef<HTMLImageElement>(null);
+  // Admin → Download Center → "Enable email delivery" also governs emailing the charter.
+  const [emailEnabled, setEmailEnabled] = useState(() => getBoolSetting(settings, "download_email_enabled"));
 
   useEffect(() => {
     if (coverRef.current?.complete) {
@@ -523,7 +555,27 @@ function OverviewView({
     }
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await kioskSyncFetch(`/api/downloads/delivery-settings?lang=${language}&t=${Date.now()}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { emailEnabled?: boolean };
+        if (!cancelled && typeof data.emailEnabled === "boolean") setEmailEnabled(data.emailEnabled);
+      } catch {
+        // Offline: keep the setting from the offline bundle.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [language]);
+
   function openEmailDialog() {
+    if (!emailEnabled) return;
     setEmail("");
     setEmailSent(false);
     setEmailSending(false);
@@ -616,7 +668,7 @@ function OverviewView({
                 coverLoaded ? "opacity-100" : "opacity-0"
               )}
             />
-            <div className="pointer-events-none absolute inset-x-0 top-[5%] flex justify-center">
+            <div className="charter-overview__cover-logos pointer-events-none absolute inset-x-0 top-[5%] flex justify-center">
               <KioskBrandLogos settings={settings} variant="cover" />
             </div>
           </div>
@@ -630,7 +682,7 @@ function OverviewView({
                 "Kompletong Citizens' Charter"
               )}
             </p>
-            {edition.pdfUrl ? (
+            {edition.pdfUrl && emailEnabled ? (
               <button
                 type="button"
                 onClick={openEmailDialog}
@@ -641,6 +693,13 @@ function OverviewView({
                 <span className="font-normal text-slate-300">|</span>
                 <span className="font-medium text-slate-500">5.3 MB</span>
               </button>
+            ) : edition.pdfUrl ? (
+              <div className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[#f1f5f9] text-[13px] font-semibold text-slate-500">
+                <FileText className="h-4 w-4 text-slate-400" />
+                <span>{pickLang(language, "PDF Document", "Dokumentong PDF", "Dokumento nga PDF")}</span>
+                <span className="font-normal text-slate-300">|</span>
+                <span className="font-medium text-slate-400">5.3 MB</span>
+              </div>
             ) : null}
           </div>
         </article>

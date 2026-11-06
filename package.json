@@ -13,6 +13,7 @@
     "build:next": "next build",
     "build:server": "prisma generate && next build",
     "offline:generate": "tsx scripts/generate-offline-data.ts",
+    "storage:to-spaces": "tsx scripts/migrate-files-to-spaces.ts",
     "assets:normalize": "tsx scripts/normalize-asset-urls.ts",
     "assets:optimize": "tsx scripts/optimize-public-images.ts",
     "start": "next start -H 0.0.0.0 -p 3000",
@@ -31,6 +32,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1083.0",
+    "@aws-sdk/s3-request-presigner": "^3.1083.0",
     "@base-ui/react": "^1.6.0",
     "@hookform/resolvers": "^5.4.0",
     "@prisma/client": "^6.19.3",

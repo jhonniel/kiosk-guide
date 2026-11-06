@@ -3,10 +3,11 @@ import {
   interpolateDownloadTemplate,
 } from "@/features/downloads/download-settings";
 import { assertDownloadFileAvailable } from "@/features/downloads/file-resolver";
-import { getBoolSetting, getResolvedSettings } from "@/features/settings/resolve-settings";
+import { getBoolSetting, getNumberSetting, getResolvedSettings } from "@/features/settings/resolve-settings";
 import type { Language } from "@/lib/i18n/translations";
 import { db } from "@/lib/db";
 import { buildPublicAppUrl, resolvePublicAppBaseUrl } from "@/lib/public-app-url";
+import { createSpacesSignedUrl } from "@/lib/storage/spaces";
 
 export async function sendCharterPdfByEmail(
   email: string,
@@ -52,10 +53,13 @@ export async function sendCharterPdfByEmail(
     `${edition.title || "Citizens' Charter"} ${edition.year}` +
     (edition.editionLabel ? ` (${edition.editionLabel})` : "");
 
-  const baseUrl = resolvePublicAppBaseUrl({ settings, requestOrigin, clientOrigin });
-  const downloadUrl = baseUrl
-    ? buildPublicAppUrl(baseUrl, "/api/citizens-charter/pdf")
-    : "";
+  // Recipients open the link from anywhere, so a PDF on Spaces links straight to Spaces.
+  const expiryMinutes = Math.max(5, getNumberSetting(settings, "download_qr_expiry_minutes", 60));
+  const spacesUrl = await createSpacesSignedUrl(settings, edition.pdfUrl, {
+    expiresInSeconds: expiryMinutes * 60,
+  });
+  const baseUrl = spacesUrl ? "" : resolvePublicAppBaseUrl({ settings, requestOrigin, clientOrigin });
+  const downloadUrl = spacesUrl ?? (baseUrl ? buildPublicAppUrl(baseUrl, "/api/citizens-charter/pdf") : "");
 
   const { sendDownloadEmail } = await import("@/features/downloads/email-service");
 
@@ -65,7 +69,9 @@ export async function sendCharterPdfByEmail(
     downloadUrl,
   });
   if (downloadUrl && !delivery.emailBody.includes("{{downloadUrl}}")) {
-    body += `\n\nView or download online:\n${downloadUrl}`;
+    body += spacesUrl
+      ? `\n\nView or download online (valid ${expiryMinutes} minutes):\n${downloadUrl}`
+      : `\n\nView or download online:\n${downloadUrl}`;
   }
 
   await sendDownloadEmail({

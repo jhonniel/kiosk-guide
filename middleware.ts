@@ -8,6 +8,7 @@ const KIOSK_SYNC_PATHS = [
   "/api/search",
   "/api/downloads/",
   "/api/citizens-charter/pdf",
+  "/api/citizens-charter/scan-link",
   "/kiosk-offline-data.json",
   "/kiosk-citizens-charter.json",
 ];
@@ -42,6 +43,7 @@ export const config = {
     "/api/search",
     "/api/downloads/:path*",
     "/api/citizens-charter/pdf",
+    "/api/citizens-charter/scan-link",
     "/kiosk-offline-data.json",
     "/kiosk-citizens-charter.json",
   ],

@@ -24,7 +24,7 @@ export function resolveLocalDownloadFilePath(fileUrl: string): string | null {
   return absolute;
 }
 
-function guessContentType(fileName: string) {
+export function guessContentType(fileName: string) {
   const ext = path.extname(fileName).toLowerCase();
   switch (ext) {
     case ".pdf":

@@ -927,6 +927,14 @@ html.kiosk-large-text {
   container: charter-overview / size;
 }
 
+/* Never shorter than the shell's top bar, so the cards start below the weather / date / time cards. */
+.charter-overview__header {
+  display: flex;
+  min-height: 4.75rem;
+  flex-direction: column;
+  justify-content: center;
+}
+
 .charter-overview__footer {
   flex-wrap: wrap;
 }
@@ -1064,17 +1072,38 @@ html.kiosk-large-text {
     min-width: 0;
   }
 
+  /* The cover becomes a thumbnail beside the edition details. */
   .charter-overview__cover {
     grid-area: cover;
     width: auto;
-    max-width: 13rem;
-    justify-content: center;
+    max-width: 22rem;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
     padding: 0.6rem 0.75rem;
   }
 
-  .charter-overview__cover-image,
-  .charter-overview__card-icon {
+  .charter-overview__cover-image {
+    flex: 0 0 auto;
+    width: 4.75rem;
+    min-height: 0;
+    aspect-ratio: 3 / 4;
+    border-radius: 0.6rem;
+  }
+
+  .charter-overview__cover-logos {
     display: none;
+  }
+
+  .charter-overview__cover-image + div {
+    min-width: 0;
+    flex: 1 1 auto;
+    margin-top: 0;
+  }
+
+  .charter-overview__card-icon {
+    width: 3rem;
+    height: 3rem;
   }
 
   .charter-overview__cards {
@@ -1233,7 +1262,9 @@ html.kiosk-large-text {
 
   .charter-overview__card-text,
   .charter-overview__notice p + p,
-  .charter-overview__topics-label {
+  .charter-overview__topics-label,
+  .charter-overview__cover-image,
+  .charter-overview__card-icon {
     display: none;
   }
 
@@ -1264,7 +1295,8 @@ html.kiosk-large-text {
   }
 }
 
-@container charter-overview (max-width: 62rem) {
+/* Narrow but tall enough for the stacked cover; the very short layout sizes the cover itself. */
+@container charter-overview (max-width: 62rem) and (min-height: 30.01rem) {
   .charter-overview__cover {
     width: 14rem;
   }

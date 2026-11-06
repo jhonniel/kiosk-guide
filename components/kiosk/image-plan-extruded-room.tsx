@@ -1462,6 +1462,14 @@ function ImagePlanExtrudedRoomView({
   const y0 = FLOOR_LAYERS.roomFloorY;
   const comfortLabel = !!node.label?.endsWith("Comfort Room");
   const riseDelay = riseDelayFor(node.id);
+  // The comfort room is several volumes (male, passage, female); its name sits over the whole block.
+  const comfortCenter: [number, number] = comfortLabel
+    ? (() => {
+        const xs = volumes.flatMap((part) => [part.position[0] - part.size[0] / 2, part.position[0] + part.size[0] / 2]);
+        const zs = volumes.flatMap((part) => [part.position[2] - part.size[2] / 2, part.position[2] + part.size[2] / 2]);
+        return [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...zs) + Math.max(...zs)) / 2];
+      })()
+    : [0, 0];
 
   return (
     <group position={position}>
@@ -1519,6 +1527,21 @@ function ImagePlanExtrudedRoomView({
             ) : null
           )
         : null}
+      {comfortLabel && !hideLabel ? (
+        <Html
+          position={[comfortCenter[0], y0 + labelHeight + 0.28, comfortCenter[1]]}
+          center
+          zIndexRange={[30, 0]}
+          style={{ pointerEvents: "none" }}
+        >
+          <div
+            className="select-none text-center text-[18px] font-extrabold leading-tight tracking-tight text-[#1a2744]"
+            style={{ width: "6rem", textShadow: "0 1px 0 #fff, 0 0 10px rgba(255,255,255,0.98)" }}
+          >
+            {localizePlaceLabel("Comfort Room", language)}
+          </div>
+        </Html>
+      ) : null}
       {!comfortLabel && (node.type === "room" || node.type === "elevator") && node.label && !hideLabel ? (
         <Html
           position={[0, y0 + labelHeight + 0.28, 0]}

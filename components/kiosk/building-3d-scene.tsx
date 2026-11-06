@@ -904,7 +904,8 @@ export function Building3DScene({
           if (/kiosk/i.test(`${node.id} ${node.locationId ?? ""}`)) {
             return null;
           }
-          if (node.type === "entrance") {
+          // The plan already shows these (doorways, the "FIRE EXIT" floor text); a box would stick out of the wall.
+          if (node.type === "entrance" || node.type === "emergency_exit") {
             return null;
           }
           if (node.type === "staircase") {

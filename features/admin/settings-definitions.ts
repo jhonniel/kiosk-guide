@@ -173,7 +173,8 @@ export const SETTING_GROUPS: SettingGroupDef[] = [
         key: "download_email_enabled",
         label: "Enable email delivery",
         type: "boolean",
-        description: "Allow visitors to receive files by email from the kiosk.",
+        description:
+          "Allow visitors to receive files by email from the kiosk (Download Center files and the Citizens' Charter PDF). Turn off to hide every email option.",
       },
       {
         key: "download_qr_expiry_minutes",
