@@ -20,18 +20,20 @@ export default function HomePage() {
         so sm/lg media queries would still jump when the browser zooms.
       */}
       <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col px-7 pb-4">
-        <div className="kiosk-home-header shrink-0">
-          <PageHeader
-            title={t(language, "kioskTitle")}
-            language={language}
-            description={t(language, "kioskSubtitle")}
-            showBack={false}
-            transparent
-          />
-        </div>
+        <div className="kiosk-home-top shrink-0">
+          <div className="kiosk-home-header shrink-0">
+            <PageHeader
+              title={t(language, "kioskTitle")}
+              language={language}
+              description={t(language, "kioskSubtitle")}
+              showBack={false}
+              transparent
+            />
+          </div>
 
-        <div className="kiosk-home-search mb-3 shrink-0">
-          <SmartSearch />
+          <div className="kiosk-home-search mb-3 shrink-0">
+            <SmartSearch />
+          </div>
         </div>
 
         <div className="kiosk-home-cards min-h-0 flex-1 overflow-visible">
