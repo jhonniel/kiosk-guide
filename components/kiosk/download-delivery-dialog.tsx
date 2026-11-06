@@ -167,8 +167,10 @@ export function DownloadDeliveryDialog({
       const expiry = new Date(data.expiresAt);
       setExpiresAt(expiry);
       const dataUrl = await QRCode.toDataURL(data.url, {
-        width: 280,
+        width: 464,
         margin: 2,
+        // Temporary Spaces links are long; low error correction keeps the code coarse enough to scan.
+        errorCorrectionLevel: data.url.length > 200 ? "L" : "M",
         color: { dark: "#1e3a5f", light: "#ffffff" },
       });
       setQrDataUrl(dataUrl);

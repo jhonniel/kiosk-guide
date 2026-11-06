@@ -10,6 +10,7 @@ import {
 } from "@/features/downloads/file-resolver";
 import { getBoolSetting, getNumberSetting, getResolvedSettings } from "@/features/settings/resolve-settings";
 import { buildPublicAppUrl, resolvePublicAppBaseUrl } from "@/lib/public-app-url";
+import { createSpacesSignedUrl } from "@/lib/storage/spaces";
 import { localized } from "@/lib/i18n/translations";
 import type { Language } from "@/lib/i18n/translations";
 import type { Download } from "@prisma/client";
@@ -49,8 +50,12 @@ export async function createQrDownloadLink(
   );
   const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
   const token = generateToken();
-  const baseUrl = resolvePublicBaseUrl(settings, requestOrigin, clientOrigin);
-  if (!baseUrl) {
+  // Files on Spaces are scanned straight from Spaces, so phones do not need to reach the kiosk.
+  const spacesUrl = await createSpacesSignedUrl(settings, download.fileUrl, {
+    expiresInSeconds: expiryMinutes * 60,
+  });
+  const baseUrl = spacesUrl ? "" : resolvePublicBaseUrl(settings, requestOrigin, clientOrigin);
+  if (!spacesUrl && !baseUrl) {
     throw new Error(
       "Public kiosk URL is not configured. Set Admin → Downloads → Public kiosk base URL or AUTH_URL in .env."
     );
@@ -77,7 +82,7 @@ export async function createQrDownloadLink(
 
   return {
     token,
-    url: buildPublicAppUrl(baseUrl, `/api/downloads/file/${token}`),
+    url: spacesUrl ?? buildPublicAppUrl(baseUrl, `/api/downloads/file/${token}`),
     expiresAt,
   };
 }

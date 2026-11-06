@@ -11,6 +11,7 @@ import {
   type BuildingUiConfig,
 } from "@/features/settings/building-config";
 import { getResolvedSettings, getSetting, getBoolSetting } from "@/features/settings/resolve-settings";
+import { toPublicKioskSettings } from "@/features/settings/public-settings";
 import type { NavigationGraph } from "@/features/building-directory/navigation/types";
 import { loadPublishedIndoorMap } from "@/features/indoor-map/admin-data";
 import { getPublishedCharterEdition } from "@/features/citizens-charter/queries";
@@ -122,7 +123,7 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
       }
     : guideContext;
 
-  const normalizedSettings = normalizeKioskSettings(settings);
+  const normalizedSettings = toPublicKioskSettings(normalizeKioskSettings(settings));
   const normalizedHomepageCards = homepageCards.map((card) => ({
     ...card,
     iconUrl: normalizeKioskAssetPath(card.iconUrl, { slug: card.slug }),
