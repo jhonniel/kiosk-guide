@@ -785,17 +785,47 @@ html.kiosk-large-text {
 }
 
 /*
- * Short main area (small screens, or wheelchair mode lowering the kiosk): drop the big title,
- * keep every card tall enough for its icon and title, and let the card grid scroll instead of squeezing.
+ * Short main area (small screens, or wheelchair mode lowering the kiosk): the title shrinks onto the
+ * search row, keep every card tall enough for its icon and title, and let the card grid scroll
+ * instead of squeezing.
  */
 @container kiosk-main (max-height: 38rem) {
+  /* Title | search | (weather, date and time cards sit in the reserved space). */
+  /* When both do not fit (narrow screen, Large Text) the search wraps under the title instead of shrinking away. */
+  .kiosk-home-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 1rem;
+    margin-bottom: 0.75rem;
+    padding-top: 0.4rem;
+    padding-right: var(--kiosk-datetime-w);
+  }
+
+  /* Beside the search it takes two lines; on its own line it stretches out to one. */
   .kiosk-home-header {
+    flex: 1 1 12rem;
+    max-width: 26rem;
+  }
+
+  .kiosk-home-header > div {
+    margin: 0;
+    padding: 0;
+  }
+
+  .kiosk-home-header h1 {
+    font-size: clamp(0.78rem, 1.15cqw, 1.15rem);
+    line-height: 1.15;
+  }
+
+  .kiosk-home-header p {
     display: none;
   }
 
-  /* The date/time widget sits in this row once the title is hidden. */
   .kiosk-home-search {
-    padding-right: var(--kiosk-datetime-w);
+    min-width: 14rem;
+    flex: 2 1 14rem;
+    margin-bottom: 0;
   }
 
   /* Give the search field the room; the search icon still marks it. */
