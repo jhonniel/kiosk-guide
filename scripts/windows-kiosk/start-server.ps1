@@ -180,11 +180,17 @@ if (-not $buildIsCurrent) {
   }
 }
 
-if (-not (Test-Path $NextBin) -or -not (Test-Path (Join-Path $Root ".next\BUILD_ID"))) {
+$buildId = Join-Path $Root ".next\BUILD_ID"
+if (-not (Test-Path $buildId)) {
+  Write-Log "Waiting for the new build to finish."
+  for ($i = 0; $i -lt 90 -and -not (Test-Path $buildId); $i++) { Start-Sleep -Seconds 2 }
+}
+if (-not (Test-Path $NextBin) -or -not (Test-Path $buildId)) {
   Write-Log "There is no production build to start."
   exit 1
 }
 
+New-Item -ItemType File -Force -Path "C:\Kiosk\reload-kiosk" | Out-Null
 Write-Log "Starting Next.js production server from get-updates."
 & $Node $NextBin start -H 0.0.0.0 -p 3000
 $code = $LASTEXITCODE

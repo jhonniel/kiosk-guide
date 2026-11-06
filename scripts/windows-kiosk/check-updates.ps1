@@ -117,15 +117,78 @@ $bar.Minimum = 0
 $bar.Maximum = 100
 $bar.Value = 5
 
+$outputBox = New-Object System.Windows.Forms.TextBox
+$outputBox.Multiline = $true
+$outputBox.ReadOnly = $true
+$outputBox.ScrollBars = "Vertical"
+$outputBox.WordWrap = $false
+$outputBox.Font = New-Object System.Drawing.Font("Consolas", 9)
+$outputBox.BackColor = [System.Drawing.Color]::FromArgb(16, 18, 20)
+$outputBox.ForeColor = [System.Drawing.Color]::FromArgb(186, 230, 186)
+$outputBox.Left = 24
+$outputBox.Top = 124
+$outputBox.Width = 652
+$outputBox.Height = 250
+$outputBox.Visible = $false
+
 $form.Controls.Add($label)
 $form.Controls.Add($bar)
+$form.Controls.Add($outputBox)
 
 $script:Closed = $false
+$script:LastStatus = ""
+$script:Lines = [System.Collections.ArrayList]::Synchronized((New-Object System.Collections.ArrayList))
+$script:BuildLogOffset = 0
+
+function Add-OutputLine([string]$Line) {
+  if ([string]::IsNullOrWhiteSpace($Line)) { return }
+  $clean = [regex]::Replace($Line, '\x1b\[[0-9;?]*[A-Za-z]', '')
+  if ([string]::IsNullOrWhiteSpace($clean)) { return }
+  [void]$script:Lines.Add($clean.TrimEnd())
+  Write-Log $clean.TrimEnd()
+}
+
+function Show-Terminal {
+  if ($script:Closed -or $outputBox.Visible) { return }
+  $form.ClientSize = New-Object System.Drawing.Size(700, 390)
+  $label.Width = 652
+  $bar.Width = 652
+  $outputBox.Visible = $true
+}
+
+function Drain-Output {
+  if ($script:Closed) { return }
+  $buildLog = Join-Path $LogDir "build.log"
+  if (Test-Path $buildLog) {
+    try {
+      $stream = New-Object System.IO.FileStream($buildLog, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+      if ($script:BuildLogOffset -lt $stream.Length) {
+        [void]$stream.Seek($script:BuildLogOffset, [System.IO.SeekOrigin]::Begin)
+        $reader = New-Object System.IO.StreamReader($stream)
+        while ($null -ne ($buildLine = $reader.ReadLine())) { Add-OutputLine $buildLine }
+        $script:BuildLogOffset = $stream.Position
+        $reader.Dispose()
+      }
+      $stream.Dispose()
+    } catch { }
+  }
+  while ($script:Lines.Count -gt 0) {
+    Show-Terminal
+    $text = [string]$script:Lines[0]
+    $script:Lines.RemoveAt(0)
+    $outputBox.AppendText($text + [Environment]::NewLine)
+  }
+  if ($outputBox.Visible) {
+    $outputBox.SelectionStart = $outputBox.TextLength
+    $outputBox.ScrollToCaret()
+  }
+  [System.Windows.Forms.Application]::DoEvents()
+}
 
 function Wait-Ui([int]$Milliseconds) {
   $end = [DateTime]::UtcNow.AddMilliseconds($Milliseconds)
   while ([DateTime]::UtcNow -lt $end) {
-    [System.Windows.Forms.Application]::DoEvents()
+    Drain-Output
     Start-Sleep -Milliseconds 50
   }
 }
@@ -143,6 +206,12 @@ function Set-Progress([int]$Percent, [string]$Text) {
     $bar.Value = $value
   }
   $label.Text = $Text
+  if ($script:LastStatus -ne $Text) {
+    $script:LastStatus = $Text
+    Add-OutputLine $Text
+    if ($Text -match 'Install|Build|Pull|Prepar|Updat|Start') { Show-Terminal }
+  }
+  Drain-Output
   $form.Visible = $true
   $form.TopMost = $true
   $form.Refresh()
@@ -186,17 +255,18 @@ function Invoke-Tool([string]$File, [string[]]$ArgumentList) {
     if ($arg -match '[\s"]') { '"' + ($arg -replace '"', '\"') + '"' } else { $arg }
   }
   $proc.StartInfo.Arguments = ($quoted -join " ")
+  $proc.add_OutputDataReceived({ param($sender, $e) if ($e.Data) { Add-OutputLine $e.Data } })
+  $proc.add_ErrorDataReceived({ param($sender, $e) if ($e.Data) { Add-OutputLine $e.Data } })
   [void]$proc.Start()
-  $outTask = $proc.StandardOutput.ReadToEndAsync()
-  $errTask = $proc.StandardError.ReadToEndAsync()
+  $proc.BeginOutputReadLine()
+  $proc.BeginErrorReadLine()
   while (-not $proc.HasExited) {
-    [System.Windows.Forms.Application]::DoEvents()
-    Start-Sleep -Milliseconds 150
+    Drain-Output
+    Start-Sleep -Milliseconds 100
   }
   $proc.WaitForExit()
-  $text = [string]$outTask.Result + [string]$errTask.Result
-  if ($text) { Write-Log $text.Trim() }
-  return [pscustomobject]@{ Code = $proc.ExitCode; Text = $text }
+  Drain-Output
+  return [pscustomobject]@{ Code = $proc.ExitCode; Text = "" }
 }
 
 function Invoke-Npm([string[]]$NpmArgs) {
@@ -217,6 +287,37 @@ function Test-KioskPort {
   } finally {
     if ($client) { $client.Close() }
   }
+}
+
+function Test-ServerReady([string]$Commit) {
+  $recorded = ""
+  if (Test-Path "C:\Kiosk\running-commit") { $recorded = (Get-Content "C:\Kiosk\running-commit" -Raw).Trim() }
+  if ($recorded -ne $Commit -or -not (Test-KioskPort)) { return $false }
+  try {
+    $response = Invoke-WebRequest -Uri "http://127.0.0.1:3000/" -UseBasicParsing -TimeoutSec 5
+    return $response.StatusCode -eq 200
+  } catch {
+    return $false
+  }
+}
+
+function Wait-ServerReady([string]$Commit) {
+  $deadline = (Get-Date).AddMinutes(15)
+  $started = $false
+  while ((Get-Date) -lt $deadline) {
+    if (Test-ServerReady $Commit) { return $true }
+    Set-Progress -1 "Starting the updated kiosk..."
+    if (-not $started -and -not (Test-KioskPort)) {
+      $started = $true
+      Restart-KioskServer
+    }
+    Wait-Ui 1000
+  }
+  return $false
+}
+
+function Request-KioskReload {
+  New-Item -ItemType File -Force -Path "C:\Kiosk\reload-kiosk" | Out-Null
 }
 
 function Restart-KioskServer {
@@ -289,6 +390,14 @@ try {
 
   if ($current -eq $Branch -and $before -eq $remote) {
     Write-Log "Already on $Branch at $before"
+    if (-not (Test-ServerReady $before)) {
+      Set-Progress -1 "Starting the updated kiosk..."
+      if (-not (Wait-ServerReady $before)) {
+        Close-Update "The update is installed. Continuing to the kiosk."
+        exit 0
+      }
+    }
+    Request-KioskReload
     Close-Update "Kiosk is up to date."
     exit 0
   }
@@ -390,7 +499,11 @@ try {
     }
   }
 
-  if (-not (Test-KioskPort)) { Restart-KioskServer }
+  if (-not (Wait-ServerReady $after)) {
+    Close-Update "The update finished. Continuing to the kiosk."
+    exit 0
+  }
+  Request-KioskReload
   Close-Update "Update installed. The new kiosk is ready."
 } catch {
   Write-Log $_.Exception.Message

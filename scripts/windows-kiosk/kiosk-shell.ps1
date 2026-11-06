@@ -92,9 +92,30 @@ for ($i = 0; $i -lt 90 -and -not (Test-Port 3000); $i++) {
   Start-Sleep -Seconds 2
 }
 
+function Test-HttpReady {
+  try {
+    $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 5
+    return $response.StatusCode -eq 200
+  } catch {
+    return $false
+  }
+}
+
+for ($i = 0; $i -lt 90 -and -not (Test-HttpReady); $i++) {
+  Start-Sleep -Seconds 2
+}
+
 while ($true) {
+  if (Test-Path "C:\Kiosk\reload-kiosk") {
+    Remove-Item "C:\Kiosk\reload-kiosk" -Force -ErrorAction SilentlyContinue
+    Get-KioskEdge | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    Remove-Item (Join-Path $Profile "Default\Service Worker") -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Log "Reloading the kiosk onto the new update."
+    Start-Sleep -Seconds 1
+  }
+
   $running = @(Get-KioskEdge)
-  if ($running.Count -eq 0) {
+  if ($running.Count -eq 0 -and (Test-HttpReady)) {
     if (-not (Test-Path $Edge)) {
       Write-Log "Microsoft Edge was not found."
       Start-Sleep -Seconds 5
