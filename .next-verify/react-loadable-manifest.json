@@ -1,0 +1,26 @@
+{
+  "components\\kiosk\\kiosk-idle-attract-lazy.tsx -> ./kiosk-idle-attract": {
+    "id": "components\\kiosk\\kiosk-idle-attract-lazy.tsx -> ./kiosk-idle-attract",
+    "files": [
+      "static/chunks/_app-pages-browser_components_kiosk_kiosk-idle-attract_tsx.js"
+    ]
+  },
+  "features\\settings\\building-config.ts -> @/features/settings/resolve-settings": {
+    "id": "features\\settings\\building-config.ts -> @/features/settings/resolve-settings",
+    "files": [
+      "static/chunks/_app-pages-browser_features_settings_resolve-settings_ts.js"
+    ]
+  },
+  "lib\\map-preload.ts -> @/components/kiosk/map/CamiguinTourismMap": {
+    "id": "lib\\map-preload.ts -> @/components/kiosk/map/CamiguinTourismMap",
+    "files": [
+      "static/chunks/_app-pages-browser_components_kiosk_map_CamiguinTourismMap_tsx.js"
+    ]
+  },
+  "node_modules\\next\\dist\\client\\dev\\hot-reloader\\app\\use-websocket.js -> @vercel/turbopack-ecmascript-runtime/browser/dev/hmr-client/hmr-client.ts": {
+    "id": "node_modules\\next\\dist\\client\\dev\\hot-reloader\\app\\use-websocket.js -> @vercel/turbopack-ecmascript-runtime/browser/dev/hmr-client/hmr-client.ts",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_next_dist_client_dev_noop-turbopack-hmr_js.js"
+    ]
+  }
+}

@@ -14,6 +14,7 @@
     "build:server": "prisma generate && next build",
     "offline:generate": "tsx scripts/generate-offline-data.ts",
     "storage:to-spaces": "tsx scripts/migrate-files-to-spaces.ts",
+    "downloads:check": "tsx scripts/check-download-files.ts",
     "assets:normalize": "tsx scripts/normalize-asset-urls.ts",
     "assets:optimize": "tsx scripts/optimize-public-images.ts",
     "start": "next start -H 0.0.0.0 -p 3000",

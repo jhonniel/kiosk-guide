@@ -1,0 +1,8 @@
+{
+  "/api/kiosk/quick-start/route": "app/api/kiosk/quick-start/route.js",
+  "/api/kiosk/citizens-charter/route": "app/api/kiosk/citizens-charter/route.js",
+  "/api/downloads/qr/route": "app/api/downloads/qr/route.js",
+  "/api/downloads/email/route": "app/api/downloads/email/route.js",
+  "/(kiosk)/download-center/page": "app/(kiosk)/download-center/page.js",
+  "/admin/downloads/page": "app/admin/downloads/page.js"
+}

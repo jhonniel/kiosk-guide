@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendDownloadByEmail } from "@/features/downloads/download-service";
+import { isDownloadFileUnavailable } from "@/features/downloads/file-health";
 import { downloadEmailRequestSchema } from "@/lib/validations";
 
 function getRequestOrigin(request: NextRequest) {
@@ -29,6 +30,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (isDownloadFileUnavailable(error)) {
+      return NextResponse.json({ error: error.message, code: error.code }, { status: 409 });
+    }
     const message = error instanceof Error ? error.message : "Failed to send email";
     if (process.env.NODE_ENV === "development") {
       console.error("[downloads/email]", message);

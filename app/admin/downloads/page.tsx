@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BarChart3, Mail, QrCode, ScanLine } from "lucide-react";
+import { BarChart3, FileWarning, Mail, QrCode, ScanLine } from "lucide-react";
 import { db } from "@/lib/db";
 import { AdminCrudManager } from "@/components/admin/admin-crud-page";
 import { RESOURCE_CONFIGS } from "@/features/admin/resource-definitions";
@@ -31,6 +31,8 @@ export default async function AdminDownloadsPage() {
     }),
   ]);
 
+  const brokenDownloads = downloads.filter((item) => item.fileProblem);
+
   const countByType = Object.fromEntries(
     activityCounts.map((item) => [item.type, item._count._all])
   );
@@ -40,6 +42,36 @@ export default async function AdminDownloadsPage() {
 
   return (
     <div className="space-y-6">
+      {brokenDownloads.length > 0 ? (
+        <section className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <div className="flex items-start gap-3">
+            <FileWarning className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+            <div className="min-w-0 flex-1">
+              <h2 className="font-semibold text-amber-900">
+                {brokenDownloads.length} download{brokenDownloads.length === 1 ? " was" : "s were"} turned off: the file is broken
+              </h2>
+              <p className="mt-1 text-sm text-amber-800">
+                The kiosk will not send these by QR or email. Edit each one, upload a working copy of the document and
+                save; it turns back on automatically.
+              </p>
+              <ul className="mt-3 divide-y divide-amber-200/70 overflow-hidden rounded-lg border border-amber-200 bg-white text-sm">
+                {brokenDownloads.map((item) => (
+                  <li key={item.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-2.5">
+                    <span className="font-medium text-kiosk-navy">{item.titleEn}</span>
+                    <span className="text-gray-500">
+                      {item.fileProblem}
+                      {item.fileProblemAt
+                        ? ` · ${item.fileProblemAt.toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" })}`
+                        : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section>
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-kiosk-navy">Download activity</h1>
