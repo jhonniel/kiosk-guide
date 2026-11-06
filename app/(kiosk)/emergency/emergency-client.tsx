@@ -31,12 +31,6 @@ type ServiceTone = {
   title: string;
 };
 
-function telHref(label: string) {
-  const digits = label.replace(/[^\d+]/g, "");
-  if (!digits) return undefined;
-  return `tel:${digits}`;
-}
-
 function phoneEntries(phoneNumber: string) {
   return phoneNumber
     .split(/\s*\/\s*/)
@@ -108,7 +102,7 @@ function serviceTone(name: string): ServiceTone {
   };
 }
 
-function CallButton({
+function PhoneNumber({
   phone,
   className,
   fullWidth,
@@ -117,27 +111,17 @@ function CallButton({
   className?: string;
   fullWidth?: boolean;
 }) {
-  const href = telHref(phone);
-  const classes = cn(
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#c1121f] px-4 py-2.5 text-[15px] font-bold text-white shadow-sm shadow-rose-900/10 transition-transform duration-150 hover:bg-[#a50e19] active:scale-[0.98]",
-    fullWidth && "w-full",
-    className
-  );
-
-  if (href) {
-    return (
-      <a href={href} className={classes}>
-        <Phone className="h-4 w-4 shrink-0 opacity-95" strokeWidth={2.5} />
-        <span className="tabular-nums tracking-wide">{phone}</span>
-      </a>
-    );
-  }
-
   return (
-    <span className={classes}>
-      <Phone className="h-4 w-4 shrink-0 opacity-95" strokeWidth={2.5} />
+    <p
+      className={cn(
+        "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#c1121f] px-4 py-2.5 text-[15px] font-bold text-white shadow-sm shadow-rose-900/10",
+        fullWidth && "w-full",
+        className
+      )}
+    >
+      <Phone className="h-4 w-4 shrink-0 opacity-95" strokeWidth={2.5} aria-hidden />
       <span className="tabular-nums tracking-wide">{phone}</span>
-    </span>
+    </p>
   );
 }
 
@@ -258,7 +242,7 @@ export function EmergencyClient({ contacts }: { contacts: EmergencyContact[] }) 
                     </p>
                   </div>
                 </div>
-                <CallButton phone={phone} fullWidth />
+                <PhoneNumber phone={phone} fullWidth />
               </article>
             );
           })}
@@ -359,7 +343,7 @@ export function EmergencyClient({ contacts }: { contacts: EmergencyContact[] }) 
 
                 <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
                   {phones.slice(0, 2).map((phone) => (
-                    <CallButton key={phone} phone={phone} className="min-h-10 px-3 py-2 text-sm" />
+                    <PhoneNumber key={phone} phone={phone} className="min-h-10 px-3 py-2 text-sm" />
                   ))}
                 </div>
               </article>
@@ -389,11 +373,8 @@ export function EmergencyClient({ contacts }: { contacts: EmergencyContact[] }) 
           </div>
         </div>
 
-        <a
-          href="tel:911"
-          className="flex shrink-0 items-center gap-3 self-end rounded-xl px-2 py-1 transition-transform duration-200 hover:scale-[1.03] hover:opacity-90 active:scale-[0.98] sm:self-center"
-        >
-          <Phone className="h-7 w-7 text-[#c1121f]" strokeWidth={2.5} />
+        <div className="flex shrink-0 items-center gap-3 self-end rounded-xl px-2 py-1 sm:self-center">
+          <Phone className="h-7 w-7 text-[#c1121f]" strokeWidth={2.5} aria-hidden />
           <div className="leading-none">
             <p className="text-3xl font-black tracking-tight text-[#c1121f] sm:text-4xl">911</p>
             <p className="mt-1 text-[10px] font-bold tracking-[0.14em] text-kiosk-navy uppercase">
@@ -405,7 +386,7 @@ export function EmergencyClient({ contacts }: { contacts: EmergencyContact[] }) 
               )}
             </p>
           </div>
-        </a>
+        </div>
       </aside>
     </div>
   );
