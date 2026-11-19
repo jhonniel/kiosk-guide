@@ -1,5 +1,5 @@
 # LGU Information & Visitor Experience Kiosk
-
+sample
 A modern, touchscreen-optimized kiosk system for the **Provincial Government of Camiguin**. Built with Next.js 15, TypeScript, Tailwind CSS, shadcn/ui, Prisma, and Auth.js.
 
 ## Features
