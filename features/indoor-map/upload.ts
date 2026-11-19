@@ -4,7 +4,8 @@ import path from "path";
 const PLAN_DIR = path.join(process.cwd(), "public", "images", "indoor-plans");
 const MAX_BYTES = 25 * 1024 * 1024;
 
-const EXT = new Set([".png", ".jpg", ".jpeg", ".svg", ".webp", ".pdf"]);
+// PDFs are refused: neither the editor overlay nor the kiosk 3D directory can render them.
+const EXT = new Set([".png", ".jpg", ".jpeg", ".svg", ".webp"]);
 
 export type FloorPlanUploadResult = {
   fileUrl: string;
@@ -47,31 +48,18 @@ export async function uploadIndoorFloorPlan(file: File): Promise<FloorPlanUpload
   }
   const extension = path.extname(file.name).toLowerCase();
   if (!EXT.has(extension)) {
-    throw new Error("Unsupported type. Use PNG, JPG, SVG, WebP, or PDF.");
+    throw new Error("Unsupported file type. Use PNG, JPG, SVG or WebP. Save PDF pages as images first.");
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
   await mkdir(PLAN_DIR, { recursive: true });
 
-  let mimeType = file.type || "application/octet-stream";
-  let widthPx = 1000;
-  let heightPx = 700;
-
-  if (extension === ".pdf") {
-    mimeType = "application/pdf";
-    // PDF overlay is not supported in Leaflet ImageOverlay — store file and use placeholder size.
-    // Admin UI prompts converting to PNG for digitizing.
-    widthPx = 1000;
-    heightPx = 1400;
-  } else {
-    const size = await probeImageSize(buffer);
-    widthPx = size.width;
-    heightPx = size.height;
-    if (extension === ".svg") mimeType = "image/svg+xml";
-    else if (extension === ".png") mimeType = "image/png";
-    else if (extension === ".webp") mimeType = "image/webp";
-    else mimeType = "image/jpeg";
-  }
+  const { width: widthPx, height: heightPx } = await probeImageSize(buffer);
+  let mimeType: string;
+  if (extension === ".svg") mimeType = "image/svg+xml";
+  else if (extension === ".png") mimeType = "image/png";
+  else if (extension === ".webp") mimeType = "image/webp";
+  else mimeType = "image/jpeg";
 
   const storedName = `floor-${Date.now()}${extension}`;
   await writeFile(path.join(PLAN_DIR, storedName), buffer);

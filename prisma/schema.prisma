@@ -267,6 +267,9 @@ model VisitorLog {
   sessionId String?
   language  String?
   createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([sessionId])
 }
 
 model KioskSessionCapture {
@@ -287,6 +290,8 @@ model SearchLog {
   results   Int      @default(0)
   sessionId String?
   createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 model QuickLink {

@@ -9,6 +9,12 @@ import {
   type ResourceKey,
 } from "@/features/admin/resource-definitions";
 import { RESOURCE_PERMISSION } from "@/features/admin/permissions";
+import {
+  AdminInputError,
+  linesToList,
+  parseManilaDateTime,
+  validateResourceValues,
+} from "@/features/admin/resource-validation";
 
 async function requireResourcePermission(resource: ResourceKey) {
   const permission = RESOURCE_PERMISSION[resource];
@@ -18,29 +24,53 @@ async function requireResourcePermission(resource: ResourceKey) {
 
 type ActionResult = { success: true } | { success: false; error: string };
 
+/** Turns a failure into a message an admin can act on; unexpected ones are logged, not shown. */
+function describeError(e: unknown, fallback: string, resource?: ResourceKey): string {
+  if (e instanceof AdminInputError) return e.message;
+  if (e instanceof Error && e.message === "Unauthorized") return "Your session has ended. Sign in again.";
+  if (e instanceof Error && e.message === "Forbidden") return "You do not have permission to do this.";
+
+  const code = (e as { code?: unknown } | null)?.code;
+  if (code === "P2002") {
+    const target = (e as { meta?: { target?: unknown } }).meta?.target;
+    const key = Array.isArray(target) ? String(target[0]) : "";
+    const field = resource ? RESOURCE_CONFIGS[resource].fields.find((f) => f.key === key) : undefined;
+    return field
+      ? `Another record already uses this ${field.label.toLowerCase()}. Choose a different one.`
+      : "Another record already uses the same value. Choose a different one.";
+  }
+  if (code === "P2025") return "This record no longer exists. Refresh the page and try again.";
+
+  console.error(`[admin] ${fallback}`, e);
+  return fallback;
+}
+
 function parseFieldValue(value: unknown, type: string): unknown {
   if (type === "boolean") return value === true || value === "true" || value === "1";
   if (type === "number") {
     const n = Number(value);
     return Number.isFinite(n) ? n : 0;
   }
-  if (type === "date") {
-    if (!value) return null;
-    return new Date(String(value));
-  }
-  if (value === null || value === undefined) return type === "json" ? "[]" : "";
-  return String(value);
+  if (type === "date") return parseManilaDateTime(value);
+  if (type === "lines") return JSON.stringify(linesToList(value));
+  if (value === null || value === undefined) return "";
+  return String(value).trim();
 }
 
 function coerceRecord(
   data: Record<string, unknown>,
-  resource: ResourceKey
+  resource: ResourceKey,
+  mode: "create" | "update"
 ): Record<string, unknown> {
   const config = RESOURCE_CONFIGS[resource];
+
+  const problems = Object.values(validateResourceValues(config, data, { onlyPresent: mode === "update" }));
+  if (problems.length > 0) throw new AdminInputError(problems[0]);
+
   const result: Record<string, unknown> = {};
 
   for (const field of config.fields) {
-    if (!(field.key in data)) continue;
+    if (field.type === "file" || !(field.key in data)) continue;
     result[field.key] = parseFieldValue(data[field.key], field.type);
   }
 
@@ -63,7 +93,7 @@ async function downloadUpdateData(
     where: { id },
     select: { fileUrl: true, fileProblem: true },
   });
-  if (!current) throw new Error("Download not found.");
+  if (!current) throw new AdminInputError("This document no longer exists. Refresh the page and try again.");
   if (!current.fileProblem) return payload;
 
   const replacedFile = typeof payload.fileUrl === "string" && payload.fileUrl !== "" && payload.fileUrl !== current.fileUrl;
@@ -71,8 +101,8 @@ async function downloadUpdateData(
     return { ...payload, isActive: true, fileProblem: null, fileProblemAt: null };
   }
   if (payload.isActive === true) {
-    throw new Error(
-      `This download was turned off because its file is broken (${current.fileProblem}) Upload a working file to turn it back on.`
+    throw new AdminInputError(
+      `This document was turned off because its file is broken (${current.fileProblem}) Upload a working file to turn it back on.`
     );
   }
   return payload;
@@ -129,7 +159,7 @@ export async function updateSettings(
 
     return { success: true };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to save settings" };
+    return { success: false, error: describeError(e, "The settings could not be saved. Please try again.") };
   }
 }
 
@@ -139,7 +169,7 @@ export async function createResource(
 ): Promise<ActionResult & { id?: string }> {
   try {
     await requireResourcePermission(resource);
-    const payload = coerceRecord(data, resource);
+    const payload = coerceRecord(data, resource, "create");
 
     let created: { id: string };
     switch (resource) {
@@ -191,7 +221,7 @@ export async function createResource(
     revalidateAdminResource(resource);
     return { success: true, id: created.id };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to create record" };
+    return { success: false, error: describeError(e, "The record could not be saved. Please try again.", resource) };
   }
 }
 
@@ -202,7 +232,7 @@ export async function updateResource(
 ): Promise<ActionResult> {
   try {
     await requireResourcePermission(resource);
-    const payload = coerceRecord(data, resource);
+    const payload = coerceRecord(data, resource, "update");
 
     switch (resource) {
       case "services":
@@ -245,7 +275,7 @@ export async function updateResource(
     revalidateAdminResource(resource);
     return { success: true };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to update record" };
+    return { success: false, error: describeError(e, "The changes could not be saved. Please try again.", resource) };
   }
 }
 
@@ -260,9 +290,17 @@ export async function deleteResource(resource: ResourceKey, id: string): Promise
       case "directories":
         await db.directory.delete({ where: { id } });
         break;
-      case "downloads":
+      case "downloads": {
+        // Deleting a document would also erase its delivery history (QR scans, emails sent).
+        const deliveries = await db.downloadActivity.count({ where: { downloadId: id } });
+        if (deliveries > 0) {
+          throw new AdminInputError(
+            `This document has ${deliveries} delivery record${deliveries === 1 ? "" : "s"} in the activity history, so it cannot be deleted. Turn off “Show on the kiosk” to hide it instead.`
+          );
+        }
         await db.download.delete({ where: { id } });
         break;
+      }
       case "announcements":
         await db.announcement.delete({ where: { id } });
         break;
@@ -294,7 +332,55 @@ export async function deleteResource(resource: ResourceKey, id: string): Promise
     revalidateAdminResource(resource);
     return { success: true };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to delete record" };
+    return { success: false, error: describeError(e, "The record could not be deleted. Please try again.", resource) };
+  }
+}
+
+/**
+ * Copies the kiosk's built-in Capitol room list into the Building Locations table so it can be edited.
+ * The built-in ids are kept, because the map routes on the kiosk are tied to them.
+ */
+export async function importBuiltInBuildingLocations(): Promise<ActionResult & { count?: number }> {
+  try {
+    await requireResourcePermission("buildingLocations");
+
+    if ((await db.buildingLocation.count()) > 0) {
+      throw new AdminInputError("The list already has locations, so the built-in list was not copied.");
+    }
+
+    const { CAPITOL_BUILDING_LOCATIONS } = await import("@/features/building-directory/capitol-building");
+    const result = await db.buildingLocation.createMany({
+      data: CAPITOL_BUILDING_LOCATIONS.map((location, index) => ({
+        id: location.id,
+        buildingNameEn: location.buildingNameEn,
+        buildingNameFil: location.buildingNameFil ?? null,
+        buildingNameBis: location.buildingNameBis ?? null,
+        nameEn: location.nameEn,
+        nameFil: location.nameFil ?? null,
+        nameBis: location.nameBis ?? null,
+        floor: location.floor,
+        floorLabelEn: location.floorLabelEn,
+        floorLabelFil: location.floorLabelFil ?? null,
+        floorLabelBis: location.floorLabelBis ?? null,
+        room: location.room ?? null,
+        locationType: location.locationType,
+        category: location.category ?? null,
+        nearbyLandmarks: JSON.stringify(location.nearbyLandmarks),
+        directionsEn: JSON.stringify(location.directionsEn),
+        directionsFil: JSON.stringify(location.directionsFil ?? []),
+        directionsBis: JSON.stringify(location.directionsBis ?? []),
+        aliases: JSON.stringify(location.aliases ?? []),
+        sortOrder: index,
+      })),
+    });
+
+    revalidateAdminResource("buildingLocations");
+    return { success: true, count: result.count };
+  } catch (e) {
+    return {
+      success: false,
+      error: describeError(e, "The built-in list could not be copied. Please try again.", "buildingLocations"),
+    };
   }
 }
 

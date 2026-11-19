@@ -5,9 +5,18 @@ import {
   type AdminPermissionName,
 } from "@/features/admin/permissions";
 
-export async function requireAdmin() {
+/**
+ * The signed-in admin session, or null. An account that was deactivated or deleted after signing in
+ * keeps its cookie but loses its role on the next request, so it counts as signed out.
+ */
+export async function getAdminSession(): Promise<Session | null> {
   const session = await auth();
-  if (!session?.user) {
+  return session?.user?.role ? session : null;
+}
+
+export async function requireAdmin() {
+  const session = await getAdminSession();
+  if (!session) {
     throw new Error("Unauthorized");
   }
   return session;

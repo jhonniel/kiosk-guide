@@ -168,7 +168,12 @@ function usePdfQr(pdfAvailable?: boolean | null) {
       let target = charterPdfPublicUrl();
       let expiresAt: number | null = null;
       try {
-        const res = await kioskSyncFetch("/api/citizens-charter/scan-link", { cache: "no-store" });
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => controller.abort(), 4000);
+        const res = await kioskSyncFetch("/api/citizens-charter/scan-link", {
+          cache: "no-store",
+          signal: controller.signal,
+        }).finally(() => window.clearTimeout(timer));
         if (res.ok) {
           const link = (await res.json()) as { url: string | null; expiresAt: string | null };
           if (link.url) {

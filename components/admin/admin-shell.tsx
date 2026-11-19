@@ -12,9 +12,9 @@ interface AdminShellProps {
 export function AdminShell({ session, children }: AdminShellProps) {
   return (
     <SessionProvider session={session}>
-      <div className="flex min-h-screen bg-gray-50">
-        {session && <AdminSidebar user={session.user} />}
-        <main className="flex-1 overflow-auto">{children}</main>
+      <div className="flex min-h-dvh flex-col bg-gray-50 lg:flex-row">
+        {session ? <AdminSidebar user={session.user} /> : null}
+        <main className="min-w-0 flex-1">{children}</main>
       </div>
     </SessionProvider>
   );

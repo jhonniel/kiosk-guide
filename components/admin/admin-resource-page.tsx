@@ -1,4 +1,3 @@
-import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { AdminCrudManager } from "@/components/admin/admin-crud-page";
 import {
@@ -6,11 +5,19 @@ import {
   type ResourceKey,
 } from "@/features/admin/resource-definitions";
 import { RESOURCE_PERMISSION } from "@/features/admin/permissions";
-import { hasPermission } from "@/lib/admin-auth";
+import { getAdminSession, hasPermission } from "@/lib/admin-auth";
 import { fetchAdminResource } from "@/features/admin/fetch-resource";
 
-export async function AdminResourcePage({ resource }: { resource: ResourceKey }) {
-  const session = await auth();
+interface Props {
+  resource: ResourceKey;
+  /** Extra content between the heading and the list. */
+  children?: React.ReactNode;
+  /** Extra content under the "nothing here yet" message. */
+  emptyExtra?: React.ReactNode;
+}
+
+export async function AdminResourcePage({ resource, children, emptyExtra }: Props) {
+  const session = await getAdminSession();
   if (!session) redirect("/admin/login");
 
   const permission = RESOURCE_PERMISSION[resource];
@@ -26,6 +33,9 @@ export async function AdminResourcePage({ resource }: { resource: ResourceKey })
       resource={resource}
       config={config}
       items={items as Record<string, unknown>[]}
-    />
+      emptyExtra={emptyExtra}
+    >
+      {children}
+    </AdminCrudManager>
   );
 }

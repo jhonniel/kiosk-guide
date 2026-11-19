@@ -1,17 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import Image from "next/image";
+import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2, Upload, Loader2, ExternalLink } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -26,456 +23,485 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  createResource,
-  deleteResource,
-  updateResource,
-} from "@/features/admin/actions";
+import { AdminPage, AdminPageHeader } from "@/components/admin/admin-page";
+import { FormField, fieldId, type UploadedDocument } from "@/components/admin/admin-crud-fields";
+import { createResource, deleteResource, updateResource } from "@/features/admin/actions";
 import type { ResourceConfig, ResourceKey, ResourceField } from "@/features/admin/resource-definitions";
+import {
+  listToLines,
+  slugify,
+  toManilaInputValue,
+  validateResourceValues,
+} from "@/features/admin/resource-validation";
+import { formatManilaDateTime } from "@/features/analytics/range";
+import { cn } from "@/lib/utils";
+
+type Item = Record<string, unknown>;
 
 interface Props {
   resource: ResourceKey;
   config: ResourceConfig;
-  items: Record<string, unknown>[];
+  items: Item[];
+  /** Shown as a section inside another admin page: no page padding, smaller heading. */
+  embedded?: boolean;
+  /** Extra content between the heading and the list, e.g. a notice. */
+  children?: React.ReactNode;
+  /** Extra content under the "nothing here yet" message. */
+  emptyExtra?: React.ReactNode;
 }
 
-function getDefaultValues(fields: ResourceField[]): Record<string, unknown> {
-  const defaults: Record<string, unknown> = {};
+const PAGE_SIZE = 20;
+
+function capitalize(text: string) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function getDefaultValues(fields: ResourceField[], items: Item[]): Item {
+  const defaults: Item = {};
   for (const field of fields) {
     if (field.type === "boolean") defaults[field.key] = true;
-    else if (field.type === "number") defaults[field.key] = 0;
+    else if (field.key === "sortOrder") {
+      // New records go to the end of the list.
+      const last = items.reduce((max, item) => Math.max(max, Number(item.sortOrder) || 0), 0);
+      defaults[field.key] = String(items.length ? last + 1 : 0);
+    } else if (field.key === "floor") defaults[field.key] = "1";
     else defaults[field.key] = "";
   }
   return defaults;
 }
 
-function formatCellValue(value: unknown): string {
-  if (value === null || value === undefined) return "—";
-  if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (value instanceof Date) return value.toLocaleDateString();
-  const str = String(value);
-  return str.length > 80 ? `${str.slice(0, 80)}...` : str;
+function toFormValues(fields: ResourceField[], item: Item): Item {
+  const values: Item = {};
+  for (const field of fields) {
+    const raw = item[field.key];
+    if (field.type === "date") values[field.key] = toManilaInputValue(raw);
+    else if (field.type === "boolean") values[field.key] = Boolean(raw);
+    else if (field.type === "lines") values[field.key] = listToLines(raw);
+    else if (field.type !== "file") values[field.key] = raw === null || raw === undefined ? "" : String(raw);
+  }
+  return values;
 }
 
-function FormField({
-  field,
-  value,
-  onChange,
-  onFileUploaded,
-  uploadSlug,
-}: {
-  field: ResourceField;
-  value: unknown;
-  onChange: (v: unknown) => void;
-  onFileUploaded?: (payload: { fileUrl: string; fileName: string; fileSize: string }) => void;
-  uploadSlug?: string;
-}) {
-  const [uploading, setUploading] = useState(false);
-
-  if (field.type === "image") {
-    const currentUrl = String(value ?? "");
-
-    async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      setUploading(true);
-      try {
-        const body = new FormData();
-        body.append("file", file);
-        if (uploadSlug) body.append("slug", uploadSlug);
-        const res = await fetch("/api/admin/files/upload-homepage-icon", {
-          method: "POST",
-          body,
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Upload failed");
-
-        onChange(data.fileUrl);
-        toast.success("Image uploaded");
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Upload failed");
-      } finally {
-        setUploading(false);
-        e.target.value = "";
-      }
-    }
-
-    return (
-      <div className="space-y-2 rounded-lg border bg-gray-50 p-4">
-        <Label htmlFor={field.key}>{field.label}</Label>
-        {field.description && <p className="text-xs text-gray-500">{field.description}</p>}
-        {currentUrl ? (
-          <div className="relative h-20 w-20 overflow-hidden rounded-xl border bg-white">
-            <Image
-              src={currentUrl}
-              alt={field.label}
-              fill
-              className="object-contain p-2"
-              unoptimized
-            />
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500">No image uploaded yet.</p>
-        )}
-        <div>
-          <label
-            htmlFor={field.key}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-kiosk-navy px-4 py-2 text-sm font-medium text-white hover:bg-kiosk-navy/90"
-          >
-            {uploading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4" />
-            )}
-            {uploading ? "Uploading..." : currentUrl ? "Replace image" : "Upload image"}
-          </label>
-          <input
-            id={field.key}
-            type="file"
-            className="hidden"
-            accept="image/png,image/jpeg,image/svg+xml,image/webp"
-            onChange={handleImageChange}
-            disabled={uploading}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (field.type === "file") {
-    const fileUrl = String((value as { fileUrl?: string } | string) ?? "");
-    const currentUrl =
-      typeof value === "object" && value !== null && "fileUrl" in value
-        ? String((value as { fileUrl: string }).fileUrl)
-        : fileUrl;
-
-    async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      setUploading(true);
-      try {
-        const body = new FormData();
-        body.append("file", file);
-        const res = await fetch("/api/admin/files/upload", {
-          method: "POST",
-          body,
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Upload failed");
-
-        onFileUploaded?.({
-          fileUrl: data.fileUrl,
-          fileName: data.fileName,
-          fileSize: data.fileSize,
-        });
-        toast.success("File uploaded");
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Upload failed");
-      } finally {
-        setUploading(false);
-        e.target.value = "";
-      }
-    }
-
-    return (
-      <div className="space-y-2 rounded-lg border bg-gray-50 p-4">
-        <Label htmlFor={field.key}>{field.label}</Label>
-        {field.description && <p className="text-xs text-gray-500">{field.description}</p>}
-        {currentUrl ? (
-          <div className="flex items-center gap-2 text-sm text-kiosk-navy">
-            <ExternalLink className="h-4 w-4 shrink-0" />
-            <a href={currentUrl} target="_blank" rel="noreferrer" className="truncate underline">
-              {currentUrl}
-            </a>
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500">No file uploaded yet.</p>
-        )}
-        <div>
-          <label
-            htmlFor={field.key}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-kiosk-navy px-4 py-2 text-sm font-medium text-white hover:bg-kiosk-navy/90"
-          >
-            {uploading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4" />
-            )}
-            {uploading ? "Uploading..." : currentUrl ? "Replace file" : "Upload file"}
-          </label>
-          <input
-            id={field.key}
-            type="file"
-            className="hidden"
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt"
-            onChange={handleFileChange}
-            disabled={uploading}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (field.type === "boolean") {
-    return (
-      <div className="flex items-center justify-between rounded-lg border px-3 py-2">
-        <Label htmlFor={field.key}>{field.label}</Label>
-        <Switch
-          id={field.key}
-          checked={Boolean(value)}
-          onCheckedChange={onChange}
-        />
-      </div>
-    );
-  }
-
-  if (field.type === "textarea" || field.type === "json") {
-    return (
-      <div className="space-y-1.5">
-        <Label htmlFor={field.key}>{field.label}</Label>
-        <Textarea
-          id={field.key}
-          value={String(value ?? "")}
-          onChange={(e) => onChange(e.target.value)}
-          rows={field.type === "json" ? 6 : 3}
-          placeholder={field.placeholder}
-          className={field.type === "json" ? "font-mono text-xs" : undefined}
-        />
-      </div>
-    );
-  }
-
+function StatusBadge({ tone, children }: { tone: "on" | "off" | "warning"; children: React.ReactNode }) {
+  const tones = {
+    on: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+    off: "bg-gray-100 text-gray-600 ring-gray-500/20",
+    warning: "bg-amber-50 text-amber-800 ring-amber-600/30",
+  };
   return (
-    <div className="space-y-1.5">
-      <Label htmlFor={field.key}>{field.label}</Label>
-      <Input
-        id={field.key}
-        type={field.type === "number" ? "number" : field.type === "date" ? "datetime-local" : "text"}
-        value={String(value ?? "")}
-        onChange={(e) =>
-          onChange(field.type === "number" ? Number(e.target.value) : e.target.value)
-        }
-        placeholder={field.placeholder}
-        required={field.required}
-      />
-    </div>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset",
+        tones[tone]
+      )}
+    >
+      {children}
+    </span>
   );
 }
 
-export function AdminCrudManager({ resource, config, items }: Props) {
+function cellText(value: unknown, field: ResourceField | undefined): string {
+  if (value === null || value === undefined || value === "") return "";
+  if (value instanceof Date) return formatManilaDateTime(value);
+  if (field?.type === "select") {
+    return field.options?.find((option) => option.value === value)?.label ?? String(value);
+  }
+  if (typeof value === "number") return value.toLocaleString("en-PH");
+  return String(value);
+}
+
+export function AdminCrudManager({ resource, config, items, embedded, children, emptyExtra }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<Record<string, unknown>>(getDefaultValues(config.fields));
+  const [form, setForm] = useState<Item>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [slugEdited, setSlugEdited] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Item | null>(null);
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [isPending, startTransition] = useTransition();
 
-  function openCreate() {
-    setEditingId(null);
-    const defaults = getDefaultValues(config.fields);
-    if (resource === "downloads") {
-      defaults.fileUrl = "";
-      defaults.fileName = "";
-      defaults.fileSize = "";
-    }
-    setForm(defaults);
-    setDialogOpen(true);
-  }
+  const fieldByKey = useMemo(
+    () => Object.fromEntries(config.fields.map((field) => [field.key, field])),
+    [config.fields]
+  );
+  const titleKey = config.tableColumns[0].key;
+  const titleOf = (item: Item) => String(item[titleKey] ?? "").trim() || `this ${config.singular}`;
+  const hasSlugField = config.fields.some((field) => field.key === "slug");
 
-  function openEdit(item: Record<string, unknown>) {
-    setEditingId(String(item.id));
-    const values: Record<string, unknown> = {};
+  const suggestions = useMemo(() => {
+    const result: Record<string, string[]> = {};
     for (const field of config.fields) {
-      const raw = item[field.key];
-      if (field.type === "date" && raw) {
-        values[field.key] = new Date(String(raw)).toISOString().slice(0, 16);
-      } else if (field.type === "boolean") {
-        values[field.key] = Boolean(raw);
-      } else if (field.type === "file") {
-        values[field.key] = {
-          fileUrl: item.fileUrl ?? "",
-          fileName: item.fileName ?? "",
-          fileSize: item.fileSize ?? "",
-        };
-      } else {
-        values[field.key] = raw ?? "";
+      if (!field.suggest) continue;
+      const values = new Set<string>();
+      for (const item of items) {
+        const value = String(item[field.key] ?? "").trim();
+        if (value) values.add(value);
       }
+      result[field.key] = [...values].sort((a, b) => a.localeCompare(b));
     }
+    return result;
+  }, [config.fields, items]);
+
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return items;
+    return items.filter((item) =>
+      config.tableColumns.some((column) =>
+        cellText(item[column.key], fieldByKey[column.key]).toLowerCase().includes(needle)
+      )
+    );
+  }, [config.tableColumns, fieldByKey, items, query]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const visible = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const editingItem = editingId ? items.find((item) => String(item.id) === editingId) : undefined;
+  const brokenFile = resource === "downloads" && editingItem?.fileProblem ? String(editingItem.fileProblem) : null;
+
+  function openForm(item: Item | null) {
+    setEditingId(item ? String(item.id) : null);
+    const values = item ? toFormValues(config.fields, item) : getDefaultValues(config.fields, items);
     if (resource === "downloads") {
-      values.fileUrl = item.fileUrl ?? "";
-      values.fileName = item.fileName ?? "";
-      values.fileSize = item.fileSize ?? "";
+      values.fileUrl = item?.fileUrl ?? "";
+      values.fileName = item?.fileName ?? "";
+      values.fileSize = item?.fileSize ?? "";
     }
     setForm(values);
+    setErrors({});
+    setServerError(null);
+    setSlugEdited(Boolean(item));
     setDialogOpen(true);
   }
 
   function setField(key: string, value: unknown) {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+      // While adding a record, the page address name follows the English title until it is typed by hand.
+      if (key === "titleEn" && hasSlugField && !slugEdited) next.slug = slugify(String(value));
+      return next;
+    });
+    if (key === "slug") setSlugEdited(true);
+    if (errors[key]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
   }
 
-  function handleSave() {
-    if (resource === "downloads") {
-      if (!form.fileUrl || !form.fileName) {
-        toast.error("Please upload a document file.");
-        return;
-      }
-    }
+  function handleSave(event: React.FormEvent) {
+    event.preventDefault();
+    if (isPending || uploading) return;
 
-    const payload = { ...form };
-    delete payload.fileAsset;
+    const problems = validateResourceValues(config, form);
+    setErrors(problems);
+    setServerError(null);
+    const firstInvalid = config.fields.find((field) => problems[field.key]);
+    if (firstInvalid) {
+      document.getElementById(fieldId(firstInvalid.key))?.focus();
+      return;
+    }
 
     startTransition(async () => {
       const result = editingId
-        ? await updateResource(resource, editingId, payload)
-        : await createResource(resource, payload);
+        ? await updateResource(resource, editingId, form)
+        : await createResource(resource, form);
 
       if (result.success) {
-        toast.success(editingId ? "Updated" : "Created");
+        toast.success(editingId ? "Changes saved" : `${capitalize(config.singular)} added`);
         setDialogOpen(false);
       } else {
+        setServerError(result.error);
         toast.error(result.error);
       }
     });
   }
 
   function handleDelete() {
-    if (!deleteId) return;
+    if (!deleteTarget || isPending) return;
+    const target = deleteTarget;
     startTransition(async () => {
-      const result = await deleteResource(resource, deleteId);
+      const result = await deleteResource(resource, String(target.id));
       if (result.success) {
-        toast.success("Deleted");
-        setDeleteId(null);
+        toast.success(`${capitalize(config.singular)} deleted`);
       } else {
         toast.error(result.error);
       }
+      setDeleteTarget(null);
     });
   }
 
-  return (
-    <div className="p-8">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-kiosk-navy">{config.name}</h1>
-          {config.description && <p className="text-gray-500">{config.description}</p>}
-        </div>
-        <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add New
-        </Button>
-      </div>
+  const errorCount = Object.keys(errors).length;
+
+  const content = (
+    <>
+      <AdminPageHeader
+        as={embedded ? "h2" : "h1"}
+        title={config.name}
+        description={config.description}
+        actions={
+          <Button onClick={() => openForm(null)}>
+            <Plus />
+            Add {config.singular}
+          </Button>
+        }
+      />
+
+      {children}
 
       <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-gray-50">
-            <tr>
-              {config.tableColumns.map((col) => (
-                <th key={col.key} className="px-4 py-3 text-left font-semibold text-gray-600">
-                  {col.label}
-                </th>
-              ))}
-              <th className="px-4 py-3 text-right font-semibold text-gray-600">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+        {items.length > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+            <div className="relative w-full max-w-xs">
+              <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                type="search"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(1);
+                }}
+                placeholder={`Search ${config.name.toLowerCase()}`}
+                aria-label={`Search ${config.name.toLowerCase()}`}
+                className="pl-8"
+              />
+            </div>
+            <p className="text-sm text-gray-500" aria-live="polite">
+              {query.trim()
+                ? `${filtered.length} of ${items.length} shown`
+                : `${items.length} ${items.length === 1 ? "record" : "records"}`}
+            </p>
+          </div>
+        ) : null}
+
+        {visible.length === 0 ? (
+          <div className="px-4 py-12 text-center">
             {items.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={config.tableColumns.length + 1}
-                  className="px-4 py-8 text-center text-gray-400"
-                >
-                  No records found. Click &quot;Add New&quot; to create one.
-                </td>
-              </tr>
+              <>
+                <p className="font-medium text-gray-700">Nothing here yet</p>
+                <p className="mt-1 text-sm text-gray-500">
+                  Use “Add {config.singular}” to create the first one.
+                </p>
+                {emptyExtra ? <div className="mt-5">{emptyExtra}</div> : null}
+              </>
             ) : (
-              items.map((item) => (
-                <tr key={String(item.id)} className="border-b last:border-0 hover:bg-gray-50">
-                  {config.tableColumns.map((col) => (
-                    <td key={col.key} className="px-4 py-3">
-                      {formatCellValue(item[col.key])}
-                    </td>
-                  ))}
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEdit(item)}
-                        aria-label="Edit"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeleteId(String(item.id))}
-                        aria-label="Delete"
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+              <>
+                <p className="font-medium text-gray-700">Nothing matches “{query.trim()}”</p>
+                <Button variant="outline" className="mt-3" onClick={() => setQuery("")}>
+                  <X />
+                  Clear search
+                </Button>
+              </>
             )}
-          </tbody>
-        </table>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b bg-gray-50 text-xs font-semibold tracking-wide text-gray-500 uppercase">
+                <tr>
+                  {config.tableColumns.map((column) => (
+                    <th key={column.key} scope="col" className="px-4 py-3 whitespace-nowrap">
+                      {column.label}
+                    </th>
+                  ))}
+                  <th scope="col" className="px-4 py-3 text-right">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {visible.map((item) => (
+                  <tr key={String(item.id)} className="hover:bg-gray-50">
+                    {config.tableColumns.map((column, index) => {
+                      const value = item[column.key];
+                      if (typeof value === "boolean") {
+                        return (
+                          <td key={column.key} className="px-4 py-3">
+                            {resource === "downloads" && item.fileProblem ? (
+                              <StatusBadge tone="warning">
+                                <AlertTriangle className="h-3 w-3" />
+                                File broken
+                              </StatusBadge>
+                            ) : (
+                              <StatusBadge tone={value ? "on" : "off"}>{value ? "Shown" : "Hidden"}</StatusBadge>
+                            )}
+                          </td>
+                        );
+                      }
+                      const text = cellText(value, fieldByKey[column.key]);
+                      return (
+                        <td
+                          key={column.key}
+                          className={cn(
+                            "max-w-md px-4 py-3",
+                            index === 0 ? "font-medium text-kiosk-navy" : "text-gray-600"
+                          )}
+                        >
+                          {text ? (
+                            <span className="line-clamp-2 break-words" title={text.length > 80 ? text : undefined}>
+                              {text}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openForm(item)}
+                          aria-label={`Edit ${titleOf(item)}`}
+                          title="Edit"
+                        >
+                          <Pencil />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteTarget(item)}
+                          aria-label={`Delete ${titleOf(item)}`}
+                          title="Delete"
+                          className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                        >
+                          <Trash2 />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {pageCount > 1 ? (
+          <div className="flex items-center justify-between gap-3 border-t px-4 py-3 text-sm text-gray-600">
+            <p>
+              Page {currentPage} of {pageCount}
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>
+                <ChevronLeft />
+                Previous
+              </Button>
+              <Button variant="outline" disabled={currentPage >= pageCount} onClick={() => setPage(currentPage + 1)}>
+                Next
+                <ChevronRight />
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{editingId ? `Edit ${config.name}` : `New ${config.name}`}</DialogTitle>
+      <Dialog open={dialogOpen} onOpenChange={(open) => (open || !isPending) && setDialogOpen(open)}>
+        <DialogContent className="flex max-h-[90dvh] flex-col gap-0 p-0 sm:max-w-3xl">
+          <DialogHeader className="border-b px-5 py-4">
+            <DialogTitle>{editingId ? `Edit ${config.singular}` : `Add ${config.singular}`}</DialogTitle>
+            <DialogDescription>
+              Fields marked <span className="text-destructive">*</span> are required.
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-2">
-            {config.fields.map((field) => (
-              <FormField
-                key={field.key}
-                field={field}
-                value={form[field.key]}
-                onChange={(v) => setField(field.key, v)}
-                uploadSlug={String(form.slug ?? "")}
-                onFileUploaded={(uploaded) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    fileAsset: uploaded,
-                    fileUrl: uploaded.fileUrl,
-                    fileName: uploaded.fileName,
-                    fileSize: uploaded.fileSize,
-                  }))
-                }
-              />
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={isPending}>
-              {isPending ? "Saving..." : "Save"}
-            </Button>
-          </DialogFooter>
+          <form onSubmit={handleSave} noValidate className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+              {errorCount > 0 || serverError ? (
+                <p
+                  role="alert"
+                  className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                >
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  {serverError ??
+                    (errorCount === 1
+                      ? "One field needs your attention."
+                      : `${errorCount} fields need your attention.`)}
+                </p>
+              ) : null}
+              {brokenFile ? (
+                <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    This document is turned off because its file is broken: {brokenFile} Upload a working copy and save
+                    to turn it back on.
+                  </span>
+                </p>
+              ) : null}
+              <div className="grid gap-4 sm:grid-cols-2">
+                {config.fields.map((field) => (
+                  <FormField
+                    key={field.key}
+                    field={field}
+                    value={form[field.key]}
+                    error={errors[field.key]}
+                    suggestions={suggestions[field.key]}
+                    document={
+                      field.type === "file"
+                        ? {
+                            fileUrl: String(form.fileUrl ?? ""),
+                            fileName: String(form.fileName ?? ""),
+                            fileSize: String(form.fileSize ?? ""),
+                          }
+                        : undefined
+                    }
+                    uploadSlug={String(form.slug ?? "")}
+                    disabled={isPending}
+                    onChange={(value) => setField(field.key, value)}
+                    onUploadingChange={setUploading}
+                    onDocumentUploaded={(uploaded: UploadedDocument) => {
+                      setForm((prev) => ({ ...prev, ...uploaded }));
+                      setErrors((prev) => {
+                        const next = { ...prev };
+                        delete next[field.key];
+                        return next;
+                      });
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+            <DialogFooter className="mx-0 mb-0 px-5">
+              <Button type="button" variant="outline" disabled={isPending} onClick={() => setDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isPending || uploading}>
+                {isPending ? "Saving…" : uploading ? "Uploading…" : editingId ? "Save changes" : `Add ${config.singular}`}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => !open && !isPending && setDeleteTarget(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this record?</AlertDialogTitle>
+            <AlertDialogTitle>Delete this {config.singular}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone.
+              “{deleteTarget ? titleOf(deleteTarget) : ""}” will be removed from the kiosk. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-              Delete
+            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isPending}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {isPending ? "Deleting…" : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
+
+  return embedded ? <section className="space-y-4">{content}</section> : <AdminPage>{content}</AdminPage>;
 }

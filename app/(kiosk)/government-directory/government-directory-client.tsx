@@ -13,7 +13,6 @@ import {
   Mail,
   MapPinned,
   Palmtree,
-  Phone,
   Scale,
   Settings2,
   UserRound,
@@ -137,7 +136,6 @@ export function GovernmentDirectoryClient({ directories }: { directories: Direct
           {directories.map((dir) => {
             const officeName = localized(dir, language, "name");
             const Icon = departmentIcon(officeName);
-            const phone = dir.contactNumber?.trim() || null;
             const email = dir.email?.trim() || null;
 
             return (
@@ -203,23 +201,6 @@ export function GovernmentDirectoryClient({ directories }: { directories: Direct
                     )}
                   </div>
 
-                  <div className="mt-auto shrink-0">
-                    {phone ? (
-                      <p className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-kiosk-navy px-3 py-2 text-sm font-bold text-white">
-                        <Phone className="h-4 w-4 shrink-0 opacity-90" />
-                        {phone}
-                      </p>
-                    ) : (
-                      <div className="inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-400">
-                        {pickLang(
-                          language,
-                          "No contact number",
-                          "Walang contact number",
-                          "Walay contact number"
-                        )}
-                      </div>
-                    )}
-                  </div>
                 </div>
               </article>
             );

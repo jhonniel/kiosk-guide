@@ -35,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ConfirmDialog, type ConfirmRequest } from "@/components/admin/admin-dialogs";
 import { cn } from "@/lib/utils";
 import { MAP_SPOT_LABELS } from "@/data/map/map-spot-labels";
 import { categoryMeta } from "@/features/map/categories";
@@ -719,6 +720,7 @@ export function MapAdminClient({
   const [creating, setCreating] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(initialAttractions[0]?.id ?? null);
   const [pending, startTransition] = useTransition();
+  const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
   const [uploading, setUploading] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [formTab, setFormTab] = useState<FormTab>("basics");
@@ -1649,8 +1651,18 @@ export function MapAdminClient({
         : mode === "municipalities"
           ? " Attractions linked to it will keep their pins but lose this municipality tag."
           : "";
-    if (!window.confirm(`Remove “${name}” from the map?${extra}\n\nThis cannot be undone.`)) return;
+    setConfirmRequest({
+      title: `Remove “${name}” from the map?`,
+      description: `${extra.trim() ? `${extra.trim()} ` : ""}This cannot be undone.`,
+      confirmLabel: "Remove",
+      destructive: true,
+      onConfirm: removeSelected,
+    });
+  };
 
+  const removeSelected = () => {
+    setConfirmRequest(null);
+    if (!selectedId || creating) return;
     startTransition(async () => {
       let result: { success: boolean; error?: string } = { success: false, error: "Unknown mode" };
       if (mode === "attractions") result = await deleteMapAttraction(selectedId);
@@ -3030,6 +3042,8 @@ export function MapAdminClient({
           </div>
         </aside>
       </div>
+
+      <ConfirmDialog request={confirmRequest} pending={pending} onCancel={() => setConfirmRequest(null)} />
     </div>
   );
 }

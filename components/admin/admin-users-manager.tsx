@@ -30,6 +30,7 @@ import {
   deleteAdminUser,
   updateAdminUser,
 } from "@/features/admin/user-actions";
+import { AdminPage, AdminPageHeader } from "@/components/admin/admin-page";
 import { cn } from "@/lib/utils";
 
 export type AdminUserRow = {
@@ -120,7 +121,24 @@ export function AdminUsersManager({ users, currentUserId }: Props) {
     setForm((prev) => ({ ...prev, permissions: [] }));
   }
 
-  function handleSave() {
+  function handleSave(event?: React.FormEvent) {
+    event?.preventDefault();
+    if (pending) return;
+    const problem = !form.name.trim()
+      ? "Name is required."
+      : !/^\S+@\S+\.\S+$/.test(form.email.trim())
+        ? "Enter a valid email address."
+        : !editingId && form.password.length < 6
+          ? "Password must be at least 6 characters."
+          : editingId && form.password && form.password.length < 6
+            ? "New password must be at least 6 characters."
+            : !form.fullAdmin && form.permissions.length === 0
+              ? "Select at least one feature, or turn on Full administrator."
+              : null;
+    if (problem) {
+      toast.error(problem);
+      return;
+    }
     startTransition(async () => {
       const payload = {
         name: form.name,
@@ -157,29 +175,29 @@ export function AdminUsersManager({ users, currentUserId }: Props) {
     });
   }
 
-  return (
-    <div className="p-8">
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-kiosk-navy">Users</h1>
-          <p className="text-gray-500">
-            Create admin accounts and choose which features each user can access.
-          </p>
-        </div>
-        <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add User
-        </Button>
-      </div>
+  const deleteTarget = users.find((u) => u.id === deleteId) ?? null;
 
-      <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
-        <table className="w-full text-sm">
+  return (
+    <AdminPage>
+      <AdminPageHeader
+        title="Users"
+        description="Create admin accounts and choose which features each user can open."
+        actions={
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4" />
+            Add user
+          </Button>
+        }
+      />
+
+      <div className="overflow-x-auto rounded-xl border bg-white shadow-sm">
+        <table className="w-full min-w-[640px] text-sm">
           <thead className="border-b bg-gray-50">
             <tr>
               <th className="px-4 py-3 text-left font-semibold text-gray-600">Name</th>
               <th className="px-4 py-3 text-left font-semibold text-gray-600">Email</th>
               <th className="px-4 py-3 text-left font-semibold text-gray-600">Access</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">Active</th>
+              <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
               <th className="px-4 py-3 text-right font-semibold text-gray-600">Actions</th>
             </tr>
           </thead>
@@ -234,7 +252,7 @@ export function AdminUsersManager({ users, currentUserId }: Props) {
                             : "bg-gray-100 text-gray-500"
                         )}
                       >
-                        {user.isActive ? "Yes" : "No"}
+                        {user.isActive ? "Active" : "Inactive"}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -243,7 +261,8 @@ export function AdminUsersManager({ users, currentUserId }: Props) {
                           variant="ghost"
                           size="sm"
                           onClick={() => openEdit(user)}
-                          aria-label="Edit user"
+                          aria-label={`Edit ${user.name}`}
+                          title="Edit"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -251,7 +270,8 @@ export function AdminUsersManager({ users, currentUserId }: Props) {
                           variant="ghost"
                           size="sm"
                           onClick={() => setDeleteId(user.id)}
-                          aria-label="Delete user"
+                          aria-label={`Delete ${user.name}`}
+                          title={user.id === currentUserId ? "You cannot delete your own account" : "Delete"}
                           disabled={user.id === currentUserId}
                           className="text-red-600 hover:text-red-700"
                         >
@@ -267,10 +287,11 @@ export function AdminUsersManager({ users, currentUserId }: Props) {
         </table>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => !pending && setDialogOpen(open)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <form onSubmit={handleSave} noValidate className="grid gap-4">
           <DialogHeader>
-            <DialogTitle>{editingId ? "Edit User" : "Add User"}</DialogTitle>
+            <DialogTitle>{editingId ? `Edit ${editingUser?.name ?? "user"}` : "Add user"}</DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-4 py-2">
@@ -393,24 +414,25 @@ export function AdminUsersManager({ users, currentUserId }: Props) {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={pending}>
+            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={pending}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={pending}>
-              {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {editingId ? "Save Changes" : "Create User"}
+            <Button type="submit" disabled={pending}>
+              {pending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {editingId ? "Save changes" : "Create user"}
             </Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && !pending && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this user?</AlertDialogTitle>
+            <AlertDialogTitle>Delete {deleteTarget?.name ?? "this user"}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently removes the account. They will no longer be able to sign in to the
-              admin panel.
+              {deleteTarget ? `${deleteTarget.email} will` : "They will"} no longer be able to sign in to the
+              admin panel. To keep the account for later, edit it and turn Active off instead.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -418,13 +440,13 @@ export function AdminUsersManager({ users, currentUserId }: Props) {
             <AlertDialogAction
               onClick={handleDelete}
               disabled={pending}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 text-white hover:bg-red-700"
             >
-              Delete
+              {pending ? "Deleting…" : "Delete user"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </AdminPage>
   );
 }

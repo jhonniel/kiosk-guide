@@ -43,6 +43,9 @@ const iconMap: Record<string, LucideIcon> = {
   Mail,
 };
 
+/** Icon names the kiosk can draw; anything else falls back to the help icon. */
+export const ICON_NAMES = Object.keys(iconMap);
+
 export function getIcon(name: string): LucideIcon {
   return iconMap[name] ?? HelpCircle;
 }

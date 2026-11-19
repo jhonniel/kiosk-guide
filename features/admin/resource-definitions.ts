@@ -1,4 +1,25 @@
-export type FieldType = "text" | "textarea" | "number" | "boolean" | "json" | "date" | "file" | "image";
+import { KIOSK_COLORS } from "@/lib/constants";
+import { ICON_NAMES } from "@/utils/icon-map";
+
+/**
+ * - `select`: one of a fixed list of values.
+ * - `lines`: a list edited one item per line, stored as a JSON array string.
+ * - `date`: date and time, entered and shown in Philippine time.
+ * - `file`: a document upload (Downloads); `image`: a picture upload stored as a URL.
+ */
+export type FieldType =
+  | "text"
+  | "textarea"
+  | "number"
+  | "boolean"
+  | "date"
+  | "file"
+  | "image"
+  | "select"
+  | "lines";
+
+/** Where an uploaded picture is stored under `public/images`. */
+export type ImageFolder = "homepage-cards" | "news" | "tourism";
 
 export interface ResourceField {
   key: string;
@@ -7,10 +28,22 @@ export interface ResourceField {
   required?: boolean;
   placeholder?: string;
   description?: string;
+  /** Choices for `select` fields. */
+  options?: { value: string; label: string }[];
+  /** Offer the values already used by other records as suggestions. */
+  suggest?: boolean;
+  /** Extra check on the text: page-address slug, kiosk link, or email address. */
+  format?: "slug" | "link" | "email";
+  /** For `image` fields: the folder the upload goes to. */
+  imageFolder?: ImageFolder;
+  /** Short fields sit two to a row in the form. */
+  half?: boolean;
 }
 
 export interface ResourceConfig {
   name: string;
+  /** One record, as in "Add service". */
+  singular: string;
   description?: string;
   fields: ResourceField[];
   tableColumns: { key: string; label: string }[];
@@ -30,301 +63,387 @@ export type ResourceKey =
   | "homepageCards"
   | "buildingLocations";
 
+const LANGUAGES = [
+  ["En", "English"],
+  ["Fil", "Filipino"],
+  ["Bis", "Bisaya"],
+] as const;
+
+/** One field per kiosk language, e.g. titleEn / titleFil / titleBis. */
+function translated(
+  base: string,
+  label: string,
+  type: "text" | "textarea" | "lines",
+  required: boolean | "english-only" = false,
+  extra: Partial<ResourceField> = {}
+): ResourceField[] {
+  return LANGUAGES.map(([suffix, language]) => ({
+    key: `${base}${suffix}`,
+    label: `${label} (${language})`,
+    type,
+    required: required === "english-only" ? suffix === "En" : required,
+    ...extra,
+  }));
+}
+
+const ICON_OPTIONS = ICON_NAMES.map((name) => ({ value: name, label: name }));
+const COLOR_OPTIONS = Object.keys(KIOSK_COLORS.card).map((name) => ({
+  value: name,
+  label: name.charAt(0).toUpperCase() + name.slice(1).replace("-", " "),
+}));
+
+const SLUG_FIELD: ResourceField = {
+  key: "slug",
+  label: "Page address name",
+  type: "text",
+  required: true,
+  format: "slug",
+  placeholder: "business-permit",
+  description: "Short name used in the page address. Lowercase letters, numbers and dashes only.",
+  half: true,
+};
+const SORT_FIELD: ResourceField = {
+  key: "sortOrder",
+  label: "Sort order",
+  type: "number",
+  description: "Lower numbers are listed first.",
+  half: true,
+};
+const LINK_FIELD: ResourceField = {
+  key: "href",
+  label: "Opens page",
+  type: "text",
+  required: true,
+  format: "link",
+  placeholder: "/services/business-permit",
+  description: "The kiosk page this opens, starting with a slash.",
+  half: true,
+};
+
 export const RESOURCE_CONFIGS: Record<ResourceKey, ResourceConfig> = {
   services: {
     name: "Services",
+    singular: "service",
     description: "Government services shown on the kiosk.",
     tableColumns: [
       { key: "titleEn", label: "Title" },
-      { key: "slug", label: "Slug" },
+      { key: "slug", label: "Page address name" },
       { key: "category", label: "Category" },
-      { key: "isActive", label: "Active" },
+      { key: "isActive", label: "Status" },
     ],
     fields: [
-      { key: "slug", label: "Slug", type: "text", required: true },
-      { key: "titleEn", label: "Title (EN)", type: "text", required: true },
-      { key: "titleFil", label: "Title (FIL)", type: "text", required: true },
-      { key: "titleBis", label: "Title (BIS)", type: "text", required: true },
-      { key: "descriptionEn", label: "Description (EN)", type: "textarea", required: true },
-      { key: "descriptionFil", label: "Description (FIL)", type: "textarea", required: true },
-      { key: "descriptionBis", label: "Description (BIS)", type: "textarea", required: true },
-      { key: "requirementsEn", label: "Requirements (EN)", type: "textarea" },
-      { key: "requirementsFil", label: "Requirements (FIL)", type: "textarea" },
-      { key: "requirementsBis", label: "Requirements (BIS)", type: "textarea" },
-      { key: "documentsEn", label: "Documents (EN)", type: "textarea" },
-      { key: "documentsFil", label: "Documents (FIL)", type: "textarea" },
-      { key: "documentsBis", label: "Documents (BIS)", type: "textarea" },
-      { key: "officeLocation", label: "Office location", type: "text" },
-      { key: "officeHours", label: "Office hours", type: "text" },
-      { key: "processingTime", label: "Processing time", type: "text" },
-      { key: "fee", label: "Fee", type: "text" },
+      ...translated("title", "Title", "text", true),
+      SLUG_FIELD,
+      { key: "category", label: "Category", type: "text", suggest: true, half: true },
+      ...translated("description", "Description", "textarea", true),
+      ...translated("requirements", "Requirements", "textarea"),
+      ...translated("documents", "Documents", "textarea"),
+      { key: "officeLocation", label: "Office location", type: "text", half: true },
+      { key: "officeHours", label: "Office hours", type: "text", half: true },
+      { key: "processingTime", label: "Processing time", type: "text", half: true },
+      { key: "fee", label: "Fee", type: "text", half: true },
       { key: "contactInfo", label: "Contact info", type: "text" },
-      { key: "category", label: "Category", type: "text" },
-      { key: "icon", label: "Icon name", type: "text", placeholder: "Briefcase" },
-      { key: "color", label: "Color", type: "text" },
-      { key: "sortOrder", label: "Sort order", type: "number" },
-      { key: "isActive", label: "Active", type: "boolean" },
+      { key: "icon", label: "Icon", type: "select", options: ICON_OPTIONS, half: true },
+      { key: "color", label: "Color", type: "select", options: COLOR_OPTIONS, half: true },
+      SORT_FIELD,
+      { key: "isActive", label: "Show on the kiosk", type: "boolean" },
     ],
   },
   directories: {
     name: "Directories",
-    description: "Government and building office listings.",
+    singular: "office",
+    description: "Offices listed in the Government Directory and the Building Directory.",
     tableColumns: [
       { key: "nameEn", label: "Name" },
-      { key: "type", label: "Type" },
+      { key: "type", label: "Listed in" },
       { key: "floor", label: "Floor" },
-      { key: "isActive", label: "Active" },
+      { key: "isActive", label: "Status" },
     ],
     fields: [
-      { key: "type", label: "Type", type: "text", required: true, placeholder: "government | building" },
-      { key: "nameEn", label: "Name (EN)", type: "text", required: true },
-      { key: "nameFil", label: "Name (FIL)", type: "text", required: true },
-      { key: "nameBis", label: "Name (BIS)", type: "text", required: true },
-      { key: "descriptionEn", label: "Description (EN)", type: "textarea" },
-      { key: "descriptionFil", label: "Description (FIL)", type: "textarea" },
-      { key: "descriptionBis", label: "Description (BIS)", type: "textarea" },
-      { key: "floor", label: "Floor", type: "text" },
-      { key: "room", label: "Room", type: "text" },
-      { key: "building", label: "Building", type: "text" },
-      { key: "department", label: "Department", type: "text" },
-      { key: "headName", label: "Head name", type: "text" },
-      { key: "contactNumber", label: "Contact number", type: "text" },
-      { key: "email", label: "Email", type: "text" },
-      { key: "officeHours", label: "Office hours", type: "text" },
-      { key: "sortOrder", label: "Sort order", type: "number" },
-      { key: "isActive", label: "Active", type: "boolean" },
+      {
+        key: "type",
+        label: "Listed in",
+        type: "select",
+        required: true,
+        options: [
+          { value: "government", label: "Government Directory" },
+          { value: "building", label: "Building Directory" },
+        ],
+        half: true,
+      },
+      ...translated("name", "Name", "text", true),
+      ...translated("description", "Description", "textarea"),
+      { key: "building", label: "Building", type: "text", suggest: true, half: true },
+      { key: "floor", label: "Floor", type: "text", suggest: true, half: true },
+      { key: "room", label: "Room", type: "text", half: true },
+      { key: "department", label: "Department", type: "text", half: true },
+      { key: "headName", label: "Head of office", type: "text", half: true },
+      { key: "contactNumber", label: "Contact number", type: "text", half: true },
+      { key: "email", label: "Email", type: "text", format: "email", half: true },
+      { key: "officeHours", label: "Office hours", type: "text", half: true },
+      SORT_FIELD,
+      { key: "isActive", label: "Show on the kiosk", type: "boolean" },
     ],
   },
   downloads: {
-    name: "Downloads",
+    name: "Documents",
+    singular: "document",
+    description: "Forms and files visitors can send to their phone or email from the Download Center.",
     tableColumns: [
       { key: "titleEn", label: "Title" },
       { key: "category", label: "Category" },
       { key: "downloadCount", label: "Downloads" },
-      { key: "isActive", label: "Active" },
+      { key: "isActive", label: "Status" },
     ],
     fields: [
-      { key: "titleEn", label: "Title (EN)", type: "text", required: true },
-      { key: "titleFil", label: "Title (FIL)", type: "text", required: true },
-      { key: "titleBis", label: "Title (BIS)", type: "text", required: true },
-      { key: "descriptionEn", label: "Description (EN)", type: "textarea" },
-      { key: "descriptionFil", label: "Description (FIL)", type: "textarea" },
-      { key: "descriptionBis", label: "Description (BIS)", type: "textarea" },
-      { key: "fileAsset", label: "Document file", type: "file", required: true, description: "Uploaded to DigitalOcean Spaces when enabled in Settings → File Storage." },
-      { key: "category", label: "Category", type: "text" },
-      { key: "sortOrder", label: "Sort order", type: "number" },
-      { key: "isActive", label: "Active", type: "boolean" },
+      ...translated("title", "Title", "text", true),
+      ...translated("description", "Description", "textarea"),
+      {
+        key: "fileAsset",
+        label: "Document file",
+        type: "file",
+        required: true,
+        description: "PDF, Word, Excel, image or text file.",
+      },
+      { key: "category", label: "Category", type: "text", suggest: true, half: true },
+      SORT_FIELD,
+      { key: "isActive", label: "Show on the kiosk", type: "boolean" },
     ],
   },
   announcements: {
     name: "Announcements",
+    singular: "announcement",
+    description: "News and announcements shown on the kiosk.",
     tableColumns: [
       { key: "titleEn", label: "Title" },
-      { key: "isPublished", label: "Published" },
+      { key: "publishedAt", label: "Posted" },
+      { key: "isPublished", label: "Status" },
     ],
     fields: [
-      { key: "titleEn", label: "Title (EN)", type: "text", required: true },
-      { key: "titleFil", label: "Title (FIL)", type: "text", required: true },
-      { key: "titleBis", label: "Title (BIS)", type: "text", required: true },
-      { key: "contentEn", label: "Content (EN)", type: "textarea", required: true },
-      { key: "contentFil", label: "Content (FIL)", type: "textarea", required: true },
-      { key: "contentBis", label: "Content (BIS)", type: "textarea", required: true },
-      { key: "imageUrl", label: "Image URL", type: "text" },
-      { key: "isPublished", label: "Published", type: "boolean" },
+      ...translated("title", "Title", "text", true),
+      ...translated("content", "Content", "textarea", true),
+      {
+        key: "imageUrl",
+        label: "Picture",
+        type: "image",
+        imageFolder: "news",
+        description: "Optional. PNG, JPG, SVG or WebP, up to 5 MB.",
+      },
+      { key: "isPublished", label: "Show on the kiosk", type: "boolean" },
     ],
   },
   faqs: {
     name: "FAQs",
+    singular: "question",
+    description: "Frequently asked questions shown on the kiosk.",
     tableColumns: [
       { key: "questionEn", label: "Question" },
       { key: "category", label: "Category" },
-      { key: "isActive", label: "Active" },
+      { key: "isActive", label: "Status" },
     ],
     fields: [
-      { key: "questionEn", label: "Question (EN)", type: "text", required: true },
-      { key: "questionFil", label: "Question (FIL)", type: "text", required: true },
-      { key: "questionBis", label: "Question (BIS)", type: "text", required: true },
-      { key: "answerEn", label: "Answer (EN)", type: "textarea", required: true },
-      { key: "answerFil", label: "Answer (FIL)", type: "textarea", required: true },
-      { key: "answerBis", label: "Answer (BIS)", type: "textarea", required: true },
-      { key: "category", label: "Category", type: "text" },
-      { key: "sortOrder", label: "Sort order", type: "number" },
-      { key: "isActive", label: "Active", type: "boolean" },
+      ...translated("question", "Question", "text", true),
+      ...translated("answer", "Answer", "textarea", true),
+      { key: "category", label: "Category", type: "text", suggest: true, half: true },
+      SORT_FIELD,
+      { key: "isActive", label: "Show on the kiosk", type: "boolean" },
     ],
   },
   events: {
     name: "Events",
+    singular: "event",
+    description: "Events shown on the kiosk calendar.",
     tableColumns: [
       { key: "titleEn", label: "Title" },
-      { key: "startDate", label: "Start" },
-      { key: "isActive", label: "Active" },
+      { key: "startDate", label: "Starts" },
+      { key: "endDate", label: "Ends" },
+      { key: "isActive", label: "Status" },
     ],
     fields: [
-      { key: "titleEn", label: "Title (EN)", type: "text", required: true },
-      { key: "titleFil", label: "Title (FIL)", type: "text", required: true },
-      { key: "titleBis", label: "Title (BIS)", type: "text", required: true },
-      { key: "descriptionEn", label: "Description (EN)", type: "textarea", required: true },
-      { key: "descriptionFil", label: "Description (FIL)", type: "textarea", required: true },
-      { key: "descriptionBis", label: "Description (BIS)", type: "textarea", required: true },
+      ...translated("title", "Title", "text", true),
+      ...translated("description", "Description", "textarea", true),
       { key: "location", label: "Location", type: "text" },
-      { key: "startDate", label: "Start date", type: "date", required: true },
-      { key: "endDate", label: "End date", type: "date" },
-      { key: "isActive", label: "Active", type: "boolean" },
+      {
+        key: "startDate",
+        label: "Starts",
+        type: "date",
+        required: true,
+        description: "Philippine time.",
+        half: true,
+      },
+      {
+        key: "endDate",
+        label: "Ends",
+        type: "date",
+        description: "Optional. Philippine time.",
+        half: true,
+      },
+      { key: "isActive", label: "Show on the kiosk", type: "boolean" },
     ],
   },
   emergency: {
     name: "Emergency Contacts",
+    singular: "emergency contact",
+    description: "Hotlines shown on the kiosk Emergency page, grouped by area.",
     tableColumns: [
       { key: "nameEn", label: "Name" },
       { key: "phoneNumber", label: "Phone" },
-      { key: "isActive", label: "Active" },
+      { key: "category", label: "Area" },
+      { key: "isActive", label: "Status" },
     ],
     fields: [
-      { key: "nameEn", label: "Name (EN)", type: "text", required: true },
-      { key: "nameFil", label: "Name (FIL)", type: "text", required: true },
-      { key: "nameBis", label: "Name (BIS)", type: "text", required: true },
-      { key: "phoneNumber", label: "Phone number", type: "text", required: true },
-      { key: "descriptionEn", label: "Description (EN)", type: "textarea" },
-      { key: "descriptionFil", label: "Description (FIL)", type: "textarea" },
-      { key: "descriptionBis", label: "Description (BIS)", type: "textarea" },
-      { key: "category", label: "Category", type: "text" },
-      { key: "sortOrder", label: "Sort order", type: "number" },
-      { key: "isActive", label: "Active", type: "boolean" },
+      ...translated("name", "Name", "text", true),
+      { key: "phoneNumber", label: "Phone number", type: "text", required: true, half: true },
+      {
+        key: "category",
+        label: "Area",
+        type: "text",
+        suggest: true,
+        placeholder: "Province",
+        description: "“Province” for province-wide hotlines, or the municipality name.",
+        half: true,
+      },
+      ...translated("description", "Description", "textarea"),
+      SORT_FIELD,
+      { key: "isActive", label: "Show on the kiosk", type: "boolean" },
     ],
   },
   tourism: {
     name: "Tourism",
+    singular: "tourism spot",
+    description: "Places to visit shown on the kiosk Tourism page.",
     tableColumns: [
       { key: "titleEn", label: "Title" },
       { key: "location", label: "Location" },
-      { key: "isActive", label: "Active" },
+      { key: "category", label: "Category" },
+      { key: "isActive", label: "Status" },
     ],
     fields: [
-      { key: "titleEn", label: "Title (EN)", type: "text", required: true },
-      { key: "titleFil", label: "Title (FIL)", type: "text", required: true },
-      { key: "titleBis", label: "Title (BIS)", type: "text", required: true },
-      { key: "descriptionEn", label: "Description (EN)", type: "textarea", required: true },
-      { key: "descriptionFil", label: "Description (FIL)", type: "textarea", required: true },
-      { key: "descriptionBis", label: "Description (BIS)", type: "textarea", required: true },
-      { key: "location", label: "Location", type: "text" },
-      { key: "imageUrl", label: "Image URL", type: "text" },
-      { key: "category", label: "Category", type: "text" },
-      { key: "sortOrder", label: "Sort order", type: "number" },
-      { key: "isActive", label: "Active", type: "boolean" },
+      ...translated("title", "Title", "text", true),
+      ...translated("description", "Description", "textarea", true),
+      { key: "location", label: "Location", type: "text", half: true },
+      { key: "category", label: "Category", type: "text", suggest: true, half: true },
+      {
+        key: "imageUrl",
+        label: "Picture",
+        type: "image",
+        imageFolder: "tourism",
+        description: "Optional. PNG, JPG, SVG or WebP, up to 5 MB.",
+      },
+      SORT_FIELD,
+      { key: "isActive", label: "Show on the kiosk", type: "boolean" },
     ],
   },
   quickLinks: {
-    name: "Quick Start Links",
-    description:
-      "Legacy admin shortcuts (no longer shown on the kiosk). Quick Start is built automatically from real visit history across homepage modules and services.",
+    name: "Search Shortcuts",
+    singular: "shortcut",
+    description: "Extra shortcuts that appear in the kiosk search results.",
     tableColumns: [
       { key: "titleEn", label: "Title" },
-      { key: "href", label: "Link" },
-      { key: "isActive", label: "Active" },
+      { key: "href", label: "Opens page" },
+      { key: "isActive", label: "Status" },
     ],
     fields: [
-      { key: "slug", label: "Slug", type: "text", required: true },
-      { key: "titleEn", label: "Title (EN)", type: "text", required: true },
-      { key: "titleFil", label: "Title (FIL)", type: "text", required: true },
-      { key: "titleBis", label: "Title (BIS)", type: "text", required: true },
-      { key: "icon", label: "Icon name", type: "text", required: true, placeholder: "Briefcase" },
-      { key: "href", label: "URL path", type: "text", required: true },
-      { key: "sortOrder", label: "Sort order", type: "number" },
-      { key: "isActive", label: "Active", type: "boolean" },
+      ...translated("title", "Title", "text", true),
+      SLUG_FIELD,
+      LINK_FIELD,
+      { key: "icon", label: "Icon", type: "select", required: true, options: ICON_OPTIONS, half: true },
+      SORT_FIELD,
+      { key: "isActive", label: "Show in search", type: "boolean" },
     ],
   },
   homepageCards: {
     name: "Homepage Cards",
+    singular: "homepage card",
     description: "Main grid cards on the kiosk home screen.",
     tableColumns: [
       { key: "titleEn", label: "Title" },
-      { key: "href", label: "Link" },
-      { key: "isActive", label: "Active" },
+      { key: "href", label: "Opens page" },
+      { key: "sortOrder", label: "Order" },
+      { key: "isActive", label: "Status" },
     ],
     fields: [
-      { key: "slug", label: "Slug", type: "text", required: true },
-      { key: "titleEn", label: "Title (EN)", type: "text", required: true },
-      { key: "titleFil", label: "Title (FIL)", type: "text", required: true },
-      { key: "titleBis", label: "Title (BIS)", type: "text", required: true },
-      { key: "descriptionEn", label: "Description (EN)", type: "textarea", required: true },
-      { key: "descriptionFil", label: "Description (FIL)", type: "textarea", required: true },
-      { key: "descriptionBis", label: "Description (BIS)", type: "textarea", required: true },
+      ...translated("title", "Title", "text", true),
+      SLUG_FIELD,
+      LINK_FIELD,
+      ...translated("description", "Description", "textarea", true),
       {
         key: "iconUrl",
         label: "Card icon image",
         type: "image",
-        description: "Upload a PNG, JPG, SVG, or WebP icon. Shown on the kiosk home grid when set.",
+        imageFolder: "homepage-cards",
+        description: "Optional. PNG, JPG, SVG or WebP, up to 2 MB. Shown on the home grid when set.",
       },
       {
         key: "icon",
-        label: "Fallback icon name",
-        type: "text",
+        label: "Fallback icon",
+        type: "select",
         required: true,
-        placeholder: "FileCheck",
-        description: "Lucide icon name used when no image is uploaded.",
+        options: ICON_OPTIONS,
+        description: "Used when no image is uploaded.",
+        half: true,
       },
-      { key: "color", label: "Color", type: "text", required: true },
-      { key: "href", label: "URL path", type: "text", required: true },
-      { key: "sortOrder", label: "Sort order", type: "number" },
-      { key: "isActive", label: "Active", type: "boolean" },
+      { key: "color", label: "Color", type: "select", required: true, options: COLOR_OPTIONS, half: true },
+      SORT_FIELD,
+      { key: "isActive", label: "Show on the kiosk", type: "boolean" },
     ],
   },
   buildingLocations: {
     name: "Building Locations",
-    description: "Rooms and facilities for indoor navigation when official floor plan is enabled.",
+    singular: "location",
+    description: "Rooms and facilities visitors can look up in the Building Directory.",
     tableColumns: [
       { key: "nameEn", label: "Name" },
-      { key: "floor", label: "Floor" },
+      { key: "floorLabelEn", label: "Floor" },
       { key: "room", label: "Room" },
-      { key: "isActive", label: "Active" },
+      { key: "locationType", label: "Type" },
+      { key: "isActive", label: "Status" },
     ],
     fields: [
-      { key: "buildingNameEn", label: "Building name (EN)", type: "text", required: true },
-      { key: "buildingNameFil", label: "Building name (FIL)", type: "text" },
-      { key: "buildingNameBis", label: "Building name (BIS)", type: "text" },
-      { key: "nameEn", label: "Location name (EN)", type: "text", required: true },
-      { key: "nameFil", label: "Location name (FIL)", type: "text" },
-      { key: "nameBis", label: "Location name (BIS)", type: "text" },
-      { key: "floor", label: "Floor number", type: "number", required: true },
-      { key: "floorLabelEn", label: "Floor label (EN)", type: "text", required: true },
-      { key: "floorLabelFil", label: "Floor label (FIL)", type: "text" },
-      { key: "floorLabelBis", label: "Floor label (BIS)", type: "text" },
-      { key: "room", label: "Room number", type: "text" },
-      { key: "locationType", label: "Type", type: "text", required: true, placeholder: "room | facility" },
-      { key: "category", label: "Category", type: "text" },
+      ...translated("buildingName", "Building name", "text", "english-only"),
+      ...translated("name", "Location name", "text", "english-only"),
+      {
+        key: "floor",
+        label: "Floor number",
+        type: "number",
+        required: true,
+        description: "1 for the ground floor, 2 for the next floor up.",
+        half: true,
+      },
+      { key: "room", label: "Room number", type: "text", half: true },
+      ...translated("floorLabel", "Floor label", "text", "english-only", { placeholder: "Ground Floor" }),
+      {
+        key: "locationType",
+        label: "Type",
+        type: "select",
+        required: true,
+        options: [
+          { value: "room", label: "Room or office" },
+          { value: "facility", label: "Facility (restroom, stairs, exit…)" },
+        ],
+        half: true,
+      },
+      { key: "category", label: "Category", type: "text", suggest: true, half: true },
       {
         key: "nearbyLandmarks",
-        label: "Nearby landmarks (JSON array)",
-        type: "json",
-        placeholder: '["Main hallway", "Elevator"]',
+        label: "Nearby landmarks",
+        type: "lines",
+        placeholder: "Main hallway\nElevator",
+        description: "One landmark per line.",
       },
-      {
-        key: "directionsEn",
-        label: "Directions (EN, JSON array)",
-        type: "json",
-        required: true,
-        placeholder: '["Turn left", "Room on the right"]',
-      },
-      {
-        key: "directionsFil",
-        label: "Directions (FIL, JSON array)",
-        type: "json",
-        placeholder: '["Kumaliwa", "Silid sa kanan"]',
-      },
-      {
-        key: "directionsBis",
-        label: "Directions (BIS, JSON array)",
-        type: "json",
-        placeholder: '["Kumaliwa", "Kwarto sa tuo"]',
-      },
+      ...translated("directions", "Directions", "lines", "english-only", {
+        placeholder: "Turn left at the lobby\nThe room is on the right",
+        description: "One step per line.",
+      }),
       {
         key: "aliases",
-        label: "Search aliases (JSON array)",
-        type: "json",
-        placeholder: '["registrar", "records"]',
+        label: "Other names people search for",
+        type: "lines",
+        placeholder: "registrar\nrecords",
+        description: "One name per line.",
       },
-      { key: "sortOrder", label: "Sort order", type: "number" },
-      { key: "isActive", label: "Active", type: "boolean" },
+      SORT_FIELD,
+      { key: "isActive", label: "Show on the kiosk", type: "boolean" },
     ],
   },
 };

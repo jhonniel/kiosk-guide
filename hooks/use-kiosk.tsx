@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import type { Language } from "@/lib/i18n/translations";
 import { KIOSK_IDLE_ATTRACT_EVENT, type KioskIdleAttractDetail } from "@/lib/kiosk-events";
+import { startNewKioskSession } from "@/features/kiosk/visit-tracking";
 
 interface KioskContextValue {
   language: Language;
@@ -59,6 +60,7 @@ export function KioskProvider({ children }: { children: ReactNode }) {
     const onIdle = (event: Event) => {
       // Only the full idle screen; the "Are you still there?" prompt keeps the visitor's settings.
       if ((event as CustomEvent<KioskIdleAttractDetail>).detail?.phase !== "video") return;
+      startNewKioskSession();
       setLargeText(false);
       setHighContrast(false);
       setWheelchairMode(false);

@@ -18,6 +18,15 @@ function slugify(s: string) {
     .slice(0, 64);
 }
 
+/** Returns a message for sign-in and permission failures; logs anything else so the caller shows its fallback. */
+function friendlyError(error: unknown): string | null {
+  const message = error instanceof Error ? error.message : "";
+  if (message === "Unauthorized") return "Your session has ended. Sign in again.";
+  if (message === "Forbidden") return "You do not have permission to edit the indoor map.";
+  console.error("[indoor-map admin]", error);
+  return null;
+}
+
 function revalidateIndoor() {
   revalidatePath("/admin/indoor-map");
   revalidatePath("/building-directory");
@@ -58,7 +67,22 @@ export async function createIndoorBuilding(data: {
     revalidateIndoor();
     return { success: true, id: created.id };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to create building" };
+    return { success: false, error: friendlyError(e) ?? "Failed to create building" };
+  }
+}
+
+export async function deleteIndoorBuilding(id: string): Promise<ActionResult> {
+  try {
+    await requirePermission("manage_indoor_map");
+    const floorCount = await db.indoorFloor.count({ where: { buildingId: id } });
+    if (floorCount > 0) {
+      return { success: false, error: "Delete this building's floors first." };
+    }
+    await db.indoorBuilding.delete({ where: { id } });
+    revalidateIndoor();
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: friendlyError(e) ?? "Failed to delete building" };
   }
 }
 
@@ -89,7 +113,7 @@ export async function createIndoorFloor(data: {
     revalidateIndoor();
     return { success: true, id: created.id };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to create floor" };
+    return { success: false, error: friendlyError(e) ?? "Failed to create floor" };
   }
 }
 
@@ -122,7 +146,7 @@ export async function updateIndoorFloorSettings(
     revalidateIndoor();
     return { success: true };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to update floor" };
+    return { success: false, error: friendlyError(e) ?? "Failed to update floor" };
   }
 }
 
@@ -154,7 +178,7 @@ export async function attachFloorPlanAsset(data: {
     revalidateIndoor();
     return { success: true, assetId: asset.id };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to attach floor plan" };
+    return { success: false, error: friendlyError(e) ?? "Failed to attach floor plan" };
   }
 }
 
@@ -165,7 +189,7 @@ export async function setFloorAssetLocked(assetId: string, locked: boolean): Pro
     revalidateIndoor();
     return { success: true };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to update lock" };
+    return { success: false, error: friendlyError(e) ?? "Failed to update lock" };
   }
 }
 
@@ -229,7 +253,7 @@ export async function upsertIndoorRoom(data: {
     revalidateIndoor();
     return { success: true, id: row.id };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to save room" };
+    return { success: false, error: friendlyError(e) ?? "Failed to save room" };
   }
 }
 
@@ -240,7 +264,7 @@ export async function deleteIndoorRoom(id: string): Promise<ActionResult> {
     revalidateIndoor();
     return { success: true };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to delete room" };
+    return { success: false, error: friendlyError(e) ?? "Failed to delete room" };
   }
 }
 
@@ -269,7 +293,7 @@ export async function upsertIndoorAmenity(data: {
     revalidateIndoor();
     return { success: true, id: row.id };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to save amenity" };
+    return { success: false, error: friendlyError(e) ?? "Failed to save amenity" };
   }
 }
 
@@ -280,7 +304,7 @@ export async function deleteIndoorAmenity(id: string): Promise<ActionResult> {
     revalidateIndoor();
     return { success: true };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to delete amenity" };
+    return { success: false, error: friendlyError(e) ?? "Failed to delete amenity" };
   }
 }
 
@@ -311,7 +335,7 @@ export async function upsertIndoorNavNode(data: {
     revalidateIndoor();
     return { success: true, id: row.id };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to save node" };
+    return { success: false, error: friendlyError(e) ?? "Failed to save node" };
   }
 }
 
@@ -325,7 +349,7 @@ export async function deleteIndoorNavNode(id: string): Promise<ActionResult> {
     revalidateIndoor();
     return { success: true };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to delete node" };
+    return { success: false, error: friendlyError(e) ?? "Failed to delete node" };
   }
 }
 
@@ -384,7 +408,7 @@ export async function connectIndoorNavNodes(data: {
     revalidateIndoor();
     return { success: true, id: row.id };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to connect nodes" };
+    return { success: false, error: friendlyError(e) ?? "Failed to connect nodes" };
   }
 }
 
@@ -395,7 +419,7 @@ export async function deleteIndoorNavEdge(id: string): Promise<ActionResult> {
     revalidateIndoor();
     return { success: true };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to delete edge" };
+    return { success: false, error: friendlyError(e) ?? "Failed to delete edge" };
   }
 }
 
@@ -409,7 +433,7 @@ export async function publishIndoorFloor(floorId: string): Promise<ActionResult>
     revalidateIndoor();
     return { success: true };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to publish floor" };
+    return { success: false, error: friendlyError(e) ?? "Failed to publish floor" };
   }
 }
 
@@ -423,7 +447,7 @@ export async function unpublishIndoorFloor(floorId: string): Promise<ActionResul
     revalidateIndoor();
     return { success: true };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to unpublish floor" };
+    return { success: false, error: friendlyError(e) ?? "Failed to unpublish floor" };
   }
 }
 
@@ -434,7 +458,7 @@ export async function deleteIndoorFloor(floorId: string): Promise<ActionResult> 
     revalidateIndoor();
     return { success: true };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Failed to delete floor" };
+    return { success: false, error: friendlyError(e) ?? "Failed to delete floor" };
   }
 }
 
@@ -466,6 +490,6 @@ export async function computeIndoorRoute(data: {
     if (!route) return { success: false, error: "No route found between those points." };
     return { success: true, route };
   } catch (e) {
-    return { success: false, error: e instanceof Error ? e.message : "Routing failed" };
+    return { success: false, error: friendlyError(e) ?? "Routing failed" };
   }
 }

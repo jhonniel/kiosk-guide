@@ -1,6 +1,7 @@
 import { loadIndoorAdminHome } from "@/features/indoor-map/admin-data";
 import { IndoorMapAdminHome } from "./indoor-map-home-client";
 import { requireAdminPage } from "@/lib/admin-page-auth";
+import { AdminNotice, AdminPage, AdminPageHeader } from "@/components/admin/admin-page";
 
 export default async function IndoorMapAdminPage() {
   await requireAdminPage("manage_indoor_map");
@@ -9,10 +10,14 @@ export default async function IndoorMapAdminPage() {
   try {
     data = await loadIndoorAdminHome();
   } catch (e) {
+    console.error("[admin/indoor-map] Failed to load indoor map admin data:", e);
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
-        {e instanceof Error ? e.message : "Failed to load indoor map admin."}
-      </div>
+      <AdminPage>
+        <AdminPageHeader title="Indoor Map" />
+        <AdminNotice tone="error" title="The indoor map editor could not be loaded.">
+          Refresh the page to try again. If this keeps happening, check that the database is running.
+        </AdminNotice>
+      </AdminPage>
     );
   }
 
