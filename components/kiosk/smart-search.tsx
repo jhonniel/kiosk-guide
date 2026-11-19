@@ -16,11 +16,15 @@ import { loadCitizensCharterOfflineData } from "@/lib/offline/idb";
 import type { CitizensCharterOfflineBundle } from "@/features/offline/types";
 import type { CharterEditionView } from "@/features/citizens-charter/types";
 import type { SearchResult } from "@/features/search/search-service";
+import { logKioskSearch } from "@/features/kiosk/actions";
+import { getKioskSessionId } from "@/features/kiosk/visit-tracking";
 
 const TYPE_MS = 48;
 const ERASE_MS = 28;
 const HOLD_MS = 1400;
 const GAP_MS = 350;
+/** Searches are logged once the visitor pauses typing, so half-typed words aren't counted. */
+const SEARCH_LOG_DELAY_MS = 1500;
 const CAMI_ICON = "/images/cami/cami-badge-solid.jpg";
 
 type TypewriterPhase = "typing" | "holding" | "erasing" | "gap";
@@ -60,6 +64,8 @@ export function SmartSearch() {
   const charIndexRef = useRef(0);
   const phaseRef = useRef<TypewriterPhase>("holding");
   const camiRequestIdRef = useRef(0);
+  const offlineResultsForRef = useRef<string | null>(null);
+  const lastLoggedSearchRef = useRef<string | null>(null);
 
   queryRef.current = query;
 
@@ -159,6 +165,7 @@ export function SmartSearch() {
 
   useEffect(() => {
     if (!query.trim()) {
+      lastLoggedSearchRef.current = null;
       setResults([]);
       setCamiReply(null);
       setCamiBusy(false);
@@ -168,11 +175,13 @@ export function SmartSearch() {
 
     const searchTimer = window.setTimeout(async () => {
       if (offlineData) {
+        offlineResultsForRef.current = query;
         setResults(searchAllOffline(query, language, offlineData, charterEdition));
         setIsOpen(true);
         return;
       }
 
+      offlineResultsForRef.current = null;
       try {
         const res = await kioskSyncFetch(`/api/search?q=${encodeURIComponent(query)}&lang=${language}`);
         const data = await res.json();
@@ -210,6 +219,20 @@ export function SmartSearch() {
       window.clearTimeout(camiTimer);
     };
   }, [query, language, offlineData, charterEdition]);
+
+  // `/api/search` logs on the server; offline searches are logged here.
+  useEffect(() => {
+    const term = query.trim();
+    if (term.length < 2 || offlineResultsForRef.current !== query) return;
+
+    const timer = window.setTimeout(() => {
+      const key = `${language}:${term.toLowerCase()}`;
+      if (lastLoggedSearchRef.current === key) return;
+      lastLoggedSearchRef.current = key;
+      void logKioskSearch(term, results.length, getKioskSessionId()).catch(() => undefined);
+    }, SEARCH_LOG_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [query, results, language]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {

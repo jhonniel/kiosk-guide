@@ -1,6 +1,7 @@
 import { loadMapAdminData } from "@/features/map/admin-data";
 import { MapAdminClient } from "./map-admin-client";
 import { requireAdminPage } from "@/lib/admin-page-auth";
+import { AdminNotice, AdminPage, AdminPageHeader } from "@/components/admin/admin-page";
 
 export default async function AdminMapPage() {
   await requireAdminPage("manage_map");
@@ -9,32 +10,35 @@ export default async function AdminMapPage() {
   try {
     data = await loadMapAdminData();
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
     console.error("[admin/map] Failed to load map admin data:", error);
     return (
-      <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50 p-10 text-center text-sm text-amber-950">
-        <p className="font-semibold">Could not load Camiguin Map admin.</p>
-        <p className="mt-2 text-amber-900/80">{message}</p>
-      </div>
+      <AdminPage>
+        <AdminPageHeader title="Camiguin Map" />
+        <AdminNotice tone="warning" title="The map editor could not be loaded.">
+          Refresh the page to try again. If this keeps happening, check that the database is running.
+        </AdminNotice>
+      </AdminPage>
     );
   }
 
   if (!data.categories.length) {
     return (
-      <div className="rounded-xl border border-dashed bg-white p-10 text-center text-sm text-gray-600">
-        No map categories found. Run the database seed to import Camiguin map data first.
-      </div>
+      <AdminPage>
+        <AdminPageHeader title="Camiguin Map" />
+        <AdminNotice title="The map has no data yet.">
+          The Camiguin map content has not been loaded into this database. Ask your system administrator to
+          run the database seed, then come back to this page.
+        </AdminNotice>
+      </AdminPage>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold text-kiosk-navy">Camiguin Map</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Pick a layer, select an item, edit details or drag on the map.
-        </p>
-      </div>
+    <AdminPage className="space-y-4">
+      <AdminPageHeader
+        title="Camiguin Map"
+        description="Pick a layer, select an item, then edit its details or drag it on the map."
+      />
       <MapAdminClient
         initialAttractions={data.attractions}
         categories={data.categories}
@@ -44,6 +48,6 @@ export default async function AdminMapPage() {
         restaurants={data.restaurants}
         municipalities={data.municipalities}
       />
-    </div>
+    </AdminPage>
   );
 }

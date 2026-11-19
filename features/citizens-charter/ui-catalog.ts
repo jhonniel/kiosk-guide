@@ -135,7 +135,7 @@ export const CHARTER_BROWSE_CATEGORIES: CharterBrowseCategory[] = [
     descriptionBis: "Akreditasyon sa turismo, pagdumala sa mga pasilidad, ug mga serbisyo para sa mga bisita.",
     match: /tourism|facilities management/i,
     icon: TourismServicesIcon,
-    iconSrc: "/images/citizens-charter/category-icons/tourism.png",
+    iconSrc: "/images/citizens-charter/category-icons/tourism.svg",
     accent: "bg-[#0d9488]",
     soft: "bg-[#ccfbf1]",
     titleColor: "text-[#0d9488]",

@@ -135,7 +135,7 @@ export const BISAYA_DIRECTORIES: Record<string, { nameBis: string; descriptionBi
   "Office of the Provincial Governor": {
     nameBis: "Opisina sa Provincial Governor",
     descriptionBis:
-      "Provincial Governor sa Camiguin: Hon. Xavier Jesus “XJ” D. Romualdo. Capitol Building, Mambajao.",
+      "Provincial Governor sa Camiguin: Joem B. Quinalagan. Capitol Building, Mambajao.",
   },
   "Office of the Provincial Administrator": {
     nameBis: "Opisina sa Provincial Administrator",
@@ -158,6 +158,11 @@ export const BISAYA_DIRECTORIES: Record<string, { nameBis: string; descriptionBi
   "Provincial Legal Department": { nameBis: "Provincial Legal Department" },
   "Provincial Planning and Development Department": {
     nameBis: "Provincial Planning and Development Department",
+  },
+  "Office of the Provincial Vice Governor": { nameBis: "Opisina sa Provincial Vice Governor" },
+  "Office of the SP Secretary": { nameBis: "Opisina sa SP Secretary" },
+  "Office of the Sangguniang Panlalawigan Members": {
+    nameBis: "Opisina sa mga Miyembro sa Sangguniang Panlalawigan",
   },
 };
 
@@ -471,6 +476,11 @@ export const BISAYA_TOURISM: Record<string, { titleBis: string; descriptionBis: 
     titleBis: "Binangawan Falls",
     descriptionBis:
       "Usa ka misteryoso nga busay nga daghang ang-ang ibabaw sa pulahon nga bato sa bulkan, maabot pinaagi sa lisud nga pagbaktas sa lasang gikan sa Sagay. Sulit para sa mga adventurous nga hiker — kasagaran adunay balangaw nga motungha sa alisbo niini.",
+  },
+  "Katunggan Park": {
+    titleBis: "Katunggan Park",
+    descriptionBis:
+      "Usa ka eco-tourism nga mangrove reserve ug coastal park sa Benoni, Mahinog, duol sa Benoni Port. Moagi ang kahoy nga boardwalk sa mangrove nga kalasangan, diin mitungha ang mga gamot sa tubig ug gisala sa mga dahon ang kahayag sa adlaw. Dali lang lakawon para sa pamilya ug mga photographer, ug maayong lugar aron mahibaw-an kung unsaon pagpanalipod sa bakawan sa baybayon.",
   },
 };
 

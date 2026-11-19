@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { hasPermission } from "@/lib/admin-auth";
+import { getAdminSession, hasPermission } from "@/lib/admin-auth";
 import type { AdminPermissionName } from "@/features/admin/permissions";
 import type { Session } from "next-auth";
 
@@ -8,8 +7,8 @@ import type { Session } from "next-auth";
 export async function requireAdminPage(
   permission?: AdminPermissionName
 ): Promise<Session> {
-  const session = await auth();
-  if (!session?.user) redirect("/admin/login");
+  const session = await getAdminSession();
+  if (!session) redirect("/admin/login");
   if (permission && !hasPermission(session, permission)) {
     redirect("/admin");
   }

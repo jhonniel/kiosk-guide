@@ -7,6 +7,8 @@ import {
   parseFeedbackAnswers,
 } from "@/features/feedback/questions";
 import { cn } from "@/lib/utils";
+import { formatManilaDateTime } from "@/features/analytics/range";
+import { AdminPage, AdminPageHeader } from "@/components/admin/admin-page";
 
 function average(values: number[]) {
   if (values.length === 0) return null;
@@ -42,13 +44,11 @@ export default async function AdminFeedbackPage() {
   );
 
   return (
-    <div className="space-y-6 p-8">
-      <div>
-        <h1 className="text-2xl font-bold text-kiosk-navy">Feedback</h1>
-        <p className="text-gray-500">
-          Kiosk experience survey results. Visible to administrators only.
-        </p>
-      </div>
+    <AdminPage>
+      <AdminPageHeader
+        title="Feedback"
+        description="Kiosk experience survey results and comments from visitors. Times are Philippine time."
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border bg-white p-5 shadow-sm">
@@ -123,7 +123,7 @@ export default async function AdminFeedbackPage() {
             ) : (
               rows.map((row) => (
                 <tr key={row.id} className="border-b align-top last:border-0 hover:bg-gray-50">
-                  <td className="whitespace-nowrap px-4 py-3 text-gray-600">{row.createdAt.toLocaleString()}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-gray-600">{formatManilaDateTime(row.createdAt)}</td>
                   <td className="px-4 py-3">
                     {row.name || <span className="text-gray-400">Anonymous</span>}
                     {row.email ? <div className="text-xs text-gray-400">{row.email}</div> : null}
@@ -145,6 +145,6 @@ export default async function AdminFeedbackPage() {
           </tbody>
         </table>
       </div>
-    </div>
+    </AdminPage>
   );
 }

@@ -28,6 +28,17 @@ const userInputSchema = z.object({
   permissions: z.array(z.enum(permissionNames)),
 });
 
+function actionError(error: unknown, fallback: string): ActionResult {
+  const message = error instanceof Error ? error.message : "";
+  if (message === "Unauthorized") return { success: false, error: "Your session has ended. Sign in again." };
+  if (message === "Forbidden") return { success: false, error: "You do not have permission to manage users." };
+  if (message.startsWith("Select at least one feature") || message.startsWith("Selected features")) {
+    return { success: false, error: message };
+  }
+  console.error(`[admin users] ${fallback}:`, error);
+  return { success: false, error: `${fallback}. Please try again.` };
+}
+
 function customRoleName(userId: string) {
   return `user-access:${userId}`;
 }
@@ -151,11 +162,7 @@ export async function createAdminUser(input: {
     revalidatePath("/admin/users");
     return { success: true };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to create user";
-    if (message === "Unauthorized" || message === "Forbidden") {
-      return { success: false, error: message };
-    }
-    return { success: false, error: message };
+    return actionError(error, "The user could not be created");
   }
 }
 
@@ -261,11 +268,7 @@ export async function updateAdminUser(
     revalidatePath("/admin/users");
     return { success: true };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to update user";
-    if (message === "Unauthorized" || message === "Forbidden") {
-      return { success: false, error: message };
-    }
-    return { success: false, error: message };
+    return actionError(error, "The changes could not be saved");
   }
 }
 
@@ -309,10 +312,6 @@ export async function deleteAdminUser(userId: string): Promise<ActionResult> {
     revalidatePath("/admin/users");
     return { success: true };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to delete user";
-    if (message === "Unauthorized" || message === "Forbidden") {
-      return { success: false, error: message };
-    }
-    return { success: false, error: message };
+    return actionError(error, "The user could not be deleted");
   }
 }

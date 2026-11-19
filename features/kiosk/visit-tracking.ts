@@ -24,6 +24,16 @@ export function getKioskSessionId(): string {
   }
 }
 
+/** The next visitor gets a fresh session, so analytics count people rather than browser tabs. */
+export function startNewKioskSession() {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    // ignore private mode
+  }
+}
+
 export function readLocalVisitCounts(): Record<string, number> {
   if (typeof window === "undefined") return {};
   try {

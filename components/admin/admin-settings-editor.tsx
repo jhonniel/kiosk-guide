@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { updateSettings } from "@/features/admin/actions";
+import { AdminPage, AdminPageHeader } from "@/components/admin/admin-page";
 import {
   SETTING_GROUPS,
   type SettingFieldDef,
@@ -37,6 +38,35 @@ function displayToLines(value: string): string {
     .map((s) => s.trim())
     .filter(Boolean);
   return JSON.stringify(lines);
+}
+
+/** Keeps the typed text (blank lines included) while editing; the stored value is the cleaned list. */
+function LinesField({
+  field,
+  value,
+  onChange,
+}: {
+  field: SettingFieldDef;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [text, setText] = useState(() => linesToDisplay(value));
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={field.key}>{field.label}</Label>
+      {field.description && <p className="text-xs text-gray-500">{field.description}</p>}
+      <Textarea
+        id={field.key}
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          onChange(displayToLines(e.target.value));
+        }}
+        rows={5}
+        placeholder="One item per line"
+      />
+    </div>
+  );
 }
 
 function imageKindForField(key: string): "logo" | "footer" {
@@ -70,8 +100,8 @@ function SettingField({
           method: "POST",
           body,
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Upload failed");
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error ?? "The upload failed. Please try again.");
         onChange(data.fileUrl);
         toast.success("Image uploaded");
       } catch (error) {
@@ -138,8 +168,8 @@ function SettingField({
           method: "POST",
           body,
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Upload failed");
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error ?? "The upload failed. The video may be too large.");
         onChange(data.fileUrl);
         toast.success("Video uploaded");
       } catch (error) {
@@ -233,21 +263,7 @@ function SettingField({
   }
 
   if (field.type === "lines") {
-    return (
-      <div className="space-y-1.5">
-        <Label htmlFor={field.key}>{field.label}</Label>
-        {field.description && (
-          <p className="text-xs text-gray-500">{field.description}</p>
-        )}
-        <Textarea
-          id={field.key}
-          value={linesToDisplay(value)}
-          onChange={(e) => onChange(displayToLines(e.target.value))}
-          rows={5}
-          placeholder="One item per line"
-        />
-      </div>
-    );
+    return <LinesField field={field} value={value} onChange={onChange} />;
   }
 
   if (field.type === "number") {
@@ -304,19 +320,50 @@ function SettingField({
   );
 }
 
+/** First problem that would stop a setting from working, with the tab it is on. */
+function findSettingProblem(values: Record<string, string>): { group: string; message: string } | null {
+  for (const group of SETTING_GROUPS) {
+    for (const field of group.fields) {
+      const value = (values[field.key] ?? "").trim();
+      if (!value) continue;
+      if (field.type === "number" && (!/^\d+$/.test(value) || Number(value) < 1)) {
+        return { group: group.id, message: `${field.label} must be a whole number of 1 or more.` };
+      }
+      if (field.type === "json") {
+        try {
+          JSON.parse(value);
+        } catch {
+          return { group: group.id, message: `${field.label} is not valid JSON. Check the brackets and quotes.` };
+        }
+      }
+    }
+  }
+  return null;
+}
+
 export function AdminSettingsEditor({ values: initialValues }: Props) {
   const [values, setValues] = useState(initialValues);
+  const [savedValues, setSavedValues] = useState(initialValues);
+  const [tab, setTab] = useState<string>(SETTING_GROUPS[0]?.id ?? "");
   const [isPending, startTransition] = useTransition();
+  const dirty = Object.keys(values).some((key) => values[key] !== savedValues[key]);
 
   function setField(key: string, value: string) {
     setValues((prev) => ({ ...prev, [key]: value }));
   }
 
   function handleSave() {
+    const problem = findSettingProblem(values);
+    if (problem) {
+      setTab(problem.group);
+      toast.error(problem.message);
+      return;
+    }
     startTransition(async () => {
       const result = await updateSettings(values);
       if (result.success) {
-        toast.success("Settings saved");
+        setSavedValues(values);
+        toast.success("Settings saved. The kiosk picks them up on its next refresh.");
       } else {
         toast.error(result.error);
       }
@@ -324,21 +371,22 @@ export function AdminSettingsEditor({ values: initialValues }: Props) {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-kiosk-navy">System Settings</h1>
-          <p className="text-gray-500">
-            Configure kiosk branding, contact info, and building directory behavior.
-          </p>
-        </div>
-        <Button onClick={handleSave} disabled={isPending}>
-          <Save className="mr-2 h-4 w-4" />
-          {isPending ? "Saving..." : "Save All"}
-        </Button>
-      </div>
+    <AdminPage>
+      <AdminPageHeader
+        title="Settings"
+        description="Kiosk branding, contact details, downloads and email, storage, the idle screen and the building directory."
+        actions={
+          <>
+            {dirty ? <span className="text-xs font-medium text-amber-700">Unsaved changes</span> : null}
+            <Button onClick={handleSave} disabled={isPending || !dirty}>
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {isPending ? "Saving…" : "Save changes"}
+            </Button>
+          </>
+        }
+      />
 
-      <Tabs defaultValue={SETTING_GROUPS[0]?.id}>
+      <Tabs value={tab} onValueChange={(next) => setTab(String(next))}>
         <TabsList className="mb-6 flex h-auto flex-wrap gap-1">
           {SETTING_GROUPS.map((group) => (
             <TabsTrigger key={group.id} value={group.id}>
@@ -384,6 +432,6 @@ export function AdminSettingsEditor({ values: initialValues }: Props) {
           </TabsContent>
         ))}
       </Tabs>
-    </div>
+    </AdminPage>
   );
 }

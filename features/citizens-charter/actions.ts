@@ -123,6 +123,7 @@ export async function upsertCharterOffice(input: {
   const name = input.name.trim();
   if (!name) throw new Error("Office name is required");
 
+  let officeId = input.id;
   if (input.id) {
     const existing = await db.charterOffice.findFirst({
       where: { id: input.id, editionId: edition.id },
@@ -141,7 +142,7 @@ export async function upsertCharterOffice(input: {
       where: { editionId: edition.id },
       _max: { sortOrder: true },
     });
-    await db.charterOffice.create({
+    const created = await db.charterOffice.create({
       data: {
         editionId: edition.id,
         name,
@@ -149,10 +150,11 @@ export async function upsertCharterOffice(input: {
         sortOrder: input.sortOrder ?? (max._max.sortOrder ?? -1) + 1,
       },
     });
+    officeId = created.id;
   }
   await touchEdition(edition.id);
   revalidateCharter();
-  return { ok: true };
+  return { ok: true, id: officeId };
 }
 
 export async function deleteCharterOffice(id: string) {
@@ -185,6 +187,7 @@ export async function upsertCharterCategory(input: {
   const name = input.name.trim();
   if (!name) throw new Error("Category name is required");
 
+  let categoryId = input.id;
   if (input.id) {
     await db.charterCategory.update({
       where: { id: input.id },
@@ -199,7 +202,7 @@ export async function upsertCharterCategory(input: {
       where: { officeId: input.officeId },
       _max: { sortOrder: true },
     });
-    await db.charterCategory.create({
+    const created = await db.charterCategory.create({
       data: {
         officeId: input.officeId,
         name,
@@ -207,10 +210,11 @@ export async function upsertCharterCategory(input: {
         sortOrder: input.sortOrder ?? (max._max.sortOrder ?? -1) + 1,
       },
     });
+    categoryId = created.id;
   }
   await touchEdition(office.editionId);
   revalidateCharter();
-  return { ok: true };
+  return { ok: true, id: categoryId };
 }
 
 export async function deleteCharterCategory(id: string) {

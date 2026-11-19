@@ -94,10 +94,10 @@ export const SETTING_GROUPS: SettingGroupDef[] = [
       },
       {
         key: "indoor_map_v2",
-        label: "Use Leaflet indoor map (v2)",
+        label: "Interactive indoor map",
         type: "boolean",
         description:
-          "Leaflet 2D indoor map (admin digitizing / A*). Building Directory prefers Three.js 3D when uploaded floor-plan images exist.",
+          "Show the rooms and walking paths traced under Indoor Map. Used only when no floor-plan images are uploaded there; otherwise the 3D floor plans are shown.",
       },
       { key: "building_name_en", label: "Building name (EN)", type: "text" },
       { key: "building_name_fil", label: "Building name (FIL)", type: "text" },

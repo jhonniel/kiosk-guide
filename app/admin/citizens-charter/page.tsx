@@ -2,6 +2,7 @@ import { ensureCharterDraft } from "@/features/citizens-charter/actions";
 import { getDraftCharterEdition } from "@/features/citizens-charter/queries";
 import { CitizensCharterAdminClient } from "./citizens-charter-admin-client";
 import { requireAdminPage } from "@/lib/admin-page-auth";
+import { AdminNotice, AdminPage, AdminPageHeader } from "@/components/admin/admin-page";
 
 export default async function AdminCitizensCharterPage() {
   await requireAdminPage("manage_citizens_charter");
@@ -12,12 +13,15 @@ export default async function AdminCitizensCharterPage() {
 
   if (!draft) {
     return (
-      <div className="rounded-xl border border-dashed bg-white p-10 text-center text-sm text-gray-600">
-        No Citizens&apos; Charter edition is available yet. Run the database seed to import the 2026
-        content.
-      </div>
+      <AdminPage>
+        <AdminPageHeader title="Citizens' Charter" />
+        <AdminNotice title="There is no Citizens' Charter edition yet.">
+          The charter content has not been loaded into this database. Ask your system administrator to run
+          the database seed, then come back to this page.
+        </AdminNotice>
+      </AdminPage>
     );
   }
 
-  return <CitizensCharterAdminClient initialDraft={draft} />;
+  return <CitizensCharterAdminClient key={draft.id} initialDraft={draft} />;
 }
