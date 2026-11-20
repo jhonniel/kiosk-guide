@@ -47,7 +47,9 @@ export function getSortedDownloads(data: KioskOfflineData) {
 }
 
 export function getSortedTourism(data: KioskOfflineData) {
-  return [...data.tourism].sort((a, b) => a.sortOrder - b.sortOrder);
+  return [...data.tourism]
+    .filter((item) => item.isActive)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
 export function getSortedAnnouncements(data: KioskOfflineData) {

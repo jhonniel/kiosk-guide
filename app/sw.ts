@@ -1,6 +1,6 @@
 import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { CacheFirst, ExpirationPlugin, NetworkFirst, Serwist, StaleWhileRevalidate } from "serwist";
+import { ExpirationPlugin, NetworkFirst, Serwist, StaleWhileRevalidate } from "serwist";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -9,6 +9,49 @@ declare global {
 }
 
 declare const self: ServiceWorkerGlobalScope;
+
+const FRESH_PATHS = [
+  "/kiosk-offline-data.json",
+  "/kiosk-citizens-charter.json",
+  "/api/kiosk/offline-data",
+  "/api/kiosk/citizens-charter",
+];
+
+function shouldLoadFresh(pathname: string) {
+  return FRESH_PATHS.includes(pathname) || pathname.startsWith("/images/");
+}
+
+// Registered before the precache handler so a replaced photo or a removed spot is not served from an old copy.
+self.addEventListener("fetch", (event) => {
+  const pathname = new URL(event.request.url).pathname;
+  if (!shouldLoadFresh(pathname)) return;
+  event.stopImmediatePropagation();
+  event.respondWith(
+    (async () => {
+      try {
+        const fresh = await fetch(event.request, { cache: "no-store" });
+        if (fresh.ok) return fresh;
+      } catch {
+        // Use the saved copy when the kiosk has no connection.
+      }
+      const cached = await caches.match(event.request);
+      if (cached) return cached;
+      return fetch(event.request);
+    })()
+  );
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    (async () => {
+      await self.clients.claim();
+      const windows = await self.clients.matchAll({ type: "window" });
+      await Promise.all(
+        windows.map((client) => (client.navigate ? client.navigate(client.url) : Promise.resolve()))
+      );
+    })()
+  );
+});
 
 const KIOSK_PATH_PREFIXES = [
   "/",
@@ -45,8 +88,9 @@ const serwist = new Serwist({
       matcher: ({ url }) =>
         url.pathname === "/kiosk-offline-data.json" ||
         url.pathname === "/kiosk-citizens-charter.json",
-      handler: new StaleWhileRevalidate({
+      handler: new NetworkFirst({
         cacheName: "kiosk-offline-bundle",
+        networkTimeoutSeconds: 4,
         plugins: [
           new ExpirationPlugin({
             maxEntries: 4,
@@ -57,11 +101,12 @@ const serwist = new Serwist({
     },
     {
       matcher: ({ url }) => url.pathname.startsWith("/images/"),
-      handler: new CacheFirst({
+      handler: new NetworkFirst({
         cacheName: "kiosk-static-assets",
+        networkTimeoutSeconds: 4,
         plugins: [
           new ExpirationPlugin({
-            maxEntries: 24,
+            maxEntries: 80,
             maxAgeSeconds: 60 * 60 * 24 * 7,
           }),
         ],

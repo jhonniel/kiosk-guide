@@ -1,3 +1,5 @@
+import { statSync } from "fs";
+import path from "path";
 import { db } from "@/lib/db";
 import { getGuideContext } from "@/features/building-directory/guide-service";
 import { getNavigationGraphForClient } from "@/features/building-directory/navigation/navigation-service";
@@ -31,6 +33,18 @@ import {
 
 export { KIOSK_OFFLINE_DATA_VERSION };
 export type { CitizensCharterOfflineBundle };
+
+/** A replaced picture keeps its path, so add the file time or browsers keep showing the old one. */
+function versionedPublicAsset(url: string | null | undefined): string | null {
+  if (!url?.startsWith("/images/")) return url ?? null;
+  const pathname = url.split("?")[0] ?? url;
+  try {
+    const stamp = Math.round(statSync(path.join(process.cwd(), "public", pathname)).mtimeMs);
+    return `${pathname}?v=${stamp}`;
+  } catch {
+    return url;
+  }
+}
 
 function toOfflineQuickLinks(
   links: Awaited<ReturnType<typeof getDynamicQuickStartLinks>>
@@ -136,13 +150,22 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
     quickLinks,
     pageVisitCounts,
     serviceVisitCounts: pageVisitCounts,
-    homepageCards: normalizedHomepageCards,
+    homepageCards: normalizedHomepageCards.map((card) => ({
+      ...card,
+      iconUrl: versionedPublicAsset(card.iconUrl),
+    })),
     services,
     directories,
     downloads,
     faqs,
-    announcements,
-    tourism,
+    announcements: announcements.map((item) => ({
+      ...item,
+      imageUrl: versionedPublicAsset(item.imageUrl),
+    })),
+    tourism: tourism.map((item) => ({
+      ...item,
+      imageUrl: versionedPublicAsset(item.imageUrl),
+    })),
     emergency,
     events,
     pages,

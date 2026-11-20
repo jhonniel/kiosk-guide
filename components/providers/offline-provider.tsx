@@ -74,12 +74,14 @@ async function fetchJson(
 }
 
 async function loadBundledOfflineData(): Promise<KioskOfflineData | null> {
-  const remoteBundled = await fetchJson("/kiosk-offline-data.json", { cache: "force-cache" });
+  // A new address each load, so a previously cached copy cannot keep removed spots or old photos.
+  const bundledUrl = `/kiosk-offline-data.json?t=${Date.now()}`;
+  const remoteBundled = await fetchJson(bundledUrl, { cache: "no-store" });
   if (isValidOfflineData(remoteBundled)) return remoteBundled;
 
   if (isRemoteKioskSync()) {
     try {
-      const res = await fetch("/kiosk-offline-data.json", { cache: "force-cache" });
+      const res = await fetch(bundledUrl, { cache: "no-store" });
       if (res.ok) {
         const local = await res.json();
         if (isValidOfflineData(local)) return local;
