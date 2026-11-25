@@ -3,6 +3,7 @@ import type { GuideContext } from "@/features/building-directory/types";
 import type { NavigationGraph } from "@/features/building-directory/navigation/types";
 import type { PublishedIndoorPayload } from "@/features/indoor-map/types";
 import type { CharterEditionView } from "@/features/citizens-charter/types";
+import type { MapEnginePayload } from "@/services/map/load-map-engine-data";
 import type {
   Announcement,
   Directory,
@@ -18,7 +19,7 @@ import type {
 } from "@prisma/client";
 
 /** Bump when offline payload shape or required client cache invalidation changes. */
-export const KIOSK_OFFLINE_DATA_VERSION = 20;
+export const KIOSK_OFFLINE_DATA_VERSION = 21;
 
 export interface KioskOfflineData {
   version: number;
@@ -45,6 +46,8 @@ export interface KioskOfflineData {
   navigationGraph: NavigationGraph;
   indoorMap: PublishedIndoorPayload | null;
   indoorMapV2: boolean;
+  /** Camiguin tourism map pins/labels — kept in sync from admin map edits. */
+  mapEngine: MapEnginePayload | null;
   uiConfigEn: BuildingUiConfig;
   uiConfigFil: BuildingUiConfig;
   uiConfigBis: BuildingUiConfig;

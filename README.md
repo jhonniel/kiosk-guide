@@ -149,6 +149,7 @@ Change the password after first login in production.
 | `npm run start` | Run production server on `0.0.0.0:3000` |
 | `npm run start:server` | Regenerate offline JSON, then start production server |
 | `npm run offline:generate` | Export kiosk offline JSON from PostgreSQL |
+| `npm run map:export` | Export admin map pins/labels to `prisma/data/map-admin-snapshot.json` (commit before push) |
 | `npm run assets:normalize` | Rewrite Spaces URLs in DB to local `/public` paths |
 | `npm run db:migrate` | Apply migrations (local dev, interactive) |
 | `npm run db:deploy` | Apply migrations (production / CI) |

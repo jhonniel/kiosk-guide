@@ -13,6 +13,7 @@
     "build:next": "next build",
     "build:server": "prisma generate && next build",
     "offline:generate": "tsx scripts/generate-offline-data.ts",
+    "map:export": "tsx scripts/export-map-admin-snapshot.ts",
     "storage:to-spaces": "tsx scripts/migrate-files-to-spaces.ts",
     "downloads:check": "tsx scripts/check-download-files.ts",
     "assets:normalize": "tsx scripts/normalize-asset-urls.ts",

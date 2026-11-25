@@ -15,6 +15,7 @@ import {
   parseManilaDateTime,
   validateResourceValues,
 } from "@/features/admin/resource-validation";
+import { refreshKioskOfflineFiles } from "@/features/offline/refresh-offline-files";
 
 async function requireResourcePermission(resource: ResourceKey) {
   const permission = RESOURCE_PERMISSION[resource];
@@ -23,32 +24,6 @@ async function requireResourcePermission(resource: ResourceKey) {
 }
 
 type ActionResult = { success: true } | { success: false; error: string };
-
-/** Rewrites the file the kiosk reads, so a saved change shows up without waiting on an old copy. */
-async function refreshKioskOfflineFiles() {
-  try {
-    const { writeFileSync, mkdirSync } = await import("fs");
-    const { exportCitizensCharterOfflineData, exportKioskOfflineData } = await import(
-      "@/features/offline/export-kiosk-data"
-    );
-    const { getKioskPrecacheRoutes } = await import("@/features/offline/selectors");
-    const [data, charter] = await Promise.all([
-      exportKioskOfflineData(),
-      exportCitizensCharterOfflineData(),
-    ]);
-    mkdirSync("public", { recursive: true });
-    writeFileSync("public/kiosk-offline-data.json", JSON.stringify(data, null, 0));
-    writeFileSync("public/kiosk-citizens-charter.json", JSON.stringify(charter, null, 0));
-    const routes = [
-      ...getKioskPrecacheRoutes(data),
-      "/kiosk-citizens-charter.json",
-      "/kiosk-offline-data.json",
-    ];
-    writeFileSync("public/kiosk-precache-routes.json", JSON.stringify([...new Set(routes)]));
-  } catch {
-    // The database change is already saved. The kiosk can still load it from the API.
-  }
-}
 
 /** Turns a failure into a message an admin can act on; unexpected ones are logged, not shown. */
 function describeError(e: unknown, fallback: string, resource?: ResourceKey): string {

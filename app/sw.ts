@@ -21,9 +21,21 @@ function shouldLoadFresh(pathname: string) {
   return FRESH_PATHS.includes(pathname) || pathname.startsWith("/images/");
 }
 
+/** Admin must never be served from the kiosk SW cache — stale RSC made map edits look unsaved. */
+function isAdminRequest(pathname: string) {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}
+
 // Registered before the precache handler so a replaced photo or a removed spot is not served from an old copy.
 self.addEventListener("fetch", (event) => {
   const pathname = new URL(event.request.url).pathname;
+
+  if (isAdminRequest(pathname)) {
+    event.stopImmediatePropagation();
+    event.respondWith(fetch(event.request, { cache: "no-store" }));
+    return;
+  }
+
   if (!shouldLoadFresh(pathname)) return;
   event.stopImmediatePropagation();
   event.respondWith(

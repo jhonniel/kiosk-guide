@@ -3,6 +3,8 @@ import { MapAdminClient } from "./map-admin-client";
 import { requireAdminPage } from "@/lib/admin-page-auth";
 import { AdminNotice, AdminPage, AdminPageHeader } from "@/components/admin/admin-page";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminMapPage() {
   await requireAdminPage("manage_map");
 
@@ -34,11 +36,13 @@ export default async function AdminMapPage() {
   }
 
   return (
-    <AdminPage className="space-y-4">
-      <AdminPageHeader
-        title="Camiguin Map"
-        description="Pick a layer, select an item, then edit its details or drag it on the map."
-      />
+    <AdminPage className="mx-0 flex w-full max-w-none flex-col gap-3 space-y-0 overflow-hidden p-3 sm:p-4 lg:h-[100dvh] lg:px-3 lg:py-3">
+      <div className="shrink-0">
+        <AdminPageHeader
+          title="Camiguin Map"
+          description="Pick a layer, select an item, then edit its details or drag it on the map."
+        />
+      </div>
       <MapAdminClient
         initialAttractions={data.attractions}
         categories={data.categories}

@@ -34,6 +34,7 @@ export function normalizeOfflineData(data: KioskOfflineData): KioskOfflineData {
     pageVisitCounts: data.pageVisitCounts ?? data.serviceVisitCounts ?? {},
     citizensCharter: data.citizensCharter ?? null,
     indoorMap: data.indoorMap ?? null,
+    mapEngine: data.mapEngine ?? null,
     uiConfigBis,
   };
 }

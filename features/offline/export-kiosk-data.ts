@@ -21,6 +21,7 @@ import {
   getDynamicQuickStartLinks,
   getSystemVisitCounts,
 } from "@/features/kiosk/get-dynamic-quick-start";
+import { loadMapEngineData } from "@/services/map/load-map-engine-data";
 import {
   normalizeKioskAssetPath,
   normalizeKioskSettings,
@@ -84,6 +85,7 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
     guideContext,
     navData,
     indoorMapPayload,
+    mapEngine,
   ] = await Promise.all([
     getResolvedSettings(),
     getDynamicQuickStartLinks(),
@@ -104,6 +106,7 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
     getGuideContext(),
     getNavigationGraphForClient(),
     loadPublishedIndoorMap().catch(() => ({ buildings: [] })),
+    loadMapEngineData().catch(() => null),
   ]);
 
   const quickLinks = toOfflineQuickLinks(rankedQuickStart);
@@ -175,6 +178,24 @@ export async function exportKioskOfflineData(): Promise<KioskOfflineData> {
     navigationGraph,
     indoorMap: indoorMapV2 ? indoorMap : null,
     indoorMapV2,
+    mapEngine:
+      mapEngine && mapEngine.attractions.length > 0
+        ? {
+            ...mapEngine,
+            attractions: mapEngine.attractions.map((a) => ({
+              ...a,
+              photos: a.photos.map((url) => versionedPublicAsset(url) ?? url),
+            })),
+            hotels: mapEngine.hotels.map((h) => ({
+              ...h,
+              coverImage: versionedPublicAsset(h.coverImage) ?? h.coverImage,
+            })),
+            restaurants: mapEngine.restaurants.map((r) => ({
+              ...r,
+              coverImage: versionedPublicAsset(r.coverImage) ?? r.coverImage,
+            })),
+          }
+        : null,
     uiConfigEn,
     uiConfigFil,
     uiConfigBis,

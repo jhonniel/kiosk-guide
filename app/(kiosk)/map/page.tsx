@@ -4,6 +4,7 @@ import { CAMIGUIN_ATTRACTIONS } from "@/features/map/attractions";
 import { CAMIGUIN_ROUTES } from "@/features/map/routes";
 import { MAP_FEATURES, MUNICIPALITIES } from "@/data/map/geometry";
 import type { MapEnginePayload } from "@/services/map/load-map-engine-data";
+import { readBundledKioskData } from "@/lib/database-availability";
 import { MapClient } from "./map-client";
 
 function fallbackPayload(): MapEnginePayload {
@@ -43,16 +44,24 @@ function fallbackPayload(): MapEnginePayload {
   };
 }
 
-export default async function MapPage() {
-  let data: MapEnginePayload;
+async function resolveMapPayload(): Promise<MapEnginePayload> {
   try {
-    data = await loadMapEngineData();
-    if (!data.attractions.length) {
-      data = fallbackPayload();
-    }
+    const data = await loadMapEngineData();
+    if (data.attractions.length) return data;
   } catch {
-    data = fallbackPayload();
+    // DB unavailable — fall through to bundled offline map.
   }
+
+  const bundled = await readBundledKioskData();
+  if (bundled?.mapEngine?.attractions?.length) {
+    return bundled.mapEngine;
+  }
+
+  return fallbackPayload();
+}
+
+export default async function MapPage() {
+  const data = await resolveMapPayload();
 
   return (
     <ModulePageClient
