@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import {
   Bed,
@@ -11,6 +11,7 @@ import {
   Landmark,
   Loader2,
   MapPin,
+  Minus,
   Mountain,
   Plus,
   RotateCcw,
@@ -23,6 +24,7 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { TransformComponent, TransformWrapper, useControls } from "react-zoom-pan-pinch";
 import { toast } from "sonner";
 import { VectorTerrain } from "@/components/kiosk/map/VectorTerrain";
 import { WatercolorMapDecor } from "@/components/kiosk/map/WatercolorMapDecor";
@@ -203,6 +205,41 @@ function StatusBadge({ active, inverted }: { active: boolean; inverted?: boolean
     >
       {active ? "Active" : "Inactive"}
     </span>
+  );
+}
+
+function AdminMapZoomControls() {
+  const { zoomIn, zoomOut, resetTransform } = useControls();
+  return (
+    <div className="pointer-events-auto absolute bottom-3 right-3 z-30 flex flex-col gap-1.5">
+      <button
+        type="button"
+        onClick={() => zoomIn(0.35)}
+        className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/95 text-kiosk-navy shadow-md ring-1 ring-slate-200 backdrop-blur"
+        aria-label="Zoom in"
+        title="Zoom in"
+      >
+        <Plus className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => zoomOut(0.35)}
+        className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/95 text-kiosk-navy shadow-md ring-1 ring-slate-200 backdrop-blur"
+        aria-label="Zoom out"
+        title="Zoom out"
+      >
+        <Minus className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => resetTransform()}
+        className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/95 text-kiosk-navy shadow-md ring-1 ring-slate-200 backdrop-blur"
+        aria-label="Reset zoom"
+        title="Reset zoom"
+      >
+        <RotateCcw className="h-3.5 w-3.5" />
+      </button>
+    </div>
   );
 }
 
@@ -761,15 +798,14 @@ export function MapAdminClient({
   const dragMoved = useRef(false);
   const draggingNewPin = useRef(false);
   const dragOrigin = useRef<{ x: number; y: number } | null>(null);
+  /** Ref mirror of draftPos so pointer-up save never reads a stale React closure. */
+  const draftPosRef = useRef<{ id: string; x: number; y: number } | null>(null);
+  const [pinDragging, setPinDragging] = useState(false);
   const DRAG_THRESHOLD_PX = 6;
 
-  useEffect(() => setAttractions(initialAttractions), [initialAttractions]);
-  useEffect(() => setAnnotationRows(initialAnnotations), [initialAnnotations]);
-  useEffect(() => setRouteRows(initialRoutes), [initialRoutes]);
-  useEffect(() => setHotels(initialHotels), [initialHotels]);
-  useEffect(() => setRestaurants(initialRestaurants), [initialRestaurants]);
-  useEffect(() => setMunicipalityRows(initialMunicipalities), [initialMunicipalities]);
-  useEffect(() => setCategoryRows(categories), [categories]);
+  // Do NOT sync props → state via useEffect after mutations. revalidatePath refreshes
+  // RSC props and was overwriting successful deletes/moves, making pins "snap back".
+  // Local state is the source of truth for this session; remount (navigate away/back) loads fresh.
 
   const selectedAttraction = useMemo(
     () => attractions.find((a) => a.id === selectedId) ?? null,
@@ -816,9 +852,11 @@ export function MapAdminClient({
 
   const clearDragState = useCallback(() => {
     dragIdRef.current = null;
+    draftPosRef.current = null;
     setDraftPos(null);
     dragMoved.current = false;
     dragOrigin.current = null;
+    setPinDragging(false);
   }, []);
 
   const switchMode = useCallback(
@@ -903,35 +941,42 @@ export function MapAdminClient({
       mode === "hotels" ||
       mode === "restaurants");
 
-  const terrainAnnotations: MapTerrainLabelAnnotation[] | undefined = useMemo(() => {
-    if (!isAnnotationMode(mode)) return undefined;
-    const rows =
-      mode === "volcanoes"
-        ? annotationRows.filter((a) => a.kind === "peak")
-        : mode === "barangays"
-          ? annotationRows.filter((a) => a.kind === "barangay")
-          : annotationRows.filter((a) => a.kind !== "peak" && a.kind !== "barangay");
-    return rows.map((a) => ({
-      id: a.id,
-      text: creating && selectedId === a.id ? labelForm.text || a.text : a.text,
-      kind: a.kind,
-      x: a.mapX,
-      y: a.mapY,
-      fontSize: a.fontSize,
-      anchor: a.anchor,
-      isActive: a.isActive,
-    }));
+  // Always pass DB rows (never `undefined`) so MapTerrainLabels does not fall back to
+  // hardcoded MAP_ANNOTATIONS — that made deletes/moves look like they "came back".
+  const terrainAnnotations: MapTerrainLabelAnnotation[] = useMemo(() => {
+    return annotationRows
+      .filter((a) => a.isActive)
+      .map((a) => ({
+        id: a.id,
+        text:
+          isAnnotationMode(mode) && creating && selectedId === a.id
+            ? labelForm.text || a.text
+            : a.text,
+        kind: a.kind,
+        x: a.mapX,
+        y: a.mapY,
+        fontSize: a.fontSize,
+        anchor: a.anchor,
+        isActive: a.isActive,
+      }));
   }, [annotationRows, creating, labelForm.text, mode, selectedId]);
 
-  const terrainMunicipalityLabels: MapTerrainMunicipalityLabel[] | undefined = useMemo(() => {
-    if (mode !== "municipalities") return undefined;
+  const terrainMunicipalityLabels: MapTerrainMunicipalityLabel[] = useMemo(() => {
     return municipalityRows.map((m) => ({
       slug: m.slug,
       text: m.nameEn.toUpperCase(),
       labelX: m.labelX,
       labelY: m.labelY,
     }));
-  }, [mode, municipalityRows]);
+  }, [municipalityRows]);
+
+  const peakPositions = useMemo(
+    () =>
+      annotationRows
+        .filter((a) => a.kind === "peak" && a.isActive)
+        .map((a) => ({ id: a.slug, x: a.mapX, y: a.mapY })),
+    [annotationRows]
+  );
 
   const routePoints = routeForm.points;
 
@@ -954,6 +999,7 @@ export function MapAdminClient({
       dragMoved.current = false;
       dragOrigin.current = { x: e.clientX, y: e.clientY };
       dragIdRef.current = id;
+      setPinDragging(true);
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     },
     []
@@ -976,7 +1022,9 @@ export function MapAdminClient({
       }
       dragMoved.current = true;
       const { x, y } = percentFromPointer(e.clientX, e.clientY);
-      setDraftPos({ id, x, y });
+      const next = { id, x, y };
+      draftPosRef.current = next;
+      setDraftPos(next);
       updateLocal(x, y);
     },
     [percentFromPointer]
@@ -995,14 +1043,18 @@ export function MapAdminClient({
       } catch {
         /* released */
       }
-      const pos = getPos();
+      const fromRef = draftPosRef.current?.id === id ? draftPosRef.current : null;
+      const pos = fromRef ?? getPos();
       const moved = dragMoved.current;
       clearDragState();
       if (!pos || !moved) return;
       startTransition(async () => {
         const result = await save(pos.x, pos.y);
-        if (!result.success) toast.error(result.error ?? "Save failed");
-        else toast.success("Position saved");
+        if (!result.success) {
+          toast.error(result.error ?? "Save failed");
+          return;
+        }
+        toast.success("Position saved");
       });
     },
     [clearDragState]
@@ -1219,7 +1271,12 @@ export function MapAdminClient({
       toast.error("Category is required");
       return;
     }
-    const payload = attractionFormToWrite(attractionForm);
+    const selectedRow = attractions.find((a) => a.id === selectedId);
+    const payload = {
+      ...attractionFormToWrite(attractionForm),
+      mapX: selectedRow?.mapX,
+      mapY: selectedRow?.mapY,
+    };
     startTransition(async () => {
       if (creating) {
         if (!pendingPlace) {
@@ -1301,6 +1358,8 @@ export function MapAdminClient({
             ? {
                 ...a,
                 ...payload,
+                mapX: payload.mapX ?? a.mapX,
+                mapY: payload.mapY ?? a.mapY,
                 nameFil: payload.nameFil ?? a.nameFil,
                 nameBis: payload.nameBis ?? a.nameBis,
                 descriptionFil: payload.descriptionFil ?? a.descriptionFil,
@@ -1375,7 +1434,10 @@ export function MapAdminClient({
         return;
       }
       if (!selectedId || !selectedLabel) return;
-      const result = await updateMapAnnotation(selectedId, labelFormToWrite(formForWrite));
+      const result = await updateMapAnnotation(
+        selectedId,
+        labelFormToWrite(formForWrite, selectedLabel.mapX, selectedLabel.mapY)
+      );
       if (!result.success) {
         toast.error(result.error);
         return;
@@ -1483,7 +1545,13 @@ export function MapAdminClient({
       toast.error("Name (EN) is required");
       return;
     }
-    const payload = placeFormToWrite(form);
+    const list = kind === "hotels" ? hotels : restaurants;
+    const selectedRow = list.find((p) => p.id === selectedId);
+    const payload = {
+      ...placeFormToWrite(form),
+      mapX: selectedRow?.mapX,
+      mapY: selectedRow?.mapY,
+    };
     const createFn = kind === "hotels" ? createMapHotel : createMapRestaurant;
     const updateFn = kind === "hotels" ? updateMapHotel : updateMapRestaurant;
     const setList = kind === "hotels" ? setHotels : setRestaurants;
@@ -1537,7 +1605,17 @@ export function MapAdminClient({
       }
       toast.success("Saved");
       setList((prev) =>
-        prev.map((p) => (p.id === selectedId ? { ...p, ...payload, slug: payload.slug || p.slug } : p))
+        prev.map((p) =>
+          p.id === selectedId
+            ? {
+                ...p,
+                ...payload,
+                mapX: payload.mapX ?? p.mapX,
+                mapY: payload.mapY ?? p.mapY,
+                slug: payload.slug || p.slug,
+              }
+            : p
+        )
       );
     });
   };
@@ -1746,59 +1824,60 @@ export function MapAdminClient({
   };
 
   const q = query.trim().toLowerCase();
-  const filteredAttractions = useMemo(
-    () =>
-      !q
-        ? attractions
-        : attractions.filter(
-            (a) =>
-              a.nameEn.toLowerCase().includes(q) ||
-              a.slug.toLowerCase().includes(q) ||
-              a.categoryName.toLowerCase().includes(q)
-          ),
-    [attractions, q]
-  );
+  // Soft-deleted (isActive: false) stay out of the editor so refresh doesn't bring them back.
+  const filteredAttractions = useMemo(() => {
+    const active = attractions.filter((a) => a.isActive);
+    if (!q) return active;
+    return active.filter(
+      (a) =>
+        a.nameEn.toLowerCase().includes(q) ||
+        a.slug.toLowerCase().includes(q) ||
+        a.categoryName.toLowerCase().includes(q)
+    );
+  }, [attractions, q]);
   const filteredLabels = useMemo(() => {
-    const other = annotationRows.filter((a) => a.kind !== "peak" && a.kind !== "barangay");
+    const other = annotationRows.filter(
+      (a) => a.isActive && a.kind !== "peak" && a.kind !== "barangay"
+    );
     if (!q) return other;
     return other.filter(
       (a) => a.text.toLowerCase().includes(q) || a.kind.toLowerCase().includes(q)
     );
   }, [annotationRows, q]);
   const filteredVolcanoes = useMemo(() => {
-    const peaks = annotationRows.filter((a) => a.kind === "peak");
+    const peaks = annotationRows.filter((a) => a.isActive && a.kind === "peak");
     if (!q) return peaks;
     return peaks.filter(
       (a) => a.text.toLowerCase().includes(q) || a.slug.toLowerCase().includes(q)
     );
   }, [annotationRows, q]);
   const filteredBarangays = useMemo(() => {
-    const barangays = annotationRows.filter((a) => a.kind === "barangay");
+    const barangays = annotationRows.filter((a) => a.isActive && a.kind === "barangay");
     if (!q) return barangays;
     return barangays.filter(
       (a) => a.text.toLowerCase().includes(q) || a.slug.toLowerCase().includes(q)
     );
   }, [annotationRows, q]);
-  const filteredRoutes = useMemo(
-    () =>
-      !q
-        ? routeRows
-        : routeRows.filter(
-            (r) =>
-              r.nameEn.toLowerCase().includes(q) ||
-              r.fromName.toLowerCase().includes(q) ||
-              r.toName.toLowerCase().includes(q)
-          ),
-    [routeRows, q]
-  );
-  const filteredHotels = useMemo(
-    () => (!q ? hotels : hotels.filter((h) => h.nameEn.toLowerCase().includes(q))),
-    [hotels, q]
-  );
-  const filteredRestaurants = useMemo(
-    () => (!q ? restaurants : restaurants.filter((r) => r.nameEn.toLowerCase().includes(q))),
-    [restaurants, q]
-  );
+  const filteredRoutes = useMemo(() => {
+    const active = routeRows.filter((r) => r.isActive !== false);
+    if (!q) return active;
+    return active.filter(
+      (r) =>
+        r.nameEn.toLowerCase().includes(q) ||
+        r.fromName.toLowerCase().includes(q) ||
+        r.toName.toLowerCase().includes(q)
+    );
+  }, [routeRows, q]);
+  const filteredHotels = useMemo(() => {
+    const active = hotels.filter((h) => h.isActive);
+    if (!q) return active;
+    return active.filter((h) => h.nameEn.toLowerCase().includes(q));
+  }, [hotels, q]);
+  const filteredRestaurants = useMemo(() => {
+    const active = restaurants.filter((r) => r.isActive);
+    if (!q) return active;
+    return active.filter((r) => r.nameEn.toLowerCase().includes(q));
+  }, [restaurants, q]);
   const filteredCategories = useMemo(
     () => (!q ? categoryRows : categoryRows.filter((c) => c.nameEn.toLowerCase().includes(q))),
     [categoryRows, q]
@@ -1813,33 +1892,43 @@ export function MapAdminClient({
       placeholder: "Search attractions…",
       addLabel: "Add pin",
       showAdd: true,
-      count: `${attractions.filter((a) => a.isActive).length} active · ${attractions.length} total`,
+      count: `${attractions.filter((a) => a.isActive).length} attractions`,
     },
     volcanoes: {
       placeholder: "Search volcanoes / peaks…",
       addLabel: "Add volcano",
       showAdd: true,
-      count: `${annotationRows.filter((a) => a.kind === "peak").length} peaks`,
+      count: `${annotationRows.filter((a) => a.isActive && a.kind === "peak").length} peaks`,
     },
     barangays: {
       placeholder: "Search barangays…",
       addLabel: "Add barangay",
       showAdd: true,
-      count: `${annotationRows.filter((a) => a.kind === "barangay").length} barangays`,
+      count: `${annotationRows.filter((a) => a.isActive && a.kind === "barangay").length} barangays`,
     },
     labels: {
       placeholder: "Search labels…",
       addLabel: "Add label",
       showAdd: true,
-      count: `${annotationRows.filter((a) => a.kind !== "peak" && a.kind !== "barangay").length} labels`,
+      count: `${annotationRows.filter((a) => a.isActive && a.kind !== "peak" && a.kind !== "barangay").length} labels`,
     },
-    routes: { placeholder: "Search routes…", addLabel: "Add route", showAdd: true, count: `${routeRows.length} routes` },
-    hotels: { placeholder: "Search hotels…", addLabel: "Add hotel", showAdd: true, count: `${hotels.length} hotels` },
+    routes: {
+      placeholder: "Search routes…",
+      addLabel: "Add route",
+      showAdd: true,
+      count: `${routeRows.filter((r) => r.isActive !== false).length} routes`,
+    },
+    hotels: {
+      placeholder: "Search hotels…",
+      addLabel: "Add hotel",
+      showAdd: true,
+      count: `${hotels.filter((h) => h.isActive).length} hotels`,
+    },
     restaurants: {
       placeholder: "Search restaurants…",
       addLabel: "Add restaurant",
       showAdd: true,
-      count: `${restaurants.length} restaurants`,
+      count: `${restaurants.filter((r) => r.isActive).length} restaurants`,
     },
     categories: {
       placeholder: "Search categories…",
@@ -1857,20 +1946,26 @@ export function MapAdminClient({
 
   const mapHint = {
     attractions: creating
-      ? "Adding pin · click map or drag green marker"
-      : "Select a pin to edit · drag to move (click alone won’t move it)",
+      ? "Adding pin · click map or drag green marker · scroll or +/- to zoom"
+      : "Select a pin · drag to move · scroll or +/- to zoom",
     volcanoes: creating
-      ? "Adding volcano · click map or drag green marker"
-      : "Select a peak · drag to move label (painted mountain follows)",
+      ? "Adding volcano · click map or drag green marker · scroll or +/- to zoom"
+      : "Select a peak · drag to move · scroll or +/- to zoom",
     barangays: creating
-      ? "Adding barangay · click map or drag green marker"
-      : "Select a barangay · drag to move",
-    labels: creating ? "Adding label · click map or drag green marker" : "Select a label · drag to move",
-    routes: "Click map to add waypoints · drag handles to adjust",
-    hotels: creating ? "Adding hotel · click map or drag marker" : "Select a hotel · drag to move",
-    restaurants: creating ? "Adding restaurant · click map or drag marker" : "Select a restaurant · drag to move",
+      ? "Adding barangay · click map or drag green marker · scroll or +/- to zoom"
+      : "Select a barangay · drag to move · scroll or +/- to zoom",
+    labels: creating
+      ? "Adding label · click map or drag green marker · scroll or +/- to zoom"
+      : "Select a label · drag to move · scroll or +/- to zoom",
+    routes: "Click map to add waypoints · drag handles · scroll or +/- to zoom",
+    hotels: creating
+      ? "Adding hotel · click map or drag marker · scroll or +/- to zoom"
+      : "Select a hotel · drag to move · scroll or +/- to zoom",
+    restaurants: creating
+      ? "Adding restaurant · click map or drag marker · scroll or +/- to zoom"
+      : "Select a restaurant · drag to move · scroll or +/- to zoom",
     categories: "Preview only — no map editing in this mode",
-    municipalities: "Select a municipality · drag label to move",
+    municipalities: "Select a municipality · drag label · scroll or +/- to zoom",
   }[mode];
 
   const formTitle = creating
@@ -1916,13 +2011,15 @@ export function MapAdminClient({
   const showMap = mode !== "categories";
 
   const modeCounts: Record<AdminMode, number> = {
-    attractions: attractions.length,
-    volcanoes: annotationRows.filter((a) => a.kind === "peak").length,
-    barangays: annotationRows.filter((a) => a.kind === "barangay").length,
-    labels: annotationRows.filter((a) => a.kind !== "peak" && a.kind !== "barangay").length,
-    routes: routeRows.length,
-    hotels: hotels.length,
-    restaurants: restaurants.length,
+    attractions: attractions.filter((a) => a.isActive).length,
+    volcanoes: annotationRows.filter((a) => a.isActive && a.kind === "peak").length,
+    barangays: annotationRows.filter((a) => a.isActive && a.kind === "barangay").length,
+    labels: annotationRows.filter(
+      (a) => a.isActive && a.kind !== "peak" && a.kind !== "barangay"
+    ).length,
+    routes: routeRows.filter((r) => r.isActive !== false).length,
+    hotels: hotels.filter((h) => h.isActive).length,
+    restaurants: restaurants.filter((r) => r.isActive).length,
     categories: categoryRows.length,
     municipalities: municipalityRows.length,
   };
@@ -1961,8 +2058,8 @@ export function MapAdminClient({
 
   
   return (
-    <div className="space-y-3">
-      <div className="rounded-xl border bg-white p-3 shadow-sm">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="shrink-0 rounded-xl border bg-white p-3 shadow-sm">
         <div className="flex flex-wrap gap-4">
           {MODE_GROUPS.map((group) => (
             <div key={group.label} className="min-w-0">
@@ -2003,12 +2100,12 @@ export function MapAdminClient({
 
       <div
         className={cn(
-          "grid gap-4 xl:h-[min(640px,calc(100vh-13rem))] xl:min-h-0 xl:items-stretch",
-          showMap ? "xl:grid-cols-[240px_minmax(0,1fr)_340px]" : "xl:grid-cols-[280px_minmax(0,1fr)]"
+          "grid min-h-0 flex-1 gap-3 xl:items-stretch",
+          showMap ? "xl:grid-cols-[minmax(220px,260px)_minmax(0,1fr)_minmax(300px,380px)]" : "xl:grid-cols-[minmax(240px,300px)_minmax(0,1fr)]"
         )}
       >
-        <aside className="flex max-h-[420px] flex-col overflow-hidden rounded-xl border bg-white shadow-sm xl:max-h-none">
-          <div className="space-y-2 border-b p-3">
+        <aside className="flex max-h-[min(50vh,420px)] flex-col overflow-hidden rounded-xl border bg-white shadow-sm xl:max-h-full xl:self-start">
+          <div className="shrink-0 space-y-2 border-b p-3">
             <Input placeholder={listMeta.placeholder} value={query} onChange={(e) => setQuery(e.target.value)} />
             <p className="text-[11px] text-gray-500">{listMeta.count}</p>
             {listMeta.showAdd && (
@@ -2247,7 +2344,7 @@ export function MapAdminClient({
         </aside>
 
         {showMap ? (
-        <section className="relative flex h-[min(420px,55vh)] flex-col overflow-hidden rounded-xl border bg-[#5eb0cc] shadow-sm xl:h-full xl:max-h-full">
+        <section className="relative flex h-[min(420px,55vh)] flex-col overflow-hidden rounded-xl border bg-[#5eb0cc] shadow-sm xl:h-full xl:min-h-0 xl:max-h-none">
           <div className="pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-slate-950/75 to-slate-950/40 px-4 py-2.5 text-white">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -2269,12 +2366,34 @@ export function MapAdminClient({
             </div>
           </div>
           <div
-            className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-2 pt-12"
+            className="relative flex min-h-0 flex-1 overflow-hidden pt-12"
             style={{
               backgroundImage:
                 "radial-gradient(ellipse at 70% 15%, rgba(255,255,255,0.32), transparent 55%), linear-gradient(145deg, #5eb0cc 0%, #7ec8de 40%, #4a9bbb 100%)",
             }}
           >
+            <TransformWrapper
+              initialScale={1}
+              minScale={1}
+              maxScale={5}
+              centerOnInit
+              wheel={{ step: 0.12, disabled: pinDragging }}
+              doubleClick={{ disabled: true }}
+              panning={{
+                disabled: pinDragging,
+                velocityDisabled: true,
+                excluded: ["button", "input", "textarea"],
+              }}
+              limitToBounds
+            >
+              <AdminMapZoomControls />
+              <TransformComponent
+                wrapperClass="!h-full !w-full !max-w-none"
+                contentClass="!h-full !w-full !max-w-none"
+                wrapperStyle={{ width: "100%", height: "100%", maxWidth: "none" }}
+                contentStyle={{ width: "100%", height: "100%", maxWidth: "none" }}
+              >
+                <div className="relative box-border flex h-full w-full min-h-full min-w-full items-center justify-center p-2">
             <div
               ref={stageRef}
               className={cn(
@@ -2285,14 +2404,7 @@ export function MapAdminClient({
               onClick={onMapClick}
             >
               <VectorTerrain selectedMunicipalitySlug={null} nightMode={false} hideOcean />
-              {(mode === "volcanoes" || mode === "labels" || mode === "barangays") && (
-                <WatercolorMapDecor
-                  nightMode={false}
-                  peakPositions={annotationRows
-                    .filter((a) => a.kind === "peak")
-                    .map((a) => ({ id: a.slug, x: a.mapX, y: a.mapY }))}
-                />
-              )}
+              <WatercolorMapDecor nightMode={false} peakPositions={peakPositions} />
               <MapTerrainLabels
                 selectedMunicipalitySlug={null}
                 nightMode={false}
@@ -2349,7 +2461,7 @@ export function MapAdminClient({
                 ))}
 
               {mode === "attractions" &&
-                attractions.map((a) => {
+                attractions.filter((a) => a.isActive).map((a) => {
                   const active = selectedId === a.id && !creating;
                   const color = categoryMeta(a.categorySlug as AttractionCategory)?.color ?? "#f97316";
                   return (
@@ -2397,10 +2509,12 @@ export function MapAdminClient({
 
               {isAnnotationMode(mode) &&
                 (mode === "volcanoes"
-                  ? annotationRows.filter((a) => a.kind === "peak")
+                  ? annotationRows.filter((a) => a.isActive && a.kind === "peak")
                   : mode === "barangays"
-                    ? annotationRows.filter((a) => a.kind === "barangay")
-                    : annotationRows.filter((a) => a.kind !== "peak" && a.kind !== "barangay")
+                    ? annotationRows.filter((a) => a.isActive && a.kind === "barangay")
+                    : annotationRows.filter(
+                        (a) => a.isActive && a.kind !== "peak" && a.kind !== "barangay"
+                      )
                 ).map((a) => (
                   <button
                     key={a.id}
@@ -2435,7 +2549,7 @@ export function MapAdminClient({
                 ))}
 
               {(mode === "hotels" || mode === "restaurants") &&
-                (mode === "hotels" ? hotels : restaurants).map((p) => (
+                (mode === "hotels" ? hotels : restaurants).filter((p) => p.isActive).map((p) => (
                   <button
                     key={p.id}
                     type="button"
@@ -2522,12 +2636,15 @@ export function MapAdminClient({
                 </button>
               )}
             </div>
+                </div>
+              </TransformComponent>
+            </TransformWrapper>
           </div>
         </section>
         ) : null}
 
-        <aside className="flex max-h-[480px] flex-col overflow-hidden rounded-xl border bg-white shadow-sm xl:max-h-none">
-          <div className="border-b px-4 py-3">
+        <aside className="flex max-h-[min(60vh,480px)] flex-col overflow-hidden rounded-xl border bg-white shadow-sm xl:max-h-full xl:self-start">
+          <div className="shrink-0 border-b px-4 py-3">
             <h2 className="font-semibold text-kiosk-navy">{formTitle}</h2>
             {creating && (
               <p className="mt-0.5 text-xs text-amber-700">New item — fill in details then Create</p>

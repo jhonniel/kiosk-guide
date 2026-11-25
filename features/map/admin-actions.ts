@@ -33,11 +33,22 @@ function slugify(input: string) {
     .slice(0, 64);
 }
 
-function revalidateMapAdmin() {
-  revalidatePath("/admin/map");
+async function revalidateMapAdmin() {
+  // Revalidate public kiosk surfaces only. Refreshing /admin/map mid-edit caused
+  // the client to re-apply stale RSC props and snap pins back after move/delete.
   revalidatePath("/map");
   revalidatePath("/", "layout");
   revalidatePath("/api/kiosk/offline-data");
+  // Push map pins into the offline JSON so other kiosks/devices sync the same edits.
+  const { refreshKioskOfflineFiles } = await import("@/features/offline/refresh-offline-files");
+  await refreshKioskOfflineFiles();
+  // Keep prisma/data/map-admin-snapshot.json in sync for git push + db:seed.
+  try {
+    const { writeMapAdminSnapshotFile } = await import("@/features/map/export-map-admin-snapshot");
+    await writeMapAdminSnapshotFile();
+  } catch {
+    // Best-effort; admin can still run `npm run map:export` before push.
+  }
 }
 
 function parsePoints(pointsJson: string): Array<{ x: number; y: number }> {
@@ -133,7 +144,7 @@ export async function createMapAttraction(
       },
     });
 
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true, id: created.id };
   } catch (e) {
     return {
@@ -171,11 +182,28 @@ export async function updateMapAttraction(
       }
     }
 
+    const nextMapX =
+      typeof data.mapX === "number" && Number.isFinite(data.mapX)
+        ? clampPercent(data.mapX)
+        : existing.mapX;
+    const nextMapY =
+      typeof data.mapY === "number" && Number.isFinite(data.mapY)
+        ? clampPercent(data.mapY)
+        : existing.mapY;
+    const coordsChanged = nextMapX !== existing.mapX || nextMapY !== existing.mapY;
+    const { latitude, longitude } = coordsChanged
+      ? mapPercentToLatLng(nextMapX, nextMapY)
+      : { latitude: existing.latitude, longitude: existing.longitude };
+
     await db.mapAttraction.update({
       where: { id },
       data: {
         slug,
         ...attractionWriteData(data, nameEn),
+        mapX: nextMapX,
+        mapY: nextMapY,
+        latitude,
+        longitude,
         sortOrder:
           typeof data.sortOrder === "number" && Number.isFinite(data.sortOrder)
             ? data.sortOrder
@@ -183,7 +211,7 @@ export async function updateMapAttraction(
       },
     });
 
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -207,7 +235,7 @@ export async function updateMapAttractionPosition(
       where: { id },
       data: { mapX: x, mapY: y, latitude, longitude },
     });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -220,8 +248,9 @@ export async function updateMapAttractionPosition(
 export async function deleteMapAttraction(id: string): Promise<ActionResult> {
   try {
     await requirePermission("manage_map");
-    await db.mapAttraction.delete({ where: { id } });
-    revalidateMapAdmin();
+    // Soft-delete so seed upserts cannot resurrect the pin, and kiosk queries (isActive) hide it.
+    await db.mapAttraction.update({ where: { id }, data: { isActive: false } });
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -256,7 +285,7 @@ export async function resetMapAttractionPosition(
       data: { mapX, mapY, latitude, longitude },
     });
 
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true, mapX, mapY };
   } catch (e) {
     return {
@@ -285,7 +314,7 @@ export async function addMapAttractionPhoto(
         sortOrder: (maxSort._max.sortOrder ?? -1) + 1,
       },
     });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true, id: created.id };
   } catch (e) {
     return {
@@ -299,7 +328,7 @@ export async function deleteMapAttractionPhoto(id: string): Promise<ActionResult
   try {
     await requirePermission("manage_map");
     await db.mapPhoto.delete({ where: { id } });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -344,7 +373,7 @@ export async function createMapAnnotation(
             : (maxSort._max.sortOrder ?? 0) + 1,
       },
     });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true, id: created.id };
   } catch (e) {
     return {
@@ -375,12 +404,23 @@ export async function updateMapAnnotation(
       }
     }
 
+    const nextMapX =
+      typeof data.mapX === "number" && Number.isFinite(data.mapX)
+        ? clampPercent(data.mapX)
+        : existing.mapX;
+    const nextMapY =
+      typeof data.mapY === "number" && Number.isFinite(data.mapY)
+        ? clampPercent(data.mapY)
+        : existing.mapY;
+
     await db.mapAnnotation.update({
       where: { id },
       data: {
         slug,
         text,
         kind: data.kind || existing.kind,
+        mapX: nextMapX,
+        mapY: nextMapY,
         fontSize: data.fontSize ?? null,
         anchor: data.anchor || null,
         infoEn: data.infoEn?.trim() || null,
@@ -392,7 +432,7 @@ export async function updateMapAnnotation(
           typeof data.sortOrder === "number" ? data.sortOrder : existing.sortOrder,
       },
     });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -413,7 +453,7 @@ export async function updateMapAnnotationPosition(
       where: { id },
       data: { mapX: clampPercent(mapX), mapY: clampPercent(mapY) },
     });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -426,8 +466,8 @@ export async function updateMapAnnotationPosition(
 export async function deleteMapAnnotation(id: string): Promise<ActionResult> {
   try {
     await requirePermission("manage_map");
-    await db.mapAnnotation.delete({ where: { id } });
-    revalidateMapAdmin();
+    await db.mapAnnotation.update({ where: { id }, data: { isActive: false } });
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -492,7 +532,7 @@ export async function createMapRoute(
         isActive: data.isActive !== false,
       },
     });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true, id: created.id };
   } catch (e) {
     return {
@@ -556,7 +596,7 @@ export async function updateMapRoute(
         isActive: data.isActive !== false,
       },
     });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -569,8 +609,8 @@ export async function updateMapRoute(
 export async function deleteMapRoute(id: string): Promise<ActionResult> {
   try {
     await requirePermission("manage_map");
-    await db.mapRoute.delete({ where: { id } });
-    revalidateMapAdmin();
+    await db.mapRoute.update({ where: { id }, data: { isActive: false } });
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -629,7 +669,7 @@ export async function createMapHotel(
             : (maxSort._max.sortOrder ?? 0) + 1,
       },
     });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true, id: created.id };
   } catch (e) {
     return {
@@ -663,11 +703,19 @@ export async function updateMapHotel(
       data: {
         slug,
         ...placeWriteData(data, nameEn),
+        mapX:
+          typeof data.mapX === "number" && Number.isFinite(data.mapX)
+            ? clampPercent(data.mapX)
+            : existing.mapX,
+        mapY:
+          typeof data.mapY === "number" && Number.isFinite(data.mapY)
+            ? clampPercent(data.mapY)
+            : existing.mapY,
         sortOrder:
           typeof data.sortOrder === "number" ? data.sortOrder : existing.sortOrder,
       },
     });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -688,7 +736,7 @@ export async function updateMapHotelPosition(
       where: { id },
       data: { mapX: clampPercent(mapX), mapY: clampPercent(mapY) },
     });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -701,8 +749,8 @@ export async function updateMapHotelPosition(
 export async function deleteMapHotel(id: string): Promise<ActionResult> {
   try {
     await requirePermission("manage_map");
-    await db.mapHotel.delete({ where: { id } });
-    revalidateMapAdmin();
+    await db.mapHotel.update({ where: { id }, data: { isActive: false } });
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -736,7 +784,7 @@ export async function createMapRestaurant(
             : (maxSort._max.sortOrder ?? 0) + 1,
       },
     });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true, id: created.id };
   } catch (e) {
     return {
@@ -770,11 +818,19 @@ export async function updateMapRestaurant(
       data: {
         slug,
         ...placeWriteData(data, nameEn),
+        mapX:
+          typeof data.mapX === "number" && Number.isFinite(data.mapX)
+            ? clampPercent(data.mapX)
+            : existing.mapX,
+        mapY:
+          typeof data.mapY === "number" && Number.isFinite(data.mapY)
+            ? clampPercent(data.mapY)
+            : existing.mapY,
         sortOrder:
           typeof data.sortOrder === "number" ? data.sortOrder : existing.sortOrder,
       },
     });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -795,7 +851,7 @@ export async function updateMapRestaurantPosition(
       where: { id },
       data: { mapX: clampPercent(mapX), mapY: clampPercent(mapY) },
     });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -808,8 +864,8 @@ export async function updateMapRestaurantPosition(
 export async function deleteMapRestaurant(id: string): Promise<ActionResult> {
   try {
     await requirePermission("manage_map");
-    await db.mapRestaurant.delete({ where: { id } });
-    revalidateMapAdmin();
+    await db.mapRestaurant.update({ where: { id }, data: { isActive: false } });
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -849,7 +905,7 @@ export async function createMapCategory(
         showInLegend: data.showInLegend !== false,
       },
     });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true, id: created.id };
   } catch (e) {
     return {
@@ -895,7 +951,7 @@ export async function updateMapCategory(
         showInLegend: data.showInLegend !== false,
       },
     });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -916,7 +972,7 @@ export async function deleteMapCategory(id: string): Promise<ActionResult> {
       };
     }
     await db.mapCategory.delete({ where: { id } });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -952,7 +1008,7 @@ export async function updateMapMunicipality(
           typeof data.labelY === "number" ? clampPercent(data.labelY) : existing.labelY,
       },
     });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -974,7 +1030,7 @@ export async function deleteMapMunicipality(id: string): Promise<ActionResult> {
       data: { municipalityId: null },
     });
     await db.mapMunicipality.delete({ where: { id } });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {
@@ -995,7 +1051,7 @@ export async function updateMapMunicipalityLabelPosition(
       where: { id },
       data: { labelX: clampPercent(labelX), labelY: clampPercent(labelY) },
     });
-    revalidateMapAdmin();
+    await revalidateMapAdmin();
     return { success: true };
   } catch (e) {
     return {

@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "fs";
+import path from "path";
 import type { PrismaClient } from "@prisma/client";
 import { ATTRACTION_CATEGORIES } from "../features/map/categories";
 import { CAMIGUIN_ATTRACTIONS } from "../features/map/attractions";
@@ -15,6 +17,372 @@ import {
 } from "../data/map/traced-paths";
 import { ATTRACTION_GEO } from "../data/map/attraction-geo";
 import { MAP_ANNOTATIONS } from "@/data/map/map-spot-labels";
+
+type MapAdminSnapshot = {
+  exportedAt?: string;
+  attractions?: Array<{
+    slug: string;
+    nameEn: string;
+    nameFil: string;
+    nameBis?: string | null;
+    descriptionEn: string;
+    descriptionFil: string;
+    descriptionBis?: string | null;
+    categorySlug: string;
+    municipalitySlug?: string | null;
+    mapX: number;
+    mapY: number;
+    latitude: number;
+    longitude: number;
+    isActive: boolean;
+    featured?: boolean;
+    sortOrder?: number;
+    coverImage?: string | null;
+    labelText?: string | null;
+    labelSide?: string | null;
+  }>;
+  annotations?: Array<{
+    slug: string;
+    text: string;
+    kind: string;
+    mapX: number;
+    mapY: number;
+    fontSize?: number | null;
+    anchor?: string | null;
+    infoEn?: string | null;
+    infoFil?: string | null;
+    infoBis?: string | null;
+    skipIfAttractionSlug?: string | null;
+    isActive: boolean;
+    sortOrder?: number;
+  }>;
+  hotels?: Array<{
+    slug: string;
+    nameEn: string;
+    nameFil: string;
+    nameBis?: string | null;
+    descriptionEn?: string | null;
+    descriptionFil?: string | null;
+    descriptionBis?: string | null;
+    mapX: number;
+    mapY: number;
+    coverImage?: string | null;
+    phone?: string | null;
+    website?: string | null;
+    openingHoursEn?: string | null;
+    addressEn?: string | null;
+    rating?: number;
+    isActive: boolean;
+    sortOrder?: number;
+  }>;
+  restaurants?: Array<{
+    slug: string;
+    nameEn: string;
+    nameFil: string;
+    nameBis?: string | null;
+    descriptionEn?: string | null;
+    descriptionFil?: string | null;
+    descriptionBis?: string | null;
+    mapX: number;
+    mapY: number;
+    coverImage?: string | null;
+    phone?: string | null;
+    website?: string | null;
+    openingHoursEn?: string | null;
+    addressEn?: string | null;
+    rating?: number;
+    isActive: boolean;
+    sortOrder?: number;
+  }>;
+  municipalities?: Array<{
+    slug: string;
+    labelX: number;
+    labelY: number;
+    nameEn?: string;
+    nameFil?: string;
+    nameBis?: string | null;
+  }>;
+  routes?: Array<{
+    slug: string;
+    nameEn: string;
+    nameFil: string;
+    nameBis?: string | null;
+    kind: string;
+    fromSlug: string;
+    toSlug: string;
+    pointsJson: string;
+    travelTimeEn?: string | null;
+    travelTimeFil?: string | null;
+    travelTimeBis?: string | null;
+    distanceKm?: number | null;
+    isActive: boolean;
+  }>;
+};
+
+function loadMapAdminSnapshot(): MapAdminSnapshot | null {
+  const filePath = path.join(process.cwd(), "prisma", "data", "map-admin-snapshot.json");
+  if (!existsSync(filePath)) return null;
+  try {
+    return JSON.parse(readFileSync(filePath, "utf8")) as MapAdminSnapshot;
+  } catch (e) {
+    console.warn("Could not read map-admin-snapshot.json:", e);
+    return null;
+  }
+}
+
+/**
+ * Apply committed admin map edits (positions, visibility, custom places)
+ * so `git push` + `db:seed` restores the same map on other machines.
+ */
+async function applyMapAdminSnapshot(prisma: PrismaClient) {
+  const snapshot = loadMapAdminSnapshot();
+  if (!snapshot) {
+    console.log("No prisma/data/map-admin-snapshot.json — skipping admin map restore.");
+    return;
+  }
+
+  console.log(
+    `Applying map admin snapshot${snapshot.exportedAt ? ` (${snapshot.exportedAt})` : ""}…`
+  );
+
+  const categories = await prisma.mapCategory.findMany({ select: { id: true, slug: true } });
+  const categoryBySlug = new Map(categories.map((c) => [c.slug, c.id]));
+  const municipalities = await prisma.mapMunicipality.findMany({ select: { id: true, slug: true } });
+  const muniBySlug = new Map(municipalities.map((m) => [m.slug, m.id]));
+
+  for (const a of snapshot.attractions ?? []) {
+    const categoryId = categoryBySlug.get(a.categorySlug);
+    if (!categoryId) continue;
+    const municipalityId = a.municipalitySlug ? muniBySlug.get(a.municipalitySlug) ?? null : null;
+    await prisma.mapAttraction.upsert({
+      where: { slug: a.slug },
+      update: {
+        nameEn: a.nameEn,
+        nameFil: a.nameFil,
+        nameBis: a.nameBis ?? null,
+        descriptionEn: a.descriptionEn,
+        descriptionFil: a.descriptionFil,
+        descriptionBis: a.descriptionBis ?? null,
+        categoryId,
+        municipalityId,
+        mapX: a.mapX,
+        mapY: a.mapY,
+        latitude: a.latitude,
+        longitude: a.longitude,
+        isActive: a.isActive,
+        featured: Boolean(a.featured),
+        sortOrder: a.sortOrder ?? 0,
+        coverImage: a.coverImage ?? null,
+        labelText: a.labelText ?? null,
+        labelSide: a.labelSide ?? null,
+      },
+      create: {
+        slug: a.slug,
+        nameEn: a.nameEn,
+        nameFil: a.nameFil,
+        nameBis: a.nameBis ?? null,
+        descriptionEn: a.descriptionEn,
+        descriptionFil: a.descriptionFil,
+        descriptionBis: a.descriptionBis ?? null,
+        categoryId,
+        municipalityId,
+        mapX: a.mapX,
+        mapY: a.mapY,
+        latitude: a.latitude,
+        longitude: a.longitude,
+        isActive: a.isActive,
+        featured: Boolean(a.featured),
+        sortOrder: a.sortOrder ?? 0,
+        coverImage: a.coverImage ?? null,
+        labelText: a.labelText ?? null,
+        labelSide: a.labelSide ?? null,
+      },
+    });
+  }
+
+  for (const ann of snapshot.annotations ?? []) {
+    await prisma.mapAnnotation.upsert({
+      where: { slug: ann.slug },
+      update: {
+        text: ann.text,
+        kind: ann.kind,
+        mapX: ann.mapX,
+        mapY: ann.mapY,
+        fontSize: ann.fontSize ?? null,
+        anchor: ann.anchor ?? null,
+        infoEn: ann.infoEn ?? null,
+        infoFil: ann.infoFil ?? null,
+        infoBis: ann.infoBis ?? null,
+        skipIfAttractionSlug: ann.skipIfAttractionSlug ?? null,
+        isActive: ann.isActive,
+        sortOrder: ann.sortOrder ?? 0,
+      },
+      create: {
+        slug: ann.slug,
+        text: ann.text,
+        kind: ann.kind,
+        mapX: ann.mapX,
+        mapY: ann.mapY,
+        fontSize: ann.fontSize ?? null,
+        anchor: ann.anchor ?? null,
+        infoEn: ann.infoEn ?? null,
+        infoFil: ann.infoFil ?? null,
+        infoBis: ann.infoBis ?? null,
+        skipIfAttractionSlug: ann.skipIfAttractionSlug ?? null,
+        isActive: ann.isActive,
+        sortOrder: ann.sortOrder ?? 0,
+      },
+    });
+  }
+
+  for (const h of snapshot.hotels ?? []) {
+    const descriptionEn = h.descriptionEn?.trim() || h.nameEn;
+    await prisma.mapHotel.upsert({
+      where: { slug: h.slug },
+      update: {
+        nameEn: h.nameEn,
+        nameFil: h.nameFil,
+        nameBis: h.nameBis ?? null,
+        description: descriptionEn,
+        descriptionEn,
+        descriptionFil: h.descriptionFil ?? null,
+        descriptionBis: h.descriptionBis ?? null,
+        mapX: h.mapX,
+        mapY: h.mapY,
+        coverImage: h.coverImage ?? null,
+        phone: h.phone ?? null,
+        website: h.website ?? null,
+        openingHoursEn: h.openingHoursEn ?? null,
+        addressEn: h.addressEn ?? null,
+        rating: h.rating ?? 4,
+        isActive: h.isActive,
+        sortOrder: h.sortOrder ?? 0,
+      },
+      create: {
+        slug: h.slug,
+        nameEn: h.nameEn,
+        nameFil: h.nameFil,
+        nameBis: h.nameBis ?? null,
+        description: descriptionEn,
+        descriptionEn,
+        descriptionFil: h.descriptionFil ?? null,
+        descriptionBis: h.descriptionBis ?? null,
+        mapX: h.mapX,
+        mapY: h.mapY,
+        coverImage: h.coverImage ?? null,
+        phone: h.phone ?? null,
+        website: h.website ?? null,
+        openingHoursEn: h.openingHoursEn ?? null,
+        addressEn: h.addressEn ?? null,
+        rating: h.rating ?? 4,
+        isActive: h.isActive,
+        sortOrder: h.sortOrder ?? 0,
+      },
+    });
+  }
+
+  for (const r of snapshot.restaurants ?? []) {
+    const descriptionEn = r.descriptionEn?.trim() || r.nameEn;
+    await prisma.mapRestaurant.upsert({
+      where: { slug: r.slug },
+      update: {
+        nameEn: r.nameEn,
+        nameFil: r.nameFil,
+        nameBis: r.nameBis ?? null,
+        description: descriptionEn,
+        descriptionEn,
+        descriptionFil: r.descriptionFil ?? null,
+        descriptionBis: r.descriptionBis ?? null,
+        mapX: r.mapX,
+        mapY: r.mapY,
+        coverImage: r.coverImage ?? null,
+        phone: r.phone ?? null,
+        website: r.website ?? null,
+        openingHoursEn: r.openingHoursEn ?? null,
+        addressEn: r.addressEn ?? null,
+        rating: r.rating ?? 4,
+        isActive: r.isActive,
+        sortOrder: r.sortOrder ?? 0,
+      },
+      create: {
+        slug: r.slug,
+        nameEn: r.nameEn,
+        nameFil: r.nameFil,
+        nameBis: r.nameBis ?? null,
+        description: descriptionEn,
+        descriptionEn,
+        descriptionFil: r.descriptionFil ?? null,
+        descriptionBis: r.descriptionBis ?? null,
+        mapX: r.mapX,
+        mapY: r.mapY,
+        coverImage: r.coverImage ?? null,
+        phone: r.phone ?? null,
+        website: r.website ?? null,
+        openingHoursEn: r.openingHoursEn ?? null,
+        addressEn: r.addressEn ?? null,
+        rating: r.rating ?? 4,
+        isActive: r.isActive,
+        sortOrder: r.sortOrder ?? 0,
+      },
+    });
+  }
+
+  for (const m of snapshot.municipalities ?? []) {
+    await prisma.mapMunicipality.updateMany({
+      where: { slug: m.slug },
+      data: {
+        labelX: m.labelX,
+        labelY: m.labelY,
+        ...(m.nameEn ? { nameEn: m.nameEn } : {}),
+        ...(m.nameFil ? { nameFil: m.nameFil } : {}),
+        ...(m.nameBis !== undefined ? { nameBis: m.nameBis } : {}),
+      },
+    });
+  }
+
+  const attractions = await prisma.mapAttraction.findMany({ select: { id: true, slug: true } });
+  const attractionIdBySlug = new Map(attractions.map((a) => [a.slug, a.id]));
+
+  for (const route of snapshot.routes ?? []) {
+    const fromId = attractionIdBySlug.get(route.fromSlug);
+    const toId = attractionIdBySlug.get(route.toSlug);
+    if (!fromId || !toId) continue;
+    await prisma.mapRoute.upsert({
+      where: { slug: route.slug },
+      update: {
+        nameEn: route.nameEn,
+        nameFil: route.nameFil,
+        nameBis: route.nameBis ?? null,
+        kind: route.kind,
+        fromId,
+        toId,
+        pointsJson: route.pointsJson,
+        travelTimeEn: route.travelTimeEn ?? null,
+        travelTimeFil: route.travelTimeFil ?? null,
+        travelTimeBis: route.travelTimeBis ?? null,
+        distanceKm: route.distanceKm ?? null,
+        isActive: route.isActive,
+      },
+      create: {
+        slug: route.slug,
+        nameEn: route.nameEn,
+        nameFil: route.nameFil,
+        nameBis: route.nameBis ?? null,
+        kind: route.kind,
+        fromId,
+        toId,
+        pointsJson: route.pointsJson,
+        travelTimeEn: route.travelTimeEn ?? null,
+        travelTimeFil: route.travelTimeFil ?? null,
+        travelTimeBis: route.travelTimeBis ?? null,
+        distanceKm: route.distanceKm ?? null,
+        isActive: route.isActive,
+      },
+    });
+  }
+
+  console.log("Map admin snapshot applied.");
+}
 
 /** Features derived from the master tourism map (traced vectors). */
 function masterTracedFeatures() {
@@ -141,32 +509,23 @@ export async function seedMapEngine(prisma: PrismaClient) {
   }
 
   for (const m of MUNICIPALITIES) {
-    await prisma.mapMunicipality.upsert({
-      where: { slug: m.slug },
-      update: {
-        nameEn: m.nameEn,
-        nameFil: m.nameFil,
-        nameBis: m.nameBis,
-        description: m.description,
-        svgPath: m.svgPath,
-        labelX: m.labelX,
-        labelY: m.labelY,
-        fillColor: m.fillColor,
-        sortOrder: m.sortOrder,
-      },
-      create: {
-        slug: m.slug,
-        nameEn: m.nameEn,
-        nameFil: m.nameFil,
-        nameBis: m.nameBis,
-        description: m.description,
-        svgPath: m.svgPath,
-        labelX: m.labelX,
-        labelY: m.labelY,
-        fillColor: m.fillColor,
-        sortOrder: m.sortOrder,
-      },
-    });
+    const existingMuni = await prisma.mapMunicipality.findUnique({ where: { slug: m.slug } });
+    if (!existingMuni) {
+      await prisma.mapMunicipality.create({
+        data: {
+          slug: m.slug,
+          nameEn: m.nameEn,
+          nameFil: m.nameFil,
+          nameBis: m.nameBis,
+          description: m.description,
+          svgPath: m.svgPath,
+          labelX: m.labelX,
+          labelY: m.labelY,
+          fillColor: m.fillColor,
+          sortOrder: m.sortOrder,
+        },
+      });
+    }
   }
 
   for (const f of [...MAP_FEATURES, ...masterTracedFeatures()]) {
@@ -222,71 +581,48 @@ export async function seedMapEngine(prisma: PrismaClient) {
     const cover = a.photos.find((p) => !p.includes("camiguin-tourist-map")) ?? a.photos[0] ?? null;
     const gallery = a.photos.filter((p) => !p.includes("camiguin-tourist-map"));
 
-    const attraction = await prisma.mapAttraction.upsert({
-      where: { slug: a.id },
-      update: {
-        nameEn: a.name.en,
-        nameFil: a.name.fil,
-        nameBis: a.name.bis,
-        descriptionEn: a.description.en,
-        descriptionFil: a.description.fil,
-        descriptionBis: a.description.bis,
-        categoryId,
-        municipalityId: municipalityId ?? null,
-        // Preserve admin-edited pin positions (mapX/mapY/lat/lng)
-        svgPath: a.region ?? null,
-        coverImage: cover,
-        entranceFeeEn: a.entranceFee.en,
-        entranceFeeFil: a.entranceFee.fil,
-        entranceFeeBis: a.entranceFee.bis,
-        openingHoursEn: a.openingHours.en,
-        openingHoursFil: a.openingHours.fil,
-        openingHoursBis: a.openingHours.bis,
-        rating: a.rating,
-        travelTipsEn: a.travelTips.en,
-        travelTipsFil: a.travelTips.fil,
-        travelTipsBis: a.travelTips.bis,
-        featured: index < 6,
-        isActive: true,
-        sortOrder: index,
-      },
-      create: {
-        slug: a.id,
-        nameEn: a.name.en,
-        nameFil: a.name.fil,
-        nameBis: a.name.bis,
-        descriptionEn: a.description.en,
-        descriptionFil: a.description.fil,
-        descriptionBis: a.description.bis,
-        categoryId,
-        municipalityId: municipalityId ?? null,
-        latitude,
-        longitude,
-        mapX,
-        mapY,
-        svgPath: a.region ?? null,
-        coverImage: cover,
-        entranceFeeEn: a.entranceFee.en,
-        entranceFeeFil: a.entranceFee.fil,
-        entranceFeeBis: a.entranceFee.bis,
-        openingHoursEn: a.openingHours.en,
-        openingHoursFil: a.openingHours.fil,
-        openingHoursBis: a.openingHours.bis,
-        rating: a.rating,
-        travelTipsEn: a.travelTips.en,
-        travelTipsFil: a.travelTips.fil,
-        travelTipsBis: a.travelTips.bis,
-        travelTimeEn: a.travelTime.en,
-        travelTimeFil: a.travelTime.fil,
-        travelTimeBis: a.travelTime.bis,
-        distanceFromCapitolEn: a.distanceFromCapitol.en,
-        distanceFromCapitolFil: a.distanceFromCapitol.fil,
-        distanceFromCapitolBis: a.distanceFromCapitol.bis,
-        featured: index < 6,
-        isActive: true,
-        sortOrder: index,
-      },
-    });
+    // Create-only: never overwrite admin edits (names, positions, isActive, etc.).
+    const existingAttraction = await prisma.mapAttraction.findUnique({ where: { slug: a.id } });
+    const attraction = existingAttraction
+      ? existingAttraction
+      : await prisma.mapAttraction.create({
+          data: {
+            slug: a.id,
+            nameEn: a.name.en,
+            nameFil: a.name.fil,
+            nameBis: a.name.bis,
+            descriptionEn: a.description.en,
+            descriptionFil: a.description.fil,
+            descriptionBis: a.description.bis,
+            categoryId,
+            municipalityId: municipalityId ?? null,
+            latitude,
+            longitude,
+            mapX,
+            mapY,
+            svgPath: a.region ?? null,
+            coverImage: cover,
+            entranceFeeEn: a.entranceFee.en,
+            entranceFeeFil: a.entranceFee.fil,
+            entranceFeeBis: a.entranceFee.bis,
+            openingHoursEn: a.openingHours.en,
+            openingHoursFil: a.openingHours.fil,
+            openingHoursBis: a.openingHours.bis,
+            rating: a.rating,
+            travelTipsEn: a.travelTips.en,
+            travelTipsFil: a.travelTips.fil,
+            travelTipsBis: a.travelTips.bis,
+            travelTimeEn: a.travelTime.en,
+            travelTimeFil: a.travelTime.fil,
+            travelTimeBis: a.travelTime.bis,
+            distanceFromCapitolEn: a.distanceFromCapitol.en,
+            distanceFromCapitolFil: a.distanceFromCapitol.fil,
+            distanceFromCapitolBis: a.distanceFromCapitol.bis,
+            featured: index < 6,
+            isActive: true,
+            sortOrder: index,
+          },
+        });
 
     // Fill travel/distance from catalog only when still empty (never overwrite admin edits)
     if (!attraction.travelTimeEn || !attraction.distanceFromCapitolEn) {
@@ -331,28 +667,24 @@ export async function seedMapEngine(prisma: PrismaClient) {
     const skipIfAttractionSlug =
       annotation.skipIfAttraction && attractionSlugs.has(annotation.id) ? annotation.id : null;
 
-    await prisma.mapAnnotation.upsert({
-      where: { slug: annotation.id },
-      update: {
-        text: annotation.text,
-        kind: annotation.kind,
-        fontSize: annotation.fontSize ?? null,
-        anchor: annotation.anchor ?? null,
-        skipIfAttractionSlug,
-        sortOrder: index,
-      },
-      create: {
-        slug: annotation.id,
-        text: annotation.text,
-        kind: annotation.kind,
-        mapX: annotation.x,
-        mapY: annotation.y,
-        fontSize: annotation.fontSize ?? null,
-        anchor: annotation.anchor ?? null,
-        skipIfAttractionSlug,
-        sortOrder: index,
-      },
-    });
+    // Create-only: preserve admin text/position/isActive edits and soft-deletes.
+    const existingAnn = await prisma.mapAnnotation.findUnique({ where: { slug: annotation.id } });
+    if (!existingAnn) {
+      await prisma.mapAnnotation.create({
+        data: {
+          slug: annotation.id,
+          text: annotation.text,
+          kind: annotation.kind,
+          mapX: annotation.x,
+          mapY: annotation.y,
+          fontSize: annotation.fontSize ?? null,
+          anchor: annotation.anchor ?? null,
+          skipIfAttractionSlug,
+          sortOrder: index,
+          isActive: true,
+        },
+      });
+    }
   }
 
   for (const route of CAMIGUIN_ROUTES) {
@@ -436,6 +768,8 @@ export async function seedMapEngine(prisma: PrismaClient) {
       },
     });
   }
+
+  await applyMapAdminSnapshot(prisma);
 
   const counts = {
     categories: await prisma.mapCategory.count(),

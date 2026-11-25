@@ -134,25 +134,14 @@ export const VectorTerrain = memo(function VectorTerrain({
       {/* Layer 2 — Island (traced coastline) */}
       <g id="layer-island" filter={fx("land-depth")}>
         {TRACED_MAIN_ISLAND ? (
-          <>
-            <path
-              d={TRACED_MAIN_ISLAND}
-              fill="none"
-              stroke={nightMode ? "#b45309" : "#fbbf24"}
-              strokeWidth={10}
-              strokeLinejoin="round"
-              opacity={nightMode ? 0.2 : 0.32}
-              filter={fx("watercolor-soft")}
-            />
-            <path
-              d={TRACED_MAIN_ISLAND}
-              fill="url(#land-grad)"
-              stroke={nightMode ? "#c4a35a" : "#e8c56a"}
-              strokeWidth={4.5}
-              strokeLinejoin="round"
-              filter={fx("watercolor-soft")}
-            />
-          </>
+          <path
+            d={TRACED_MAIN_ISLAND}
+            fill="url(#land-grad)"
+            stroke={nightMode ? "#3d5a42" : "#6a9a62"}
+            strokeWidth={1.5}
+            strokeLinejoin="round"
+            filter={fx("watercolor-soft")}
+          />
         ) : null}
         <g clipPath="url(#island-clip)">
           <path d={TRACED_MAIN_ISLAND || ""} fill="url(#coast-sand)" />
@@ -174,16 +163,10 @@ export const VectorTerrain = memo(function VectorTerrain({
               filter={fx("watercolor")}
             />
           ))}
-          <ellipse cx={348} cy={267} rx={95} ry={72} fill={nightMode ? "#1e3328" : "#3d6b48"} opacity={0.28} filter={fx("watercolor-soft")} />
-          <ellipse cx={400} cy={290} rx={200} ry={140} fill={nightMode ? "#1e3328" : "#3d6b48"} opacity={0.22} />
-          <ellipse cx={512} cy={310} rx={150} ry={105} fill={nightMode ? "#243d30" : "#458552"} opacity={0.2} filter={fx("watercolor-soft")} />
-          <ellipse cx={540} cy={370} rx={170} ry={120} fill={nightMode ? "#1e3328" : "#3d6b48"} opacity={0.18} />
-          <ellipse cx={280} cy={380} rx={120} ry={90} fill={nightMode ? "#1a2e22" : "#356840"} opacity={0.16} />
-          <ellipse cx={620} cy={420} rx={130} ry={95} fill={nightMode ? "#1e3328" : "#3d6b48"} opacity={0.17} />
         </g>
       </g>
 
-      {/* Layer 4 — Primary roads only (Google Maps: coastal loop + cross-island) */}
+      {/* Layer 4 — Primary roads (coastal loop + short connectors) */}
       <g id="layer-roads" className="pointer-events-none">
         {/* Soft outline like highway casing */}
         {TRACED_ROADS.map((d, i) => (
@@ -235,8 +218,8 @@ export const VectorTerrain = memo(function VectorTerrain({
             key={`mi-${i}`}
             d={d}
             fill={nightMode ? "#3f6b48" : "#6faf6a"}
-            stroke={nightMode ? "#c4a35a" : "#e8c56a"}
-            strokeWidth={3}
+            stroke={nightMode ? "#3d5a42" : "#6a9a62"}
+            strokeWidth={1.5}
             filter={fx("watercolor-soft")}
           />
         ))}
